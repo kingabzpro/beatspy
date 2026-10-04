@@ -1,0 +1,71 @@
+[project]
+name = "beatspy"
+version = "0.1.0"
+description = "Give any AI model a team of trading agents. Can it beat SPY? A local-first agentic trading benchmark."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Abid Ali Awan" }]
+keywords = ["llm", "benchmark", "trading", "agents", "backtesting", "finance", "spy"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+  "openai-agents>=0.2",
+  "pydantic>=2.7",
+  "pandas>=2.2",
+  "numpy>=1.26",
+  "yfinance>=0.2.40",
+  "httpx>=0.27",
+  "exchange-calendars>=4.11,<5",
+]
+
+[project.optional-dependencies]
+chronos = ["chronos-forecasting>=1.4,<2", "torch>=2.2"]
+timegpt = ["nixtla>=0.6"]
+dev = ["pytest>=8.0", "ruff>=0.6", "build>=1.2"]
+browser = ["playwright>=1.56"]
+
+[project.scripts]
+beatspy = "beatspy.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/kingabzpro/beatspy"
+Repository = "https://github.com/kingabzpro/beatspy"
+Issues = "https://github.com/kingabzpro/beatspy/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/beatspy"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"dashboard" = "beatspy/reporting/static"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+# prompt strings are model-facing data; long JSON schema lines are intentional
+"src/beatspy/agents/prompts.py" = ["E501"]
+# tool docstrings are model-facing, HTML templates and test JSON are literal data
+"src/beatspy/tools/market.py" = ["E501"]
+"tests/*" = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

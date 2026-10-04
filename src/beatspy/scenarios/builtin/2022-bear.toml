@@ -1,0 +1,14 @@
+title = "2022 Bear Market"
+description = "January to June 2022: the fastest Fed tightening cycle in decades, the Russia-Ukraine war, and 40-year-high inflation drive the S&P 500 into a bear market."
+start = "2022-01-03"
+end = "2022-06-30"
+frequency = "monthly"
+benchmark = "SPY"
+tradable = ["AAPL", "MSFT", "AMZN", "NVDA", "JPM", "XOM", "TLT", "GLD"]
+initial_capital = 100000.0
+fee_bps = 5.0
+slippage_bps = 5.0
+max_position_weight = 0.35
+allow_web_search = false
+allow_finnhub = false
+lookback_days = 90

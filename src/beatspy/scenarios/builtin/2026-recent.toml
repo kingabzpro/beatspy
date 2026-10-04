@@ -1,0 +1,8 @@
+title = "2026 · latest 90 days"
+description = "A rolling 90-calendar-day window ending at the latest completed NYSE session in 2026."
+year = 2026
+window_days = 90
+frequency = "monthly"
+benchmark = "SPY"
+tradable = ["AAPL", "MSFT", "NVDA", "META", "JPM", "XOM", "TLT", "GLD"]
+lookback_days = 400

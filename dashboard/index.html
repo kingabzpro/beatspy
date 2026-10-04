@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A reproducible AI trading benchmark. Compare models against SPY using the same agents, market data, and rules.">
+  <title>BeatSPY · Can AI beat the market?</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar"><a class="brand" href="#"><span class="brandmark" aria-hidden="true">▥</span> BeatSPY</a>
+    <nav aria-label="Main navigation"><a href="#leaderboard">Results</a><a href="#contribute">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+  </header>
+  <main>
+    <section class="hero"><p class="eyebrow">OPEN BENCHMARK / EQUAL RULES / REAL DATA</p>
+      <h1>Can AI beat<br><span>the market?</span></h1>
+      <p class="lede">One model. Five trading agents. The same frozen market data.<br>See how the portfolio stacks up against SPY.</p>
+      <div class="hero-meta"><span>2025 &amp; 2026 · recent 90-day windows</span><span>Deterministic scoring</span><span>Open results</span></div>
+    </section>
+    <aside class="notice"><strong>Hypothetical backtest results.</strong> Not live performance. Not investment advice. Models may know historical outcomes; this is not a prospective trading test.</aside>
+    <section id="leaderboard" aria-labelledby="board-title">
+      <div class="section-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div><span id="run-count" class="pill">Loading</span></div>
+      <div class="filters">
+        <label>Evidence<select id="trust"><option value="maintainer">Maintainer run</option><option value="community">Community submitted</option><option value="all">All results</option><option value="synthetic">Synthetic demo</option></select></label>
+        <label>Year<select id="year"><option value="">All years</option></select></label>
+        <label>Scenario<select id="scenario"><option value="">All scenarios</option></select></label>
+        <label class="wide">Comparable group<select id="group"><option value="">Choose a benchmark group</option></select></label>
+      </div>
+      <p class="caption">Ranks apply within one group: identical dates, snapshot, tools, budgets, and trading rules. Community checks validate scores, not model identity.</p>
+      <div id="status" role="status" aria-live="polite">Loading published results…</div>
+      <div id="leaderboard-table" class="table-wrap"></div>
+    </section>
+    <section id="run-details" hidden aria-labelledby="run-title">
+      <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>
+      <p id="run-meta" class="caption"></p>
+      <div id="metrics" class="metric-grid"></div>
+      <div class="chart-grid"><figure class="panel"><h3>Performance</h3><p class="caption">Hover for exact values. Toggle series with the legend.</p><div id="performance"></div></figure>
+        <figure class="panel"><h3>Drawdown</h3><p class="caption">Decline from each portfolio’s running peak.</p><div id="drawdown"></div></figure></div>
+      <figure class="panel"><h3>Allocations over time</h3><div id="allocations"></div></figure>
+      <section class="panel"><h3>Agent telemetry</h3><div id="telemetry" class="table-wrap"></div></section>
+      <section class="panel"><h3>Decisions</h3><div id="decisions"></div></section>
+      <section class="panel"><h3>Trades</h3><div id="trades" class="table-wrap"></div></section>
+      <section class="panel"><h3>Settings &amp; provenance</h3><p id="coverage" class="caption"></p><details><summary>Full run record</summary><pre id="settings"></pre></details><div id="downloads" class="downloads"></div></section>
+    </section>
+    <section id="contribute" class="contribute"><div><p class="eyebrow">MAKE THE BENCHMARK BETTER</p><h2>Run it. Share the evidence.</h2><p>You run benchmarks on your machine. Results become public after your pull request is reviewed and merged.</p></div>
+      <ol><li><strong>Run a model</strong><code>uv run beatspy run --scenario 2026-recent</code></li><li><strong>Validate and prepare</strong><code>uv run beatspy submit --run results/&lt;run-id&gt;</code></li><li><strong>Open a pull request</strong><span>Include the artifacts and frozen data. No credentials.</span></li></ol>
+      <a class="button" href="https://github.com/kingabzpro/beatspy/blob/main/CONTRIBUTING.md">Contribution guide ↗</a>
+    </section>
+  </main>
+  <footer><span>BeatSPY · Apache-2.0</span><span>Evidence, not investment advice.</span><a href="https://github.com/kingabzpro/beatspy">Source ↗</a></footer>
+</body>
+</html>

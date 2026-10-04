@@ -1,0 +1,14 @@
+title = "2023 AI Recovery"
+description = "January to June 2023: a banking scare, cooling inflation, and the AI boom drive a narrow but powerful rally, mostly in mega-cap technology."
+start = "2023-01-03"
+end = "2023-06-30"
+frequency = "monthly"
+benchmark = "SPY"
+tradable = ["AAPL", "MSFT", "NVDA", "META", "JPM", "XOM", "TLT", "GLD"]
+initial_capital = 100000.0
+fee_bps = 5.0
+slippage_bps = 5.0
+max_position_weight = 0.35
+allow_web_search = false
+allow_finnhub = false
+lookback_days = 90

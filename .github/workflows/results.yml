@@ -1,0 +1,62 @@
+name: Validate submitted results
+on:
+  pull_request:
+    paths:
+      - 'dashboard/data/**'
+      - '.github/workflows/results.yml'
+permissions:
+  contents: read
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          path: submitted
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+      - name: Install trusted validator
+        if: hashFiles('trusted/pyproject.toml') != ''
+        working-directory: trusted
+        run: uv sync --frozen
+      - name: Allow only an empty catalog when introducing the validator
+        if: hashFiles('trusted/pyproject.toml') == ''
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = Path('submitted/dashboard/data')
+          files = {p.relative_to(data).as_posix() for p in data.rglob('*') if p.is_file() or p.is_symlink()}
+          assert files == {'index.json', 'maintainer-runs.json'}, 'Merge the validator before submitting results.'
+          assert json.loads((data / 'maintainer-runs.json').read_text()) == {}
+          assert json.loads((data / 'index.json').read_text()) == {
+              'schema_version': 1, 'default_trust': 'maintainer', 'runs': []}
+          PY
+      - name: Replay artifacts using base-branch code
+        if: hashFiles('trusted/pyproject.toml') != ''
+        env:
+          OWNER_CHANGE: ${{ github.event.pull_request.user.login == 'kingabzpro' && github.event.pull_request.head.repo.full_name == github.repository }}
+        working-directory: trusted
+        run: |
+          uv run --no-sync python - <<'PY'
+          import os
+          from pathlib import Path
+          from beatspy.reporting.catalog import build_catalog
+          data = Path('../submitted/dashboard/data')
+          trusted_registry = Path('dashboard/data/maintainer-runs.json')
+          submitted_registry = data / 'maintainer-runs.json'
+          owner_change = os.environ['OWNER_CHANGE'] == 'true'
+          if not owner_change and submitted_registry.read_bytes() != trusted_registry.read_bytes():
+              raise SystemExit('Only the repository owner may change maintainer attestations.')
+          original = (data / 'index.json').read_bytes()
+          build_catalog(data, registry_path=submitted_registry if owner_change else trusted_registry)
+          if (data / 'index.json').read_bytes() != original:
+              raise SystemExit('Catalog mismatch. Regenerate with beatspy submit or build_catalog.')
+          PY

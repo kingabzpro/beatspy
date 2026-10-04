@@ -1,0 +1,36 @@
+# Example BeatSPY configuration.
+# Copy the relevant tables into ~/.beatspy/config.toml (created by `beatspy setup`).
+# API keys are never stored here: they go to ~/.beatspy/secrets.env (git-excluded),
+# or can be provided as environment variables instead.
+
+[model]
+# Any OpenAI-compatible Chat Completions endpoint works.
+# Ollama:    http://localhost:11434/v1
+# vLLM:      http://localhost:8000/v1
+# LM Studio: http://localhost:1234/v1
+# OpenAI:    https://api.openai.com/v1
+# OpenRouter: https://openrouter.ai/api/v1
+base_url = "http://localhost:11434/v1"
+model = "llama3.1:8b"
+# temperature 0 keeps runs as deterministic as the provider allows
+temperature = 0.0
+# max model turns per agent run (bounds tool-call loops)
+max_turns = 8
+# optional USD prices per million tokens for cost reporting
+# cost_per_m_input = 0.15
+# cost_per_m_output = 0.60
+
+[tools]
+# baseline (built-in statistical forecaster, no dependencies)
+# naive     (built-in flat forecaster)
+# chronos   (local Chronos, requires: uv sync --extra chronos)
+# timegpt   (Nixtla API, requires: uv sync --extra timegpt + key)
+forecast_provider = "baseline"
+
+[bench]
+initial_capital = 100000.0
+fee_bps = 5.0
+slippage_bps = 5.0
+max_position_weight = 0.35
+tool_budget_per_agent = 10
+risk_free_annual = 0.0

@@ -1,0 +1,8 @@
+title = "2025 · final 90 days"
+description = "The final 90 calendar days ending at the last completed NYSE session of 2025."
+year = 2025
+window_days = 90
+frequency = "monthly"
+benchmark = "SPY"
+tradable = ["AAPL", "MSFT", "NVDA", "META", "JPM", "XOM", "TLT", "GLD"]
+lookback_days = 400

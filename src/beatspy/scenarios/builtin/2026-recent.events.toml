@@ -1,0 +1,12 @@
+# Sparse release-date entries; no inferred policy outcomes.
+[[events]]
+date = "2026-07-29"
+headline = "Federal Reserve releases July FOMC statement"
+detail = "A monetary-policy statement was released at 2 p.m. Eastern. This feed records the release, not its policy outcome."
+source = "https://www.federalreserve.gov/monetarypolicy/fomcpresconf20260729.htm"
+
+[[events]]
+date = "2026-09-16"
+headline = "Federal Reserve releases September FOMC statement and projections"
+detail = "Statement and economic projections were released at 2 p.m. Eastern. Consult the linked source for the announcement; no outcome is inferred here."
+source = "https://www.federalreserve.gov/monetarypolicy/fomcpresconf20260916.htm"

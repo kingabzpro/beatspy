@@ -1,0 +1,12 @@
+# Sparse source-linked monetary-policy events, not a complete news history.
+[[events]]
+date = "2025-10-29"
+headline = "Federal Reserve reduces policy rate by 25 basis points"
+detail = "Target range becomes 3.75–4.00 percent; balance-sheet runoff is to end December 1."
+source = "https://www.federalreserve.gov/newsevents/pressreleases/monetary20251029a.htm"
+
+[[events]]
+date = "2025-12-10"
+headline = "Federal Reserve reduces policy rate by another 25 basis points"
+detail = "Target range becomes 3.50–3.75 percent."
+source = "https://www.federalreserve.gov/newsevents/pressreleases/monetary20251210a.htm"

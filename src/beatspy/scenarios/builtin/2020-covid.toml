@@ -1,0 +1,14 @@
+title = "2020 COVID Crash and Recovery"
+description = "February to June 2020: a pandemic crash, unprecedented stimulus, and a V-shaped rebound. Weekly decisions by default."
+start = "2020-02-03"
+end = "2020-06-30"
+frequency = "weekly"
+benchmark = "SPY"
+tradable = ["AAPL", "MSFT", "AMZN", "NVDA", "JPM", "XOM", "TLT", "GLD"]
+initial_capital = 100000.0
+fee_bps = 5.0
+slippage_bps = 5.0
+max_position_weight = 0.35
+allow_web_search = false
+allow_finnhub = false
+lookback_days = 90

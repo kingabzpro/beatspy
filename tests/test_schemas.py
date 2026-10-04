@@ -1,0 +1,116 @@
+"""Schema, lenient parsing, and decision-validation tests."""
+
+from __future__ import annotations
+
+import pytest
+
+from beatspy.schemas import (
+    PortfolioDecision,
+    extract_json,
+    parse_artifact,
+    validate_decision,
+)
+
+
+class TestExtractJson:
+    def test_plain_object(self):
+        assert extract_json('{"a": 1}') == {"a": 1}
+
+    def test_fenced(self):
+        assert extract_json('```json\n{"a": 1}\n```') == {"a": 1}
+
+    def test_prose_wrapped(self):
+        text = 'Here is my decision:\n{"allocations": [{"ticker": "SPY", "weight": 1.0}]} hope that helps'
+        assert extract_json(text)["allocations"][0]["ticker"] == "SPY"
+
+    def test_picks_first_object(self):
+        text = 'note {"a": 1} then {"b": 2}'
+        assert extract_json(text) == {"a": 1}
+
+    def test_garbage_returns_none(self):
+        assert extract_json("no json here at all") is None
+        assert extract_json("") is None
+
+    def test_unbalanced_returns_none(self):
+        assert extract_json('{"a": [1, 2}') is None
+
+
+class TestParseArtifact:
+    def test_research_ok(self):
+        model, err = parse_artifact("research", '{"summary": "s", "sentiment": {"SPY": 0.1}}')
+        assert err is None
+        assert model.summary == "s"
+
+    def test_unknown_role(self):
+        model, err = parse_artifact("nope", "{}")
+        assert model is None and "unknown artifact role" in err
+
+    def test_validation_failure(self):
+        model, err = parse_artifact("research", '{"sentiment": "not a dict"}')
+        assert model is None and err and "schema validation" in err
+
+
+class TestValidateDecision:
+    def test_clamps_position_weight(self):
+        result = validate_decision({"allocations": [{"ticker": "SPY", "weight": 0.9}]}, ["SPY"], max_weight=0.35)
+        assert result.weights["SPY"] == 0.35
+        assert result.cash == pytest.approx(0.65)
+        assert any("clamped" in v for v in result.violations)
+        assert not result.invalid
+
+    def test_drops_unknown_ticker(self):
+        result = validate_decision(
+            {"allocations": [{"ticker": "GME", "weight": 0.5}, {"ticker": "SPY", "weight": 0.3}]},
+            ["SPY"],
+            max_weight=0.5,
+        )
+        assert result.weights == {"SPY": 0.3}
+        assert any("unknown ticker" in v for v in result.violations)
+
+    def test_drops_negative_weight(self):
+        result = validate_decision({"allocations": [{"ticker": "SPY", "weight": -0.2}]}, ["SPY"], max_weight=0.5)
+        assert result.weights == {}
+        assert result.cash == 1.0
+
+    def test_scales_overexposure(self):
+        result = validate_decision(
+            {
+                "allocations": [{"ticker": "SPY", "weight": 0.5}, {"ticker": "TLT", "weight": 0.5}],
+                "cash_weight": 0.4,
+            },
+            ["SPY", "TLT"],
+            max_weight=0.6,
+        )
+        assert sum(result.weights.values()) == pytest.approx(0.6)
+        assert any("scaled exposure" in v for v in result.violations)
+
+    def test_cash_implicit_when_missing(self):
+        result = validate_decision({"allocations": [{"ticker": "SPY", "weight": 0.4}]}, ["SPY"], max_weight=0.5)
+        assert result.cash == pytest.approx(0.6)
+
+    def test_non_dict_invalid(self):
+        result = validate_decision("hello", ["SPY"], 0.35)
+        assert result.invalid and result.weights == {}
+
+    def test_wrong_schema_invalid(self):
+        result = validate_decision({"allocations": "all of it"}, ["SPY"], 0.35)
+        assert result.invalid
+
+    def test_pydantic_model_accepted(self):
+        decision = PortfolioDecision(allocations=[{"ticker": "SPY", "weight": 0.2}], expected_direction="up")
+        result = validate_decision(decision.model_dump(), ["SPY"], max_weight=0.35)
+        assert result.weights == {"SPY": pytest.approx(0.2)}
+
+    def test_cash_weight_is_clamped(self):
+        result = validate_decision({"allocations": [], "cash_weight": 1.5}, ["SPY"], max_weight=0.35)
+        assert result.weights == {}
+        assert result.cash == 1.0
+        assert not result.invalid
+
+
+class TestScenarioUniverse:
+    def test_benchmark_appended(self):
+        from beatspy.schemas import Scenario
+
+        s = Scenario(name="x", title="x", start="2022-01-03", end="2022-02-01", tradable=["AAPL"])
+        assert s.universe == ["AAPL", "SPY"]
