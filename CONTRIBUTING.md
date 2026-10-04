@@ -112,7 +112,24 @@ security headers. Deployments follow approved merges on the production branch. T
 project is connected to the GitHub repository; production updates follow pushes to `main`.
 PR preview deployments are disabled; only production publishes approved changes.
 Do not serve the whole repository or expose credentials. Public results are explicitly
-exported and reviewed before publication. The initial maintainer comparison uses GLM-5.3,
-GLM-5.3-Flash, and DeepSeek-V4.1-Flash with monthly decisions, temperature 0, baseline
+exported and reviewed before publication. Maintainer runs cover GLM-5.3,
+GLM-5.3-Flash, DeepSeek-V4.1-Flash, GPT-6 Luna, and MiMo-V2.6-Pro with monthly decisions, temperature 0, baseline
 forecasts, tool budget 10 per agent, and `BEATSPY_MAX_TURNS=16` for every model. Exact
 settings, dates, endpoint names, and request telemetry are included in each run record.
+Luna uses explicit reasoning effort `none` and is ranked in separate groups. Other runs
+leave reasoning unspecified, using each provider's default behavior.
+
+With the keys already saved as environment variables, PowerShell can select each provider:
+
+```powershell
+$env:BEATSPY_API_KEY_ENV = "OPENAI_API_KEY"
+$env:BEATSPY_BASE_URL = "https://api.openai.com/v1"
+$env:BEATSPY_REASONING_EFFORT = "none"
+$env:BEATSPY_MAX_TURNS = "16"
+uv run beatspy run --model gpt-6-luna --scenario 2025-recent --scenario 2026-recent
+
+$env:BEATSPY_API_KEY_ENV = "XIAOMI_TOKEN_PLAN_SGP_API_KEY"
+$env:BEATSPY_BASE_URL = "https://token-plan-sgp.xiaomimimo.com/v1"
+Remove-Item Env:BEATSPY_REASONING_EFFORT
+uv run beatspy run --model mimo-v2.6-pro --scenario 2025-recent --scenario 2026-recent
+```

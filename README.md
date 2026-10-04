@@ -63,7 +63,8 @@ uv run beatspy demo                  # clearly labeled synthetic preview
 
 **Community submitted** means the recorded decisions, trades, and scores replay.
 **Maintainer run** identifies a separately generated, owner-controlled run.
-The dashboard shows GLM, GLM Flash, and DeepSeek maintainer runs for 2025 and 2026.
+The dashboard shows GLM, GLM Flash, DeepSeek, GPT-6 Luna, and MiMo 2.6 Pro
+maintainer runs for 2025 and 2026. Luna's explicit reasoning setting has its own groups.
 It opens on the latest year; complete decisions, trades, and frozen prices are downloadable.
 
 <details>

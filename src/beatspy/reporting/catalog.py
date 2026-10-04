@@ -21,7 +21,9 @@ def comparison_group(meta):
         "capabilities": meta.get("capabilities"),
         "protocol": meta.get("protocol_version", "legacy"),
         "synthetic": meta.get("synthetic", False),
-        "temperature": meta.get("model", {}).get("temperature"),
+        "temperature": (
+            float(meta["model"]["temperature"]) if meta.get("model", {}).get("temperature") is not None else None
+        ),
         "max_turns": meta.get("model", {}).get("max_turns"),
     }
     if (effort := meta.get("model", {}).get("reasoning_effort")) is not None:

@@ -1,0 +1,181 @@
+{"type": "decision", "date": "2026-07-06", "weights": {"JPM": 0.25, "AAPL": 0.2, "SPY": 0.2, "TLT": 0.15}, "cash": 0.2, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "AAPL", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "MSFT", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "NVDA", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "META", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "JPM", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "XOM", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "TLT", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "GLD", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "SPY", "horizon_days": 20}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "AAPL", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "MSFT", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "NVDA", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "META", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "JPM", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "XOM", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "TLT", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "GLD", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "SPY", "days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 14}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "AAPL", "days": 90}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "META"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "AAPL"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "NVDA"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "META", "days": 90}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "NVDA", "days": 90}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "MSFT"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "XOM", "days": 90}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "MSFT", "days": 90}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "TLT", "days": 90}, "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-07-06"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-07-06"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "AAPL", "on_date": "2026-07-06"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "SPY", "on_date": "2026-07-06"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "JPM", "on_date": "2026-07-06"}, "date": "2026-07-06"}
+{"type": "decision", "date": "2026-08-31", "weights": {"AAPL": 0.15, "JPM": 0.2, "SPY": 0.2, "TLT": 0.1, "MSFT": 0.1, "GLD": 0.1}, "cash": 0.15, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "AAPL", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "MSFT", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "NVDA", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "META", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "JPM", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "XOM", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "TLT", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "GLD", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "SPY", "days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 14}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "AAPL", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "MSFT", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "NVDA", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "META", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "JPM", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "XOM", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "TLT", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "GLD", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "SPY", "horizon_days": 20}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "AAPL", "days": 90}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "TLT"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "AAPL"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "MSFT", "days": 90}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "MSFT"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "META"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "NVDA"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "META", "days": 90}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "JPM", "days": 90}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "JPM"}, "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-08-31"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "SPY", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "JPM", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "AAPL", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "TLT", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "decision", "date": "2026-09-30", "weights": {"AAPL": 0.2, "MSFT": 0.15, "XOM": 0.15, "SPY": 0.2, "GLD": 0.05}, "cash": 0.25, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "AAPL", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "MSFT", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "NVDA", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "META", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "JPM", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "XOM", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "TLT", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "GLD", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "SPY", "horizon_days": 20}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "AAPL", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "MSFT", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "NVDA", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "META", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "JPM", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "XOM", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "TLT", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "GLD", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "SPY", "days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 14}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "AAPL", "days": 90}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "GLD"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "TLT", "days": 90}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "AAPL"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "MSFT", "days": 90}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "MSFT"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "NVDA", "days": 90}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "NVDA"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "META", "days": 90}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "META"}, "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-09-30"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-09-30"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "META", "on_date": "2026-09-30"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "SPY", "on_date": "2026-09-30"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "JPM", "on_date": "2026-09-30"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "AAPL"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "MSFT"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "NVDA"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "META"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "JPM"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "XOM"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "TLT"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "GLD"}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "portfolio_manager", "tool": "get_technical_indicators", "args": {"ticker": "SPY"}, "date": "2026-09-30"}
+{"type": "decision", "date": "2026-10-02", "weights": {"AAPL": 0.2, "MSFT": 0.15, "XOM": 0.15, "SPY": 0.2}, "cash": 0.3, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "AAPL", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "MSFT", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "NVDA", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "META", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "JPM", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "XOM", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "TLT", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "GLD", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_company_news", "args": {"ticker": "SPY", "days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 14}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "AAPL", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "MSFT", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "NVDA", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "META", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "JPM", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "XOM", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "TLT", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "GLD", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_price", "args": {"ticker": "SPY", "horizon_days": 20}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "AAPL", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "NVDA", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "JPM", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "TLT", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "AAPL"}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "SPY", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_technical_indicators", "args": {"ticker": "TLT"}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "MSFT", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "META", "days": 90}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "XOM", "days": 90}, "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_price_history", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "budget_exhausted", "agent": "analyst", "tool": "get_technical_indicators", "date": "2026-10-02"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "SPY", "on_date": "2026-10-02"}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "META", "on_date": "2026-10-02"}, "date": "2026-10-02"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "MSFT", "on_date": "2026-10-02"}, "date": "2026-10-02"}

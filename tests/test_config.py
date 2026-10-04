@@ -87,4 +87,5 @@ def test_reasoning_effort_groups_preserve_legacy_and_separate_modes():
     none = {"model": {**legacy["model"], "reasoning_effort": "none"}}
     high = {"model": {**legacy["model"], "reasoning_effort": "high"}}
     assert comparison_group(legacy) == comparison_group(explicit_default)
+    assert comparison_group(legacy) == comparison_group({"model": {**legacy["model"], "temperature": 0.0}})
     assert len({comparison_group(legacy), comparison_group(none), comparison_group(high)}) == 3
