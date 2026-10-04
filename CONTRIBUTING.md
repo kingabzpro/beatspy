@@ -128,6 +128,22 @@ with equal weight per available year. Repeated runs do not receive extra weight.
 column exposes missing coverage; select a model to see each window and open its evidence.
 Sharpe and drawdown are averages of window metrics, not metrics of a continuous portfolio.
 
+### Cost visualization
+
+The dashboard calculates USD as `(input tokens × input rate + output tokens × output rate) / 1,000,000`.
+Recorded run rates take precedence; otherwise reference API rates checked on 2026-10-04 are used.
+Each run links to its official pricing source and allows temporary rate overrides/reset. Missing
+rates or token usage show as unavailable, not zero. All years averages costs once per available
+year; cumulative charts use decision dates, not execution timestamps. Agent and decision totals
+come from `decisions.jsonl`; the leaderboard uses recorded total tokens. Calculations happen in
+the browser and never change signed artifacts or portfolio metrics.
+
+Reference prices assume uncached input: OpenAI standard short context, DeepSeek peak hours,
+Z.AI list prices, and MiMo overseas real-time rates. Hosted GPU endpoints and MiMo Token Plan
+subscriptions are shown at API-equivalent cost, not actual invoices. Cache savings, long-context
+surcharges, infrastructure, subscriptions, external tools, taxes, and failed unrecorded calls are
+excluded. Actual spend needs provider billing records; wall-clock timings are not in these runs.
+
 ## Pipeline protocol 3
 
 Protocol 3 includes the first month's last session, skips decisions with no possible

@@ -1,7 +1,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
-const {parseCSV, leaderboardRuns, modelName, allocationRow, percent} = require('../dashboard/app.js');
+const {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES} = require('../dashboard/app.js');
 
 test('CSV supports CRLF, quotes, escaped quotes, and embedded newlines', () => {
   assert.deepEqual(parseCSV('date,note\r\n2026-10-02,"a, b"\r\n2026-10-01,"a ""quote""\nand newline"\r\n'), [
@@ -66,4 +66,25 @@ test('frontend uses safe text rendering and independent static files', () => {
     assert.ok(['maintainer', 'community'].includes(run.trust));
     assert.equal(run.dir, `runs/${run.run_id}`);
   }
+});
+
+test('cost uses input and output rates, reconciles agents and decisions, and never prices missing usage as free', () => {
+  const rates = {input: 2, output: 8};
+  assert.equal(tokenCost({input_tokens:1e6, output_tokens:2e6}, rates), 18);
+  assert.equal(tokenCost({input_tokens:1e6, output_tokens:2e6}, {input:0,output:0}), 0);
+  for (const invalid of [undefined, {input:2}, {input:-1,output:2}, {input:Infinity,output:2}]) {
+    assert.equal(tokenCost({input_tokens:1e6,output_tokens:2e6}, invalid), null);
+  }
+  assert.equal(tokenCost({input_tokens:100}, rates), null);
+  assert.equal(tokenCost({input_tokens:1e308,output_tokens:1e308}, {input:1e308,output:1e308}), null);
+  const rows = [{date:'2026-07-31',usage:{analyst:{input_tokens:1e6,output_tokens:0,requests:1},critic:{input_tokens:0,output_tokens:1e6,requests:2}}},
+    {date:'2026-08-31',usage:{analyst:{input_tokens:2e6,output_tokens:1e6,requests:3}}}];
+  const result = usageBreakdown(rows, rates);
+  assert.deepEqual(result.steps.map(step => [step.cost,step.cumulative]), [[10,10],[12,22]]);
+  assert.equal(result.agents.reduce((sum,agent) => sum+agent.cost,0), 22);
+  assert.deepEqual(result.agents.map(agent => agent.requests), [4,2]);
+  assert.equal(usageBreakdown([...rows,{date:'2026-09-30'}],rates).steps.at(-1).cumulative, null);
+  assert.equal(usageBreakdown([{date:'2026-09-30',usage:{critic:{input_tokens:20}}}],rates).agents[0].cost, null);
+  assert.equal(usageBreakdown(rows,undefined).steps[0].cost, null);
+  assert.equal(tokenCost({input_tokens:1e6,output_tokens:1e6},PRICES['gpt-6-luna']), .6);
 });

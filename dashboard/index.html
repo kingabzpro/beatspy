@@ -29,6 +29,13 @@
       <p class="caption">Select a year for its latest window, or All years for each model's average. Years with results are listed for each model.</p>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap"></div>
+      <div id="cost-overview" hidden>
+        <p id="cost-window" class="caption"></p>
+        <div class="chart-grid">
+          <figure class="panel"><h3>Model running cost</h3><p class="caption">API-equivalent USD estimates, not provider invoices. Open a run to inspect or adjust rates.</p><div id="model-costs"></div></figure>
+          <figure class="panel"><h3>Model token usage</h3><p class="caption">Input includes prompts and tool context; output includes recorded reasoning and replies.</p><div id="model-tokens"></div></figure>
+        </div>
+      </div>
     </section>
     <section id="average-details" hidden aria-labelledby="average-title">
       <div class="section-heading"><div><p class="eyebrow">YEARLY BREAKDOWN</p><h2 id="average-title">Selected model</h2></div></div>
@@ -42,6 +49,18 @@
       <div class="chart-grid"><figure class="panel"><h3>Performance</h3><p class="caption">Hover for exact values. Toggle series with the legend.</p><div id="performance"></div></figure>
         <figure class="panel"><h3>Drawdown</h3><p class="caption">Decline from each portfolio’s running peak.</p><div id="drawdown"></div></figure></div>
       <figure class="panel"><h3>Allocations over time</h3><div id="allocations"></div></figure>
+      <section class="panel" aria-labelledby="cost-title"><h3 id="cost-title">What this run costs</h3>
+        <p id="cost-summary" class="cost-summary"></p>
+        <details><summary>Pricing assumptions &amp; calculator</summary>
+          <div class="price-controls"><label>Input USD / million tokens<input id="input-price" type="number" min="0" step="any" inputmode="decimal"></label><label>Output USD / million tokens<input id="output-price" type="number" min="0" step="any" inputmode="decimal"></label><button id="reset-prices" type="button">Reset rates</button></div>
+          <p id="price-note" class="caption"></p><p id="price-source" class="caption"></p>
+        </details>
+      </section>
+      <div class="chart-grid">
+        <figure class="panel"><h3>Running cost by decision</h3><p class="caption">Cumulative model spend at each simulated trading decision, not wall-clock runtime.</p><div id="running-cost"></div></figure>
+        <figure class="panel"><h3>Cost by agent</h3><p class="caption">Which part of the five-agent pipeline consumes the budget?</p><div id="agent-costs"></div></figure>
+      </div>
+      <section class="panel"><h3>Tokens by decision</h3><div id="decision-tokens"></div><details class="cost-records"><summary>Exact usage and cost calculations</summary><div id="cost-decisions" class="table-wrap"></div></details></section>
       <section class="panel"><h3>Agent telemetry</h3><div id="telemetry" class="table-wrap"></div></section>
       <section class="panel"><h3>Decisions</h3><div id="decisions"></div></section>
       <section class="panel"><h3>Trades</h3><div id="trades" class="table-wrap"></div></section>

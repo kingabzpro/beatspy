@@ -3,6 +3,43 @@
 const COLORS = ["#b4f272", "#79b6ff", "#ffbc79", "#cb9aff", "#ff9292", "#74d8cb", "#f0b9da", "#d1d7de", "#8d9969"];
 const TRUST = {maintainer: "Maintainer run", community: "Community submitted", local: "Local · unverified", synthetic: "SYNTHETIC", mixed: "Mixed evidence"};
 const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
+const dollars = value => typeof value === "number" && Number.isFinite(value) ? `$${value.toFixed(4)}` : "—";
+// Reference API rates checked 2026-10-04. Hosted/subscription runs are API-equivalent estimates, not invoices.
+const PRICES = {
+  "GLM-5.3": {input: 1.4, output: 4.4, source: "https://docs.z.ai/guides/overview/pricing", note: "Z.AI list price"},
+  "GLM-5.3-Flash": {input: .15, output: .5, source: "https://docs.z.ai/guides/overview/pricing", note: "Z.AI list price"},
+  "DeepSeek-V4.1-Flash": {input: .3, output: 1.2, source: "https://api-docs.deepseek.com/quick_start/pricing/", note: "DeepSeek peak list price; off-peak is half"},
+  "gpt-6-luna": {input: .1, output: .5, source: "https://developers.openai.com/api/docs/pricing", note: "OpenAI standard short-context list price"},
+  "mimo-v2.6-pro": {input: .435, output: .87, source: "https://mimo.mi.com/docs/en-US/quick-start/usage-guide/text-generation/batch-api", note: "MiMo overseas real-time API price; Token Plan billing differs"},
+};
+
+function tokenCost(usage, rates) {
+  if (![usage?.input_tokens, usage?.output_tokens, rates?.input, rates?.output].every(value => typeof value === "number" && Number.isFinite(value) && value >= 0)) return null;
+  const cost = (usage.input_tokens * rates.input + usage.output_tokens * rates.output) / 1e6;
+  return Number.isFinite(cost) ? cost : null;
+}
+
+function usageBreakdown(decisions, rates) {
+  const agents = Object.create(null), steps = [];
+  let cumulative = 0;
+  for (const decision of decisions) {
+    const total = {input_tokens: 0, output_tokens: 0, requests: 0, tool_calls: 0};
+    const usages = Object.entries(decision.usage || {});
+    for (const [role, usage] of usages) {
+      agents[role] ||= {label: role, input_tokens: 0, output_tokens: 0, requests: 0, tool_calls: 0};
+      for (const key of Object.keys(total)) {
+        const raw = usage[key] ?? (key.endsWith("tokens") ? NaN : 0);
+        const value = typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : NaN;
+        agents[role][key] += value; total[key] += value;
+      }
+    }
+    if (!usages.length) {total.input_tokens = NaN; total.output_tokens = NaN;}
+    const cost = usages.length ? tokenCost(total, rates) : null;
+    cumulative = cost === null || cumulative === null ? null : cumulative + cost;
+    steps.push({date: decision.date, ...total, cost, cumulative});
+  }
+  return {agents: Object.values(agents).map(usage => ({...usage, cost: tokenCost(usage, rates)})), steps};
+}
 
 function parseCSV(text) {
   const rows = [], row = [];
@@ -65,7 +102,7 @@ function leaderboardRuns(runs, allYears = false) {
   return [...models.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
 }
 
-if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, allocationRow, percent};
+if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES};
 
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
@@ -82,6 +119,20 @@ if (typeof document !== "undefined") {
   };
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
+  const priceOverrides = new Map();
+  let costContext = null;
+  function ratesFor(model, meta) {
+    return priceOverrides.get(model) || (meta?.model?.cost_per_m_input != null && meta?.model?.cost_per_m_output != null
+      ? {input: meta.model.cost_per_m_input, output: meta.model.cost_per_m_output, note: "Recorded run rates"} : PRICES[modelName(model)]);
+  }
+  function costForRun(run) {
+    if (run.members) {
+      const values = run.members.map(costForRun);
+      return values.every(value => value !== null) ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    }
+    if (!priceOverrides.has(run.model) && Number.isFinite(run.metrics.estimated_cost_usd)) return run.metrics.estimated_cost_usd;
+    return tokenCost(run.metrics, ratesFor(run.model));
+  }
 
   async function fetchText(path) {
     const response = await fetch(path);
@@ -125,8 +176,9 @@ if (typeof document !== "undefined") {
       : `${visible[0].scenario} · ${visible[0].start} → ${visible[0].end} · Latest run per model`;
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
-      const av = sortKey === "model" ? modelName(a.model) : a.metrics[sortKey];
-      const bv = sortKey === "model" ? modelName(b.model) : b.metrics[sortKey];
+      const av = sortKey === "model" ? modelName(a.model) : sortKey === "estimated_cost_usd" ? costForRun(a) : a.metrics[sortKey];
+      const bv = sortKey === "model" ? modelName(b.model) : sortKey === "estimated_cost_usd" ? costForRun(b) : b.metrics[sortKey];
+      if (sortKey === "estimated_cost_usd" && (av === null || bv === null)) return av === null ? (bv === null ? 0 : 1) : -1;
       const result = typeof av === "string" ? av.localeCompare(bv) : Number(av) - Number(bv);
       return descending ? -result : result;
     });
@@ -138,7 +190,7 @@ if (typeof document !== "undefined") {
     header.append(node("th", "Rank"));
     const columns = [["model", "Model"], ["total_return", "Return"], ["spy_total_return", "SPY"],
       ["excess_return_vs_spy", "Excess"], ["sharpe", "Sharpe"], ["max_drawdown", "Max DD"],
-      ["directional_accuracy", "Direction"], ["input_tokens", "Tokens in"]];
+      ["directional_accuracy", "Direction"], ["input_tokens", "Tokens in"], ["estimated_cost_usd", "Est. cost"]];
     for (const [key, title] of columns) {
       const th = node("th", undefined, key === "model" ? "" : "num");
       const button = node("button", (allYears && key !== "model" ? "Avg " : "") + title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
@@ -159,28 +211,66 @@ if (typeof document !== "undefined") {
       };
       td.append(button); row.append(td);
       for (const [key] of columns.slice(1)) {
-        const value = Number(run.metrics[key]);
-        const formatted = run.metrics[key] == null ? "—" : key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? Math.round(value).toLocaleString() : percent(value);
+        const raw = key === "estimated_cost_usd" ? costForRun(run) : run.metrics[key], value = Number(raw);
+        const formatted = raw == null ? "—" : key === "estimated_cost_usd" ? dollars(raw) : key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? Math.round(value).toLocaleString() : percent(value);
         row.append(node("td", formatted, `num ${key === "excess_return_vs_spy" ? (value >= 0 ? "positive" : "negative") : ""}`));
       }
       if (allYears) row.append(node("td", run.members.map(member => member.year || member.end.slice(0, 4)).join(", ")));
       row.append(node("td", TRUST[run.trust] || "Unverified")); body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
+    $("cost-overview").hidden = !visible.length;
+    $("cost-window").textContent = allYears ? "Average per run across the available yearly windows." : "Per run in the selected benchmark window.";
+    bars("model-costs", visible.map(run => ({label: modelName(run.model), cost: costForRun(run)})), ["cost"], dollars);
+    bars("model-tokens", visible.map(run => ({label: modelName(run.model), input: run.metrics.input_tokens, output: run.metrics.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
   }
   function showAverage(run) {
     selected = run.run_id; loading++;
     $("run-details").hidden = true; $("average-details").hidden = false;
     $("average-title").textContent = modelName(run.model);
-    table("average-runs", ["Year", "Window", "Return", "SPY", "Excess"], run.members.map(member => [
+    table("average-runs", ["Year", "Window", "Return", "SPY", "Excess", "Est. cost"], run.members.map(member => [
       member.year || member.end.slice(0, 4), `${member.start} → ${member.end}`,
       ...["total_return", "spy_total_return", "excess_return_vs_spy"].map(key => percent(member.metrics[key])),
+      dollars(costForRun(member)),
     ]));
     $("average-runs").querySelectorAll("tbody tr").forEach((row, i) => {
       const member = run.members[i], link = node("a", member.year || member.end.slice(0, 4));
       link.href = `#run=${encodeURIComponent(member.run_id)}`; row.firstChild.replaceChildren(link);
     });
     renderBoard();
+  }
+  function bars(target, rows, series, format) {
+    const container = $(target); container.replaceChildren();
+    const max = Math.max(1e-12, ...rows.map(row => series.reduce((sum, key) => sum + (Number.isFinite(row[key]) ? row[key] : 0), 0)));
+    if (!rows.length) {container.append(node("p", "No recorded usage.", "caption")); return;}
+    for (const row of rows) {
+      const line = node("div", undefined, "bar-row"), track = node("div", undefined, "bar-track");
+      const known = series.every(key => typeof row[key] === "number" && Number.isFinite(row[key]) && row[key] >= 0);
+      const total = known ? series.reduce((sum, key) => sum + row[key], 0) : null;
+      line.append(node("span", row.label, "bar-label"));
+      if (known) series.forEach((key, i) => {
+        const bar = node("span", undefined, "bar-fill"); bar.style.width = `${row[key] / max * 100}%`; bar.style.background = COLORS[i]; track.append(bar);
+      });
+      line.title = known ? series.map(key => `${key}: ${format(row[key])}`).join(" · ") : "No price or usage recorded";
+      line.append(track, node("span", total === null ? "—" : format(total), "bar-value")); container.append(line);
+    }
+    if (series.length > 1) {
+      const legend = node("div", undefined, "legend");
+      series.forEach((key, i) => {const label = node("span", `● ${key}`); label.style.color = COLORS[i]; legend.append(label);}); container.append(legend);
+    }
+  }
+  function renderCosts() {
+    if (!costContext) return;
+    const {run, meta, decisions} = costContext, rates = ratesFor(run.model, meta);
+    const {agents, steps} = usageBreakdown(decisions, rates), cost = tokenCost(run.metrics, rates);
+    $("cost-summary").textContent = `Estimated model cost ${dollars(cost)} · Per decision ${dollars(decisions.length && cost !== null ? cost / decisions.length : null)} · ${run.metrics.requests ?? "—"} model requests`;
+    $("price-note").textContent = `${rates?.note || "Enter both rates to calculate cost"}. Input $${rates?.input ?? "—"} / Output $${rates?.output ?? "—"} per million tokens. Estimates assume uncached input; cache tiers, long-context pricing, hosting, subscriptions, and paid tools are not included. Reference prices checked 2026-10-04.`;
+    $("price-source").replaceChildren();
+    if (rates?.source) {const link = node("a", "Official pricing ↗"); link.href = rates.source; $("price-source").append(link);}
+    chart("running-cost", steps.length && steps.every(step => step.cumulative !== null) ? steps : [], ["cumulative"], dollars);
+    bars("agent-costs", agents, ["cost"], dollars);
+    bars("decision-tokens", steps.map(step => ({label: step.date, input: step.input_tokens, output: step.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
+    table("cost-decisions", ["Decision", "Input tokens", "Output tokens", "Requests", "Est. USD", "Running USD"], steps.map(step => [step.date, ...[step.input_tokens, step.output_tokens, step.requests].map(value => Number.isFinite(value) ? value.toLocaleString() : "—"), dollars(step.cost), dollars(step.cumulative)]));
   }
   function chart(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
@@ -196,7 +286,8 @@ if (typeof document !== "undefined") {
       const values = rows.flatMap(row => keys.map(key => Number(row[key]))).filter(Number.isFinite);
       let min = Math.min(...values), max = Math.max(...values);
       if (!values.length) {min = 0; max = 1;}
-      if (max === min) {max += 1; min -= 1;}
+      if (target === "running-cost") {min = 0; max = Math.max(max, 1e-6);}
+      else if (max === min) {max += 1; min -= 1;}
       const x = i => L + i * (W - L - R) / Math.max(rows.length - 1, 1);
       const y = value => T + (max - value) * (H - T - B) / (max - min);
       for (let i = 0; i <= 4; i++) {
@@ -234,6 +325,7 @@ if (typeof document !== "undefined") {
     container.append(plot, labels, tooltip); draw();
   }
   async function selectRun(id) {
+    costContext = null;
     $("average-details").hidden = true;
     const run = runs.find(row => row.run_id === id);
     if (!run) {$("run-details").hidden = true; $("status").textContent = "That run is not in this catalog."; return;}
@@ -265,12 +357,24 @@ if (typeof document !== "undefined") {
       const tickers = [...new Set(allocationRows.flatMap(row => Object.keys(row).filter(key => key !== "date")))];
       allocationRows.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
       chart("allocations", allocationRows, tickers, percent);
-      const totals = {};
+      const totals = Object.create(null);
       decisions.forEach(row => Object.entries(row.usage || {}).forEach(([role, usage]) => {
         totals[role] ||= {input_tokens: 0, output_tokens: 0, requests: 0, tool_calls: 0};
         for (const key of Object.keys(totals[role])) totals[role][key] += Number(usage[key] || 0);
       }));
       table("telemetry", ["Agent", "Input tokens", "Output tokens", "Requests", "Tools"], Object.entries(totals).map(([role, usage]) => [role, ...Object.values(usage).map(value => value.toLocaleString())]));
+      costContext = {run, meta, decisions};
+      const rates = ratesFor(run.model, meta);
+      $("input-price").value = rates?.input ?? ""; $("output-price").value = rates?.output ?? "";
+      const updatePrices = () => {
+        const values = [$("input-price"), $("output-price")].map(input => input.value === "" ? null : input.valueAsNumber);
+        if (values.some(value => value !== null && (!Number.isFinite(value) || value < 0))) {$("price-note").textContent = "Enter nonnegative, finite rates."; return;}
+        priceOverrides.set(run.model, {input: values[0], output: values[1], note: "Custom rates for this visit"});
+        renderCosts(); renderBoard();
+      };
+      $("input-price").oninput = updatePrices; $("output-price").oninput = updatePrices;
+      $("reset-prices").onclick = () => {priceOverrides.delete(run.model); const original = ratesFor(run.model, meta); $("input-price").value = original?.input ?? ""; $("output-price").value = original?.output ?? ""; renderCosts(); renderBoard();};
+      renderCosts();
       $("decisions").replaceChildren();
       for (const row of decisions) {
         const detail = node("details", undefined, "decision");

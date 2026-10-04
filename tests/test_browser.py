@@ -59,6 +59,27 @@ def test_dashboard_interactions_and_safe_rendering(site, width):
         page.locator("#run-details:not([hidden])").wait_for()
         assert "Data cutoff" in page.locator("#run-meta").inner_text()
         assert page.locator("#performance svg").count() == 1
+        assert page.locator("#model-tokens .bar-row").count() == 3
+        assert "Estimated model cost —" in page.locator("#cost-summary").inner_text()
+        assert page.locator("#running-cost svg").count() == 0
+        page.get_by_text("Pricing assumptions & calculator", exact=True).click()
+        page.locator("#input-price").fill("2")
+        page.locator("#output-price").fill("8")
+        assert page.locator("#running-cost svg").count() == 1
+        assert page.locator("#agent-costs .bar-row").count() == 5
+        assert page.locator("#decision-tokens .bar-row").count() > 0
+        assert "Custom rates" in page.locator("#price-note").inner_text()
+        page.get_by_role("button", name="Est. cost", exact=False).click()
+        page.get_by_role("button", name="Est. cost", exact=False).click()
+        assert page.locator("#leaderboard-table tbody tr").first.get_by_role("button").inner_text() == "demo-beta"
+        total = page.locator("#cost-summary").inner_text().split(" · ")[0].split("$")[1]
+        page.get_by_text("Exact usage and cost calculations", exact=True).click()
+        assert page.locator("#cost-decisions tbody tr").last.locator("td").last.inner_text() == f"${total}"
+        page.locator("#input-price").fill("0")
+        page.locator("#output-price").fill("0")
+        assert "Estimated model cost $0.0000" in page.locator("#cost-summary").inner_text()
+        page.get_by_role("button", name="Reset rates", exact=True).click()
+        assert "Estimated model cost —" in page.locator("#cost-summary").inner_text()
         toggle = page.locator("#performance").get_by_role("button", name="● portfolio", exact=True)
         toggle.click()
         assert toggle.get_attribute("aria-pressed") == "false"
@@ -111,6 +132,7 @@ def test_all_years_average_and_yearly_drilldown(site, width):
         assert page.locator("#scenario").input_value() == ""
         assert page.locator("#leaderboard-table tbody tr").count() == 1
         assert "20.00%" in page.locator("#leaderboard-table tbody").inner_text()
+        assert "Average per run" in page.locator("#cost-window").inner_text()
         assert "2025, 2026" in page.locator("#leaderboard-table tbody").inner_text()
         page.get_by_role("button", name="Avg Return", exact=False).click()
         page.get_by_role("button", name="demo-beta", exact=True).focus()

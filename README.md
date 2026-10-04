@@ -68,6 +68,7 @@ uv run beatspy demo                  # clearly labeled synthetic preview
 The dashboard shows GLM, GLM Flash, DeepSeek, GPT-6 Luna, and MiMo 2.6 Pro
 maintainer runs for 2025 and 2026, with all five models on one board per year.
 It opens on the latest year; complete decisions, trades, and frozen prices are downloadable.
+Explore model costs, running spend, and agent/token breakdowns with editable price rates.
 
 <details>
 <summary><strong>Optional integrations</strong></summary>
