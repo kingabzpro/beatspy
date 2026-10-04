@@ -1,7 +1,7 @@
 "use strict";
 
 const COLORS = ["#b4f272", "#79b6ff", "#ffbc79", "#cb9aff", "#ff9292", "#74d8cb", "#f0b9da", "#d1d7de", "#8d9969"];
-const TRUST = {maintainer: "Maintainer run", community: "Community submitted", local: "Local · unverified", synthetic: "SYNTHETIC"};
+const TRUST = {maintainer: "Maintainer run", community: "Community submitted", local: "Local · unverified", synthetic: "SYNTHETIC", mixed: "Mixed evidence"};
 const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
 
 function parseCSV(text) {
@@ -36,7 +36,25 @@ function allocationRow(row) {
     CASH: held?.current_cash_weight ?? row.validated?.cash ?? row.decision?.cash_weight ?? 0};
 }
 
-function leaderboardRuns(runs) {
+function leaderboardRuns(runs, allYears = false) {
+  if (allYears) {
+    const years = [...new Set(runs.map(run => run.year || String(run.end).slice(0, 4)))].sort();
+    const models = new Map();
+    for (const year of years) {
+      for (const run of leaderboardRuns(runs.filter(row => (row.year || String(row.end).slice(0, 4)) === year))) {
+        if (!models.has(run.model)) models.set(run.model, []);
+        models.get(run.model).push(run);
+      }
+    }
+    return [...models].map(([model, members]) => {
+      const metrics = {};
+      for (const key of new Set(members.flatMap(run => Object.keys(run.metrics)))) {
+        const values = members.map(run => run.metrics[key]).filter(value => typeof value === "number" && Number.isFinite(value));
+        metrics[key] = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+      }
+      return {model, members, metrics, run_id: `average:${model}`, trust: members.every(run => run.trust === members[0].trust) ? members[0].trust : "mixed"};
+    }).sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
+  }
   const ordered = [...runs].sort((a, b) => String(b.end).localeCompare(String(a.end)) || String(b.created_utc).localeCompare(String(a.created_utc)));
   if (!ordered.length) return [];
   const latest = ordered[0], models = new Map();
@@ -88,14 +106,23 @@ if (typeof document !== "undefined") {
   function filter() {
     renderBoard();
     if (selected && !visible.some(run => run.run_id === selected)) {
-      selected = null; loading++; $("run-details").hidden = true;
+      selected = null; loading++; $("run-details").hidden = true; $("average-details").hidden = true;
+    } else if (selected?.startsWith("average:")) {
+      showAverage(visible.find(run => run.run_id === selected));
     }
   }
+  function changeFilters() {
+    filter();
+    if (!selected && /^#(run|model)=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
+  }
   function renderBoard() {
+    const allYears = !$("year").value;
     visible = leaderboardRuns(runs.filter(run => ($("trust").value === "all" || run.trust === $("trust").value)
       && (!$("year").value || run.year === $("year").value)
-      && (!$("scenario").value || run.scenario === $("scenario").value)));
-    $("board-window").textContent = visible.length ? `${visible[0].scenario} · ${visible[0].start} → ${visible[0].end} · Latest run per model` : "";
+      && (!$("scenario").value || run.scenario === $("scenario").value)), allYears);
+    $("board-window").textContent = !visible.length ? "" : allYears
+      ? "All years · Equal-weight averages of the latest yearly windows · Select a model for dates and individual runs"
+      : `${visible[0].scenario} · ${visible[0].start} → ${visible[0].end} · Latest run per model`;
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const av = sortKey === "model" ? modelName(a.model) : a.metrics[sortKey];
@@ -114,11 +141,12 @@ if (typeof document !== "undefined") {
       ["directional_accuracy", "Direction"], ["input_tokens", "Tokens in"]];
     for (const [key, title] of columns) {
       const th = node("th", undefined, key === "model" ? "" : "num");
-      const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
+      const button = node("button", (allYears && key !== "model" ? "Avg " : "") + title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
       button.onclick = () => {descending = sortKey === key ? !descending : key !== "model"; sortKey = key; renderBoard();};
       th.append(button); header.append(th);
     }
+    if (allYears) header.append(node("th", "Years"));
     header.append(node("th", "Evidence")); head.append(header); element.append(head, body);
     for (const run of visible) {
       const row = node("tr");
@@ -126,18 +154,33 @@ if (typeof document !== "undefined") {
       row.append(node("td", ranks.get(run.run_id)));
       const td = node("td"), button = node("button", modelName(run.model), "run-button");
       button.onclick = () => {
-        const hash = `#run=${encodeURIComponent(run.run_id)}`;
-        if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
+        const hash = run.members ? `#model=${encodeURIComponent(run.model)}` : `#run=${encodeURIComponent(run.run_id)}`;
+        if (location.hash === hash) {if (run.members) showAverage(run); else selectRun(run.run_id);} else location.hash = hash;
       };
       td.append(button); row.append(td);
       for (const [key] of columns.slice(1)) {
         const value = Number(run.metrics[key]);
-        const formatted = key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? value.toLocaleString() : percent(value);
+        const formatted = run.metrics[key] == null ? "—" : key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? Math.round(value).toLocaleString() : percent(value);
         row.append(node("td", formatted, `num ${key === "excess_return_vs_spy" ? (value >= 0 ? "positive" : "negative") : ""}`));
       }
+      if (allYears) row.append(node("td", run.members.map(member => member.year || member.end.slice(0, 4)).join(", ")));
       row.append(node("td", TRUST[run.trust] || "Unverified")); body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
+  }
+  function showAverage(run) {
+    selected = run.run_id; loading++;
+    $("run-details").hidden = true; $("average-details").hidden = false;
+    $("average-title").textContent = modelName(run.model);
+    table("average-runs", ["Year", "Window", "Return", "SPY", "Excess"], run.members.map(member => [
+      member.year || member.end.slice(0, 4), `${member.start} → ${member.end}`,
+      ...["total_return", "spy_total_return", "excess_return_vs_spy"].map(key => percent(member.metrics[key])),
+    ]));
+    $("average-runs").querySelectorAll("tbody tr").forEach((row, i) => {
+      const member = run.members[i], link = node("a", member.year || member.end.slice(0, 4));
+      link.href = `#run=${encodeURIComponent(member.run_id)}`; row.firstChild.replaceChildren(link);
+    });
+    renderBoard();
   }
   function chart(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
@@ -191,6 +234,7 @@ if (typeof document !== "undefined") {
     container.append(plot, labels, tooltip); draw();
   }
   async function selectRun(id) {
+    $("average-details").hidden = true;
     const run = runs.find(row => row.run_id === id);
     if (!run) {$("run-details").hidden = true; $("status").textContent = "That run is not in this catalog."; return;}
     selected = id; const generation = ++loading;
@@ -248,6 +292,16 @@ if (typeof document !== "undefined") {
     } catch (error) {if (generation === loading) {$("run-details").hidden = true; $("status").textContent = `Unable to load this run: ${error.message}`;}}
   }
   function hashSelection() {
+    if (location.hash.startsWith("#model=")) {
+      try {
+        const model = decodeURIComponent(location.hash.slice(7));
+        $("year").value = ""; $("scenario").value = ""; filter();
+        const run = visible.find(row => row.model === model);
+        if (run) showAverage(run);
+        else {selected = null; loading++; $("run-details").hidden = true; $("average-details").hidden = true; $("status").textContent = "That model has no results matching these filters.";}
+      } catch (error) {$("status").textContent = `Invalid model link: ${error.message}`;}
+      return;
+    }
     if (!location.hash.startsWith("#run=")) return;
     try {
       const id = decodeURIComponent(location.hash.slice(5));
@@ -265,9 +319,10 @@ if (typeof document !== "undefined") {
       options("year", runs.map(run => run.year), "All years"); options("scenario", runs.map(run => run.scenario), "All scenarios");
       const defaultRuns = runs.filter(run => catalog.default_trust === "all" || run.trust === $("trust").value);
       $("year").value = defaultRuns.map(run => run.year).filter(Boolean).sort().at(-1) || "";
-      ["trust", "year", "scenario"].forEach(id => {$(id).onchange = filter;});
+      ["trust", "scenario"].forEach(id => {$(id).onchange = changeFilters;});
+      $("year").onchange = () => {$("scenario").value = ""; changeFilters();};
       window.addEventListener("hashchange", hashSelection); filter();
-      if (location.hash.startsWith("#run=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);
+      if (location.hash.startsWith("#run=") || location.hash.startsWith("#model=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);
     } catch (error) {$("run-count").textContent = "Unavailable"; $("status").textContent = `Results unavailable: ${error.message}. Try reloading the page.`;}
   }
   init();

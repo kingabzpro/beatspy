@@ -26,9 +26,14 @@
         <label>Scenario<select id="scenario"><option value="">All scenarios</option></select></label>
       </div>
       <p id="board-window" class="caption"></p>
-      <p class="caption">One leaderboard for the selected window. Each model's latest run is shown; full settings and earlier runs stay in the evidence records.</p>
+      <p class="caption">Select a year for its latest window, or All years for each model's average. Years with results are listed for each model.</p>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap"></div>
+    </section>
+    <section id="average-details" hidden aria-labelledby="average-title">
+      <div class="section-heading"><div><p class="eyebrow">YEARLY BREAKDOWN</p><h2 id="average-title">Selected model</h2></div></div>
+      <p class="caption">Each available year has equal weight. Metrics are arithmetic means of individual windows, including Sharpe and drawdown; they do not describe a continuous portfolio. Select a year for its charts, data cutoff, and evidence.</p>
+      <div id="average-runs" class="table-wrap"></div>
     </section>
     <section id="run-details" hidden aria-labelledby="run-title">
       <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>

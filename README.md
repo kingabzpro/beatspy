@@ -47,7 +47,8 @@ Keys stay in `~/.beatspy/secrets.env` or environment variables. Local runs stay 
 
 Fresh sessions create immutable snapshots. Extra history warms up indicators;
 only the selected window is scored. One leaderboard shows the latest run per model
-for the selected window; exact data and settings remain downloadable.
+for the selected window. **All years** averages the latest yearly results per model;
+exact data and settings remain downloadable.
 
 ```bash
 uv run beatspy run --scenario 2025-recent --scenario 2026-recent \

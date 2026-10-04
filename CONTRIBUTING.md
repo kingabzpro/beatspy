@@ -122,7 +122,11 @@ leave reasoning unspecified, using each provider's default behavior.
 
 The dashboard has one leaderboard per window, showing each model's latest run. Earlier
 artifacts stay immutable and accessible by their run links. Model/provider settings can
-differ; inspect the recorded settings when interpreting the scores.
+differ; inspect the recorded settings when interpreting the scores. **All years** selects
+the latest window in each year, then averages each model's latest result in those windows
+with equal weight per available year. Repeated runs do not receive extra weight. The Years
+column exposes missing coverage; select a model to see each window and open its evidence.
+Sharpe and drawdown are averages of window metrics, not metrics of a continuous portfolio.
 
 ## Pipeline protocol 3
 

@@ -88,6 +88,58 @@ def test_dashboard_interactions_and_safe_rendering(site, width):
         browser.close()
 
 
+@pytest.mark.parametrize("width", [1280, 390])
+def test_all_years_average_and_yearly_drilldown(site, width):
+    url, directory = site
+    catalog = json.loads((directory / "data/index.json").read_text())
+    catalog["runs"] = catalog["runs"][:2]
+    catalog.pop("selected", None)
+    for row, year, value in zip(catalog["runs"], ["2025", "2026"], [0.1, 0.3], strict=True):
+        row.update(model="demo-beta", year=year, start=f"{year}-10-03", end=f"{year}-12-31", scenario=f"{year}-recent")
+        row["metrics"].update(total_return=value, spy_total_return=0.02, excess_return_vs_spy=value - 0.02)
+    with playwright.sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page(viewport={"width": width, "height": 900})
+        errors = []
+        page.on("pageerror", lambda error: errors.append(str(error)))
+        page.route("**/data/index.json", lambda route: route.fulfill(json=catalog))
+        page.goto(url)
+        page.get_by_role("button", name="demo-beta", exact=True).click()
+        page.locator("#run-details:not([hidden])").wait_for()
+        assert page.locator("#scenario").input_value() == "2026-recent"
+        page.locator("#year").select_option("")
+        assert page.locator("#scenario").input_value() == ""
+        assert page.locator("#leaderboard-table tbody tr").count() == 1
+        assert "20.00%" in page.locator("#leaderboard-table tbody").inner_text()
+        assert "2025, 2026" in page.locator("#leaderboard-table tbody").inner_text()
+        page.get_by_role("button", name="Avg Return", exact=False).click()
+        page.get_by_role("button", name="demo-beta", exact=True).focus()
+        page.keyboard.press("Enter")
+        page.locator("#average-details:not([hidden])").wait_for()
+        assert not page.locator("#run-details").is_visible()
+        assert page.locator("#average-runs tbody tr").count() == 2
+        assert page.evaluate("location.hash") == "#model=demo-beta"
+        page.reload()
+        page.locator("#average-details:not([hidden])").wait_for()
+        assert page.locator("#year").input_value() == ""
+        assert "20.00%" in page.locator("#leaderboard-table tbody").inner_text()
+        page.locator("#average-runs").get_by_role("link", name="2025", exact=True).click()
+        page.locator("#run-details:not([hidden])").wait_for()
+        assert page.locator("#year").input_value() == "2025"
+        assert page.evaluate("location.hash").startswith("#run=")
+        assert not page.locator("#average-details").is_visible()
+        assert "10.00%" in page.locator("#leaderboard-table tbody").inner_text()
+        page.locator("#year").select_option("")
+        page.get_by_role("button", name="demo-beta", exact=True).click()
+        page.locator("#average-details:not([hidden])").wait_for()
+        page.locator("#trust").select_option("maintainer")
+        assert "No results match" in page.locator("#status").inner_text()
+        assert not page.locator("#average-details").is_visible()
+        assert page.evaluate("document.documentElement.scrollWidth") <= width
+        assert not errors
+        browser.close()
+
+
 def test_empty_and_failed_fetch_states(site):
     url, directory = site
     with playwright.sync_playwright() as p:
