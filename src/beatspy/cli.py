@@ -297,7 +297,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             f"  Requests {metrics['requests']} | Tokens {metrics['input_tokens']:,} in / "
             f"{metrics['output_tokens']:,} out"
         )
-    print("Hypothetical backtest results. Preview with: beatspy report")
+    print("Benchmark complete. Preview with: beatspy report")
     return int(failed)
 
 
@@ -343,7 +343,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
     print(frame.to_string(index=False))
     print(
         "\nGrouped by identical windows, snapshots, and rules; sorted by excess within each group. "
-        "Hypothetical backtest results; not live performance."
+        "Scores replay against frozen market prices."
     )
     return 0
 

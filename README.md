@@ -18,9 +18,9 @@
 Research, analyst, and forecasting agents work in parallel, followed by a critic
 and portfolio manager. Python handles trading, risk rules, baselines, and scoring.
 
-> [!IMPORTANT]
-> Hypothetical backtests, not live performance or investment advice.
-> Replay checks establish score consistency, not model identity. Models may know historical outcomes.
+> [!NOTE]
+> Benchmarks use real model API calls and frozen market data. Python computes scores;
+> replay validation checks the recorded decisions, trades, and accounting.
 
 ## Start a benchmark
 

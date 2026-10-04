@@ -32,7 +32,7 @@ from ..tools.forecast import get_forecast_fn
 
 log = logging.getLogger(__name__)
 
-DISCLAIMER = "Hypothetical backtest results. Not live performance. Not investment advice."
+DISCLAIMER = "Historical market benchmark. Trades are simulated and scored against frozen market prices."
 
 
 def _slug(text: str) -> str:

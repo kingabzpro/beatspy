@@ -39,7 +39,7 @@ def test_demo_compare_and_report(tmp_path, monkeypatch, capsys):
 
     html = (results / "dashboard/index.html").read_text(encoding="utf-8")
     assert "Synthetic demo" in html
-    assert "Hypothetical backtest results" in html
+    assert "Real model calls. Five trading agents. Frozen market data." in html
 
 
 def test_report_specific_run(tmp_path, monkeypatch, capsys):

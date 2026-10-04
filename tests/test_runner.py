@@ -79,7 +79,7 @@ def test_invalid_decisions_hold_instead_of_liquidating(tmp_path, monkeypatch, sc
     assert metrics["total_return"] == 0.0  # all cash throughout
 
 
-def test_report_contains_disclaimer_and_leaderboard(tmp_path, monkeypatch, scenario, settings):
+def test_report_contains_provenance_and_leaderboard(tmp_path, monkeypatch, scenario, settings):
     monkeypatch.setattr("beatspy.data.freeze.download_ohlc", lambda *a, **k: make_prices(scenario.universe))
     run_dir = asyncio.run(
         run_benchmark(scenario, settings, executor=FakeExecutor(), out_root=tmp_path, data_root=tmp_path)
@@ -88,6 +88,6 @@ def test_report_contains_disclaimer_and_leaderboard(tmp_path, monkeypatch, scena
 
     path = render_dashboard(tmp_path, run_id=run_dir.name)
     html = path.read_text(encoding="utf-8")
-    assert "Hypothetical backtest results" in html
+    assert "Real model calls. Five trading agents. Frozen market data." in html
     assert "Leaderboard" in html
     assert "scenario.name" not in html  # no unrendered placeholders
