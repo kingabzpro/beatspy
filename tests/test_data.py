@@ -83,8 +83,13 @@ class TestDecisionDates:
     def test_monthly_last_trading_day(self, data_service):
         days = data_service.decision_dates(date(2022, 1, 3), date(2022, 3, 31), "monthly")
         assert days[0] == date(2022, 1, 3)  # first trading day on/after start
-        assert days[1].month == 2 and days[1] == date(2022, 2, 28)
-        assert days[2] == date(2022, 3, 31)
+        assert days[1] == date(2022, 1, 31)
+        assert days[2] == date(2022, 2, 28)
+        assert data_service.decision_dates(date(2022, 1, 3), date(2022, 3, 31), legacy=True) == [
+            date(2022, 1, 3),
+            date(2022, 2, 28),
+            date(2022, 3, 31),
+        ]
 
     def test_weekly_fridays(self, data_service):
         days = data_service.decision_dates(date(2022, 1, 3), date(2022, 1, 31), "weekly")

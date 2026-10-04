@@ -159,6 +159,8 @@ async def run_backtest(
     decision_dates: list[date],
     weight_fn: WeightFn,
     scenario: Scenario,
+    *,
+    legacy=False,
 ) -> BacktestResult:
     """Drive a portfolio through decision dates with a weight function.
 
@@ -185,6 +187,11 @@ async def run_backtest(
 
     idx = 0
     for day in days:
+        if not legacy and day in pending:
+            decision_day, weights = pending.pop(day)
+            step = execute_target(state, weights, decision_day, day, data, scenario.total_fee_rate)
+            trades.extend(step.trades)
+            turnover.append((decision_day, step.turnover))
         if idx < len(decision_dates) and day == decision_dates[idx]:
             out = weight_fn(day, state)
             if asyncio.iscoroutine(out):

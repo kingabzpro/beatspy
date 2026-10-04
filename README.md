@@ -46,7 +46,8 @@ Keys stay in `~/.beatspy/secrets.env` or environment variables. Local runs stay 
 | Historical | `2020-covid`, `2022-bear`, `2023-recovery`. |
 
 Fresh sessions create immutable snapshots. Extra history warms up indicators;
-only the selected window is scored. Rankings require matching dates, data, and rules.
+only the selected window is scored. One leaderboard shows the latest run per model
+for the selected window; exact data and settings remain downloadable.
 
 ```bash
 uv run beatspy run --scenario 2025-recent --scenario 2026-recent \
@@ -64,7 +65,7 @@ uv run beatspy demo                  # clearly labeled synthetic preview
 **Community submitted** means the recorded decisions, trades, and scores replay.
 **Maintainer run** identifies a separately generated, owner-controlled run.
 The dashboard shows GLM, GLM Flash, DeepSeek, GPT-6 Luna, and MiMo 2.6 Pro
-maintainer runs for 2025 and 2026. Luna's explicit reasoning setting has its own groups.
+maintainer runs for 2025 and 2026, with all five models on one board per year.
 It opens on the latest year; complete decisions, trades, and frozen prices are downloadable.
 
 <details>

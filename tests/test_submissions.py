@@ -32,11 +32,21 @@ def rehash(run, filename):
 
 def test_complete_run_replays_and_stops_at_cutoff(run):
     meta = validate_run(run)
-    assert meta["protocol_version"] == 2
+    assert meta["protocol_version"] == 3
     equity = pd.read_csv(run / "equity_curve.csv")
     trades = pd.read_csv(run / "trades.csv")
     assert equity.date.max() == meta["requested"]["end"]
     assert trades.exec_date.max() <= meta["requested"]["end"]
+
+
+def test_rehashed_market_brief_tampering_fails(run):
+    path = run / "decisions.jsonl"
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows[0]["market_brief"]["horizon_trading_days"] = 999
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    rehash(run, "decisions.jsonl")
+    with pytest.raises(ValueError, match="market brief replay mismatch"):
+        validate_run(run)
 
 
 @pytest.mark.parametrize(

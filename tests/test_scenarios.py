@@ -35,7 +35,7 @@ def test_bundled_scenario_and_events_are_consistent(name):
     ("name", "window", "expected_decisions"),
     [
         ("2022-bear", ("2022-01-03", "2022-03-31"), 3),  # monthly
-        ("2020-covid", ("2020-02-03", "2020-02-28"), 5),  # weekly Fridays
+        ("2020-covid", ("2020-02-03", "2020-02-28"), 4),  # skip cutoff-day orders that cannot fill
         ("2023-recovery", ("2023-01-03", "2023-03-31"), 3),  # monthly, 2023 universe with META
         ("2025-recent", ("2025-10-03", "2025-12-31"), 3),
         ("2026-recent", ("2026-07-05", "2026-10-02"), 4),

@@ -26,11 +26,22 @@ function parseCSV(text) {
   });
 }
 
-function comparableRuns(runs, group) {
-  return runs.filter(run => run.group === group).sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
+function modelName(model) {
+  return String(model).split("/").at(-1);
 }
 
-if (typeof module !== "undefined") module.exports = {parseCSV, comparableRuns, percent};
+function leaderboardRuns(runs) {
+  const ordered = [...runs].sort((a, b) => String(b.end).localeCompare(String(a.end)) || String(b.created_utc).localeCompare(String(a.created_utc)));
+  if (!ordered.length) return [];
+  const latest = ordered[0], models = new Map();
+  for (const run of ordered) {
+    if (run.start !== latest.start || run.end !== latest.end || run.scenario !== latest.scenario) continue;
+    if (!models.has(run.model)) models.set(run.model, run);
+  }
+  return [...models.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
+}
+
+if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, percent};
 
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
@@ -69,29 +80,20 @@ if (typeof document !== "undefined") {
     for (const value of [...new Set(values)].filter(Boolean).sort()) $(id).add(new Option(value, value));
   }
   function filter() {
-    const trust = $("trust").value;
-    const candidates = runs.filter(run => (trust === "all" || run.trust === trust)
-      && (!$("year").value || run.year === $("year").value)
-      && (!$("scenario").value || run.scenario === $("scenario").value));
-    const oldGroup = $("group").value;
-    $("group").replaceChildren();
-    const groups = [...new Map(candidates.map(run => [run.group, run])).values()];
-    for (const run of groups) $("group").add(new Option(`${run.scenario} · ${run.start} → ${run.end}${run.reasoning_effort ? ` · reasoning ${run.reasoning_effort}` : ""} · ${run.group.slice(0, 6)}`, run.group));
-    if (groups.some(run => run.group === oldGroup)) $("group").value = oldGroup;
-    if (!groups.length) $("group").add(new Option("No matching benchmark group", ""));
     renderBoard();
     if (selected && !visible.some(run => run.run_id === selected)) {
       selected = null; loading++; $("run-details").hidden = true;
     }
   }
   function renderBoard() {
-    visible = comparableRuns(runs.filter(run => ($("trust").value === "all" || run.trust === $("trust").value)
+    visible = leaderboardRuns(runs.filter(run => ($("trust").value === "all" || run.trust === $("trust").value)
       && (!$("year").value || run.year === $("year").value)
-      && (!$("scenario").value || run.scenario === $("scenario").value)), $("group").value);
+      && (!$("scenario").value || run.scenario === $("scenario").value)));
+    $("board-window").textContent = visible.length ? `${visible[0].scenario} · ${visible[0].start} → ${visible[0].end} · Latest run per model` : "";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
-      const av = sortKey === "model" ? a.model : a.metrics[sortKey];
-      const bv = sortKey === "model" ? b.model : b.metrics[sortKey];
+      const av = sortKey === "model" ? modelName(a.model) : a.metrics[sortKey];
+      const bv = sortKey === "model" ? modelName(b.model) : b.metrics[sortKey];
       const result = typeof av === "string" ? av.localeCompare(bv) : Number(av) - Number(bv);
       return descending ? -result : result;
     });
@@ -116,7 +118,7 @@ if (typeof document !== "undefined") {
       const row = node("tr");
       if (run.run_id === selected) row.className = "selected";
       row.append(node("td", ranks.get(run.run_id)));
-      const td = node("td"), button = node("button", run.model, "run-button");
+      const td = node("td"), button = node("button", modelName(run.model), "run-button");
       button.onclick = () => {
         const hash = `#run=${encodeURIComponent(run.run_id)}`;
         if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
@@ -194,7 +196,7 @@ if (typeof document !== "undefined") {
       if (generation !== loading) return;
       const meta = JSON.parse(texts[0]), equity = parseCSV(texts[1]), decisions = texts[2].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)), trades = parseCSV(texts[3]);
       $("run-details").hidden = false;
-      $("run-title").textContent = run.model;
+      $("run-title").textContent = modelName(run.model);
       $("run-trust").textContent = TRUST[run.trust] || "Unverified";
       $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
       $("metrics").replaceChildren();
@@ -244,7 +246,7 @@ if (typeof document !== "undefined") {
     try {
       const id = decodeURIComponent(location.hash.slice(5));
       const run = runs.find(row => row.run_id === id);
-      if (run) {$("trust").value = "all"; $("year").value = ""; $("scenario").value = ""; filter(); $("group").value = run.group; renderBoard();}
+      if (run) {$("trust").value = "all"; $("year").value = run.year; $("scenario").value = run.scenario; filter();}
       selectRun(id);
     } catch (error) {$("status").textContent = `Invalid run link: ${error.message}`;}
   }
@@ -258,7 +260,6 @@ if (typeof document !== "undefined") {
       const defaultRuns = runs.filter(run => catalog.default_trust === "all" || run.trust === $("trust").value);
       $("year").value = defaultRuns.map(run => run.year).filter(Boolean).sort().at(-1) || "";
       ["trust", "year", "scenario"].forEach(id => {$(id).onchange = filter;});
-      $("group").onchange = () => {loading++; selected = null; $("run-details").hidden = true; renderBoard();};
       window.addEventListener("hashchange", hashSelection); filter();
       if (location.hash.startsWith("#run=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);
     } catch (error) {$("run-count").textContent = "Unavailable"; $("status").textContent = `Results unavailable: ${error.message}. Try reloading the page.`;}

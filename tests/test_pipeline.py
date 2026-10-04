@@ -68,3 +68,24 @@ def asyncio_run(coro):
     import asyncio
 
     return asyncio.run(coro)
+
+
+def test_pipeline_brief_has_horizon_costs_reference_and_no_unavailable_news(pipeline, data_service, scenario):
+    tctx = make_tctx(data_service, scenario)
+    tctx.horizon_days = 7
+    record = asyncio_run(pipeline.decide(tctx, {}, 1.0, None))
+    brief = record.market_brief
+    assert brief["horizon_trading_days"] == 7
+    assert brief["transaction_cost_bps_each_way"] == scenario.fee_bps + scenario.slippage_bps
+    assert sum(brief["reference_allocation"]["weights"].values()) <= 1
+    assert all(w <= scenario.max_position_weight for w in brief["reference_allocation"]["weights"].values())
+    assert [tool.name for tool in pipeline.agents["research"].tools] == ["get_market_events"]
+
+
+def test_compaction_preserves_complete_structured_reports():
+    import json
+
+    from beatspy.agents.prompts import _compact
+
+    report = {"forecasts": [{"ticker": str(i), "method_notes": "x" * 1000} for i in range(9)]}
+    assert json.loads(_compact(report)) == report

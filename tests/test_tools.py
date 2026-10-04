@@ -25,6 +25,36 @@ from conftest import make_tctx
 set_tracing_disabled(True)
 
 
+def test_batched_forecast_covers_universe_with_one_call_and_actual_horizon(data_service, scenario):
+    from datetime import date
+
+    from agents import RunContextWrapper
+    from agents.tool_context import ToolContext as SdkToolContext
+
+    from beatspy.tools.market import forecast_universe
+
+    tctx = make_tctx(data_service, scenario, as_of=date(2022, 2, 15))
+    tctx.agent = "forecaster"
+    tctx.horizon_days = 2
+    observed = []
+
+    def forecast(ticker, closes, horizon):
+        assert closes == data_service.closes(ticker, tctx.as_of, 260)
+        observed.append(horizon)
+        return baseline_forecast(ticker, closes, horizon)
+
+    tctx.forecast_fn = forecast
+    wrapper = SdkToolContext.from_agent_context(
+        RunContextWrapper(context=tctx), "test-call", tool_name="forecast_universe", tool_arguments="{}"
+    )
+    result = json.loads(asyncio.run(forecast_universe.on_invoke_tool(wrapper, "{}")))
+    assert {r["ticker"] for r in result["forecasts"]} == set(scenario.universe)
+    assert observed == [2] * len(scenario.universe)
+    assert tctx.used == {"forecaster": 1}
+    benchmark = next(r for r in result["forecasts"] if r["ticker"] == scenario.benchmark)
+    assert benchmark["excess_return_vs_benchmark_pct"] == 0
+
+
 # --------------------------------------------------------------------------- #
 # Scripted SDK model: replays tool calls and a final message through Runner
 # --------------------------------------------------------------------------- #

@@ -28,7 +28,7 @@ def estimate_cost(settings, input_tokens, output_tokens):
     return round((input_tokens * (m.cost_per_m_input or 0) + output_tokens * (m.cost_per_m_output or 0)) / 1e6, 4)
 
 
-async def score_run(data, scenario, settings, result, decision_dates, decisions, harness_violations):
+async def score_run(data, scenario, settings, result, decision_dates, decisions, harness_violations, *, legacy=False):
     # SPY buy-and-hold from the same start value, through the same price data.
     spy_values: dict[date, float] = {}
     base_close = None
@@ -47,7 +47,7 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
         ("sixty_forty", sixty_forty_weight_fn(scenario)),
         ("momentum_12_1", momentum_weight_fn(scenario, data)),
     ]:
-        baselines[name] = (await run_backtest(data, decision_dates, fn, scenario)).equity
+        baselines[name] = (await run_backtest(data, decision_dates, fn, scenario, legacy=legacy)).equity
 
     daily_returns = result.equity.pct_change().dropna()
     p_windows = window_returns(result.equity, decision_dates)

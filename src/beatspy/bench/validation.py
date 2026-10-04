@@ -73,8 +73,9 @@ async def replay_run(run_dir: Path) -> dict:
     meta = read_json(run_dir / "run.json")
     if meta.get("synthetic") is not False:
         raise ValueError("synthetic or incomplete results cannot be submitted")
-    if meta.get("schema_version") != 2 or meta.get("protocol_version") != 2:
-        raise ValueError("only complete protocol 2 runs support submission; rerun legacy results")
+    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3):
+        raise ValueError("only complete protocol 2 or 3 runs support submission; rerun legacy results")
+    legacy = meta["protocol_version"] == 2
     if not SAFE_ID.fullmatch(meta["run_id"]) or meta["run_id"] != run_dir.name:
         raise ValueError("invalid or mismatched run id")
     if "trust" in meta or "maintainer_run" in meta:
@@ -117,7 +118,7 @@ async def replay_run(run_dir: Path) -> dict:
         raise ValueError("snapshot includes prices beyond the evaluation cutoff")
     data = DataService(prices, scenario.benchmark)
     decision_dates = data.decision_dates(
-        date.fromisoformat(scenario.start), date.fromisoformat(scenario.end), scenario.frequency
+        date.fromisoformat(scenario.start), date.fromisoformat(scenario.end), scenario.frequency, legacy=legacy
     )
     submitted = lines(run_dir / "decisions.jsonl")
     events = lines(run_dir / "events.jsonl")
@@ -144,8 +145,10 @@ async def replay_run(run_dir: Path) -> dict:
 
     pipeline = DecisionPipeline(settings, scenario, provider=None, executor=ReplayExecutor())
     records = []
+    recent_summary = None
 
     async def weights(day, state):
+        nonlocal recent_summary
         row = lookup[day.isoformat()]
         if set(row["agent_runs"]) != set(ROLES):
             raise ValueError("incomplete five-agent outputs")
@@ -160,7 +163,20 @@ async def replay_run(run_dir: Path) -> dict:
             if len(calls) > settings.bench.tool_budget_per_agent:
                 raise ValueError("per-agent tool budget exceeded")
         invested = state.weights(day, data)
-        record = await pipeline.decide(ToolContext(day, data, scenario), invested, 1 - sum(invested.values()), None)
+        period = data.decision_period(day, decision_dates, date.fromisoformat(scenario.end))
+        context = ToolContext(
+            day,
+            data,
+            scenario,
+            tool_budget_per_agent=settings.bench.tool_budget_per_agent,
+            horizon_days=period["horizon_trading_days"],
+            next_decision_date=period["next_decision_date"],
+            finnhub_api_key="replay-enabled" if meta["capabilities"].get("finnhub_tools") else None,
+            olostep_api_key="replay-enabled" if meta["capabilities"].get("web_search_tools") else None,
+        )
+        record = await pipeline.decide(context, invested, 1 - sum(invested.values()), recent_summary)
+        if not legacy and row.get("market_brief") != record.market_brief:
+            raise ValueError(f"market brief replay mismatch on {day}")
         for name, expected in {
             "decision": record.raw_decision,
             "artifacts": record.artifacts,
@@ -179,12 +195,15 @@ async def replay_run(run_dir: Path) -> dict:
             if row.get(name) != expected:
                 raise ValueError(f"decision replay mismatch: {name} on {day}")
         records.append(record)
-        return {"weights": invested if record.validated.invalid else record.validated.weights}
+        target = invested if record.validated.invalid else record.validated.weights
+        weights_text = ", ".join(f"{t} {w:.0%}" for t, w in sorted(target.items())) or "all cash"
+        recent_summary = f"{day.isoformat()}: allocated {weights_text}; {record.rationale[:200]}"
+        return {"weights": target}
 
-    result = await run_backtest(data, decision_dates, weights, scenario)
+    result = await run_backtest(data, decision_dates, weights, scenario, legacy=legacy)
     violations = [event for event in events if event.get("type") == "violation"]
     expected_metrics, expected_equity = await score_run(
-        data, scenario, settings, result, decision_dates, records, violations
+        data, scenario, settings, result, decision_dates, records, violations, legacy=legacy
     )
     metrics = read_json(run_dir / "metrics.json")
     check_numbers(metrics)

@@ -24,9 +24,9 @@
         <label>Evidence<select id="trust"><option value="maintainer">Maintainer run</option><option value="community">Community submitted</option><option value="all">All results</option><option value="synthetic">Synthetic demo</option></select></label>
         <label>Year<select id="year"><option value="">All years</option></select></label>
         <label>Scenario<select id="scenario"><option value="">All scenarios</option></select></label>
-        <label class="wide">Comparable group<select id="group"><option value="">Choose a benchmark group</option></select></label>
       </div>
-      <p class="caption">Ranks apply within one group: identical dates, snapshot, tools, budgets, reasoning settings, and trading rules. Community checks validate scores, not model identity.</p>
+      <p id="board-window" class="caption"></p>
+      <p class="caption">One leaderboard for the selected window. Each model's latest run is shown; full settings and earlier runs stay in the evidence records.</p>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap"></div>
     </section>

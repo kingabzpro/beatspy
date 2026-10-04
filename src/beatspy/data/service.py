@@ -71,7 +71,7 @@ class DataService:
         later = [d for d in self.calendar if d > day]
         return later[0] if later else None
 
-    def decision_dates(self, start: date, end: date, freq: str = "monthly") -> list[date]:
+    def decision_dates(self, start: date, end: date, freq: str = "monthly", *, legacy=False) -> list[date]:
         """First trading day on/after start, then weekly Fridays or month-ends."""
         days = [d for d in self.calendar if start <= d <= end]
         if not days:
@@ -79,12 +79,14 @@ class DataService:
         out = [days[0]]
         if freq == "weekly":
             out += [d for d in days[1:] if d.weekday() == 4 and d > out[-1]]
-        else:  # monthly: last trading day of each following month
+        else:  # monthly: include the first month's last trading day
             month_ends: dict[tuple[int, int], date] = {}
             for d in days:
                 month_ends[(d.year, d.month)] = d
             first_month = (days[0].year, days[0].month)
-            out += [d for key, d in month_ends.items() if key != first_month]
+            out += [d for key, d in month_ends.items() if (not legacy or key != first_month) and d != days[0]]
+        if not legacy:
+            out = [d for d in out if (following := self.next_trading_day(d)) is not None and following <= end]
         return out
 
     # ------------------------------------------------------------- analytics
@@ -122,9 +124,13 @@ class DataService:
             "last_close": round(last, 2),
             "sma_20": round(float(close.tail(20).mean()), 2),
             "sma_50": round(float(close.tail(50).mean()), 2) if len(close) >= 50 else None,
+            "sma_200": round(float(close.tail(200).mean()), 2) if len(close) >= 200 else None,
             "rsi_14": rsi,
             "return_30d_pct": pct_since(21),
             "return_90d_pct": pct_since(63),
+            "momentum_12_1_pct": (
+                round((float(close.iloc[-22]) / float(close.iloc[-253]) - 1.0) * 100, 2) if len(close) >= 253 else None
+            ),
             "annualized_vol_30d_pct": vol_30d,
             "off_52w_high_pct": round((last / high_252 - 1.0) * 100.0, 2) if high_252 else None,
             "avg_volume_20d": int(vol_avg) if vol_avg else None,
@@ -147,9 +153,19 @@ class DataService:
                     "as_of": sub.index[-1].date().isoformat(),
                     "return_30d_pct": round(r30, 2) if r30 is not None else None,
                     "return_90d_pct": round(r90, 2) if r90 is not None else None,
+                    **(self.indicators(ticker, as_of) or {}),
                 }
             )
         return rows
+
+    def decision_period(self, day: date, decisions: list[date], cutoff: date) -> dict:
+        following = next((d for d in decisions if d > day), None)
+        end = following or cutoff
+        return {
+            "horizon_trading_days": sum(day < d <= end for d in self.calendar),
+            "next_decision_date": following.isoformat() if following else None,
+            "evaluation_cutoff": cutoff.isoformat(),
+        }
 
     def closes(self, ticker: str, as_of: date, days: int) -> list[float]:
         sub = self._up_to(ticker, as_of)

@@ -34,6 +34,8 @@ class ToolContext:
     violations: list[dict] = field(default_factory=list)
     external_limit: asyncio.Semaphore | None = None
     http_client: object = None
+    horizon_days: int = 20
+    next_decision_date: str | None = None
 
     def spend(self, agent: str, tool: str, args: dict | None = None) -> str | None:
         """Charge one tool call to the agent's budget.

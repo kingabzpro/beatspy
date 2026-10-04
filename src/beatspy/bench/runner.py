@@ -147,6 +147,7 @@ async def run_benchmark(
             done["count"] += 1
             if progress is not None:
                 progress(done["count"], len(decision_dates), day)
+            period = data.decision_period(day, decision_dates, end_day)
             tctx = ToolContext(
                 as_of=day,
                 data=data,
@@ -158,6 +159,8 @@ async def run_benchmark(
                 tool_budget_per_agent=settings.bench.tool_budget_per_agent,
                 external_limit=external_limit,
                 http_client=http_client,
+                horizon_days=period["horizon_trading_days"],
+                next_decision_date=period["next_decision_date"],
             )
             invested = state.weights(day, data)
             record = await pipeline.decide(tctx, invested, 1.0 - sum(invested.values()), recent_summary)
@@ -197,7 +200,7 @@ async def run_benchmark(
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 2,
+            "protocol_version": 3,
             "source_revision": source_revision(),
             "run_id": run_id,
             "label": label,
@@ -238,6 +241,7 @@ async def run_benchmark(
         decision_lines = [
             {
                 "date": rec.date.isoformat(),
+                "market_brief": rec.market_brief,
                 "artifacts": rec.artifacts,
                 "decision": rec.raw_decision,
                 "validated": {

@@ -9,6 +9,7 @@ the Agents SDK owns each agent run: model calls, tools, retries, and usage.
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import time
 from dataclasses import dataclass, field, replace
@@ -18,6 +19,7 @@ from typing import Protocol
 from agents import Agent, RunConfig, Runner, set_tracing_disabled
 from agents.items import ToolCallItem
 
+from ..engine.backtest import momentum_weight_fn
 from ..models.provider import BeatSpyModelProvider, run_config_for
 from ..schemas import extract_json, parse_artifact, validate_decision
 from ..tools.context import ToolContext
@@ -108,6 +110,7 @@ class SdkExecutor:
 @dataclass
 class DecisionRecord:
     date: date
+    market_brief: dict = field(default_factory=dict)
     artifacts: dict = field(default_factory=dict)
     outcomes: dict[str, AgentOutcome] = field(default_factory=dict)
     validated: object = None  # ValidatedDecision
@@ -183,6 +186,11 @@ class DecisionPipeline:
         cash: float,
         recent_decision: str | None,
     ) -> DecisionRecord:
+        self.agents["research"].tools = tools_for_role(
+            "research", web_enabled=bool(tctx.olostep_api_key), news_enabled=bool(tctx.finnhub_api_key)
+        )
+        reference = momentum_weight_fn(tctx.scenario, tctx.data)(tctx.as_of, None)["weights"]
+        reference = {ticker: min(weight, tctx.scenario.max_position_weight) for ticker, weight in reference.items()}
         brief = prompts.market_brief(
             tctx.data.universe_summary(tctx.scenario.universe, tctx.as_of),
             tctx.as_of.isoformat(),
@@ -192,8 +200,22 @@ class DecisionPipeline:
             cash,
             tctx.scenario.max_position_weight,
             recent_decision,
+            {
+                "horizon_trading_days": tctx.horizon_days,
+                "next_decision_date": tctx.next_decision_date,
+                "evaluation_cutoff": tctx.scenario.end,
+                "tool_budget_per_agent": tctx.tool_budget_per_agent,
+                "transaction_cost_bps_each_way": tctx.scenario.fee_bps + tctx.scenario.slippage_bps,
+                "news_available": bool(tctx.finnhub_api_key),
+                "web_search_available": bool(tctx.olostep_api_key),
+                "reference_allocation": {
+                    "method": "12-minus-1-month momentum; top three, clipped to position limits",
+                    "weights": reference,
+                    "cash": round(1 - sum(reference.values()), 4),
+                },
+            },
         )
-        record = DecisionRecord(date=tctx.as_of)
+        record = DecisionRecord(date=tctx.as_of, market_brief=json.loads(brief))
 
         tasks = [asyncio.create_task(self._run(role, getattr(prompts, f"{role}_input")(brief), tctx)) for role in TRIO]
         try:

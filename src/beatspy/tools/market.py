@@ -91,6 +91,16 @@ def get_technical_indicators(ctx: RunContextWrapper[ToolContext], ticker: str) -
 
 
 @function_tool
+def get_universe_indicators(ctx: RunContextWrapper[ToolContext]) -> str:
+    """All tradable tickers' technical indicators in one budgeted call, clamped to the decision date."""
+    err = _guard(ctx, "get_universe_indicators")
+    if err:
+        return err
+    tctx = ctx.context
+    return _out({"as_of": _as_of(tctx), "tickers": tctx.data.universe_summary(tctx.scenario.universe, tctx.as_of)})
+
+
+@function_tool
 def get_market_events(ctx: RunContextWrapper[ToolContext], days_back: int = 14) -> str:
     """Curated major market events from the last days_back days (capped at 60), ending at the decision date."""
     err = _guard(ctx, "get_market_events", days_back=days_back)
@@ -194,21 +204,41 @@ async def forecast_price(ctx: RunContextWrapper[ToolContext], ticker: str, horiz
     err = _guard(ctx, "forecast_price", ticker=ticker, horizon_days=horizon_days)
     if err:
         return err
-    tctx = ctx.context
+    return _out(await _forecast_one(ctx.context, ticker.upper(), max(5, min(int(horizon_days), 60))))
+
+
+async def _forecast_one(tctx: ToolContext, ticker: str, horizon_days: int) -> dict:
     if tctx.forecast_fn is None:
-        return _out({"error": "no forecast provider configured"})
-    ticker = ticker.upper()
+        return {"ticker": ticker, "error": "no forecast provider configured"}
     if not tctx.data.has_ticker(ticker):
-        return _out({"error": f"unknown ticker {ticker}", "available": tctx.scenario.universe})
-    horizon_days = max(5, min(int(horizon_days), 60))
+        return {"error": f"unknown ticker {ticker}", "available": tctx.scenario.universe}
     closes = tctx.data.closes(ticker, tctx.as_of, 260)
     try:
         result = await _external(tctx, tctx.forecast_fn, ticker, closes, horizon_days)
     except Exception as exc:
-        return _out({"error": f"forecast provider failed: {exc}"})
+        return {"ticker": ticker, "error": f"forecast provider failed: {exc}"}
     if result is None:
-        return _out({"error": f"not enough history to forecast {ticker}"})
-    return _out(result.as_dict())
+        return {"ticker": ticker, "error": f"not enough history to forecast {ticker}"}
+    return result.as_dict()
+
+
+@function_tool
+async def forecast_universe(ctx: RunContextWrapper[ToolContext]) -> str:
+    """Forecast every ticker once for the actual holding horizon, using only decision-date history. One agent-budget call; provider requests remain individually bounded."""
+    err = _guard(ctx, "forecast_universe")
+    if err:
+        return err
+    tctx = ctx.context
+    horizon = max(1, min(tctx.horizon_days, 60))
+    forecasts = await asyncio.gather(*(_forecast_one(tctx, t, horizon) for t in tctx.scenario.universe))
+    benchmark = next((row for row in forecasts if row.get("ticker") == tctx.scenario.benchmark), {})
+    if "expected_return_pct" in benchmark:
+        for row in forecasts:
+            if "expected_return_pct" in row:
+                row["excess_return_vs_benchmark_pct"] = round(
+                    row["expected_return_pct"] - benchmark["expected_return_pct"], 2
+                )
+    return _out({"as_of": _as_of(tctx), "horizon_days": horizon, "forecasts": forecasts})
 
 
 @function_tool
@@ -279,15 +309,17 @@ def datetime_utc_iso(epoch_seconds: object) -> str:
         return ""
 
 
-def tools_for_role(role: str, web_enabled: bool) -> list:
-    research = [get_market_events, get_company_news, get_fundamentals]
+def tools_for_role(role: str, web_enabled: bool, *, news_enabled=True) -> list:
+    research = [get_market_events]
+    if news_enabled:
+        research += [get_company_news, get_fundamentals]
     if web_enabled:
         research.append(search_web)
     mapping = {
         "research": research,
-        "analyst": [get_price_history, get_technical_indicators],
-        "forecaster": [forecast_price, get_technical_indicators],
+        "analyst": [get_universe_indicators, get_price_history, get_technical_indicators],
+        "forecaster": [forecast_universe, forecast_price],
         "critic": [verify_price],
-        "portfolio_manager": [get_technical_indicators],
+        "portfolio_manager": [get_universe_indicators, get_technical_indicators],
     }
     return mapping[role]

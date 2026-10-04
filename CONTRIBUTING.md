@@ -22,7 +22,7 @@ and suitable local frozen prices; they are excluded from ordinary runs.
 Include the model/provider, exact command, optional tools, and any integrity caveats.
 Optional reasoning effort is set with `BEATSPY_REASONING_EFFORT` or `reasoning_effort`
 in `[model]`. GPT-6 Luna requires `none` for Chat Completions tool calling. Explicit
-reasoning settings get separate comparison groups and are preserved in exported records.
+reasoning settings are preserved in exported records.
 The command prepares files locally; it never sends a PR or credentials for you.
 Review free-text outputs before sharing them; redact personal content and rerun validation.
 
@@ -30,7 +30,8 @@ Submission includes `run.json`, `metrics.json`, `equity_curve.csv`, `trades.csv`
 `decisions.jsonl`, `events.jsonl`, and the exact snapshot's `prices.csv` and `MANIFEST.json`.
 Snapshots are deduplicated by hash. Existing published run directories are immutable.
 Git preserves exported artifact bytes across platforms; do not normalize their line endings.
-Legacy local runs remain viewable but must be rerun to produce protocol 2 evidence.
+Legacy local runs remain viewable. Complete protocol 2 and 3 artifacts support replay;
+older formats need a new run before submission.
 Synthetic demos cannot be submitted. Individual artifacts are limited to 25 MB.
 
 ### What validation establishes
@@ -116,8 +117,27 @@ exported and reviewed before publication. Maintainer runs cover GLM-5.3,
 GLM-5.3-Flash, DeepSeek-V4.1-Flash, GPT-6 Luna, and MiMo-V2.6-Pro with monthly decisions, temperature 0, baseline
 forecasts, tool budget 10 per agent, and `BEATSPY_MAX_TURNS=16` for every model. Exact
 settings, dates, endpoint names, and request telemetry are included in each run record.
-Luna uses explicit reasoning effort `none` and is ranked in separate groups. Other runs
+Luna uses explicit reasoning effort `none`. Other runs
 leave reasoning unspecified, using each provider's default behavior.
+
+The dashboard has one leaderboard per window, showing each model's latest run. Earlier
+artifacts stay immutable and accessible by their run links. Model/provider settings can
+differ; inspect the recorded settings when interpreting the scores.
+
+## Pipeline protocol 3
+
+Protocol 3 includes the first month's last session, skips decisions with no possible
+fill before the cutoff, and applies pending open fills before that day's close decisions.
+Forecasts use the actual sessions until the next decision or cutoff. Batch tools cover
+all tickers within the agent budget; unavailable news/search tools are not offered.
+Agents see complete parsed reports, benchmark-relative evidence, transaction costs,
+and a feasible 12-minus-1-month momentum reference. The manager retains final control.
+Each decision includes a market brief, which the validator reconstructs from frozen
+prices and portfolio state. Protocol 2 still replays under its original schedule and
+execution order; existing scores are never rewritten.
+
+These changes were developed after reviewing the initial results. Reruns on those
+same windows measure this iteration, not performance on unseen future periods.
 
 With the keys already saved as environment variables, PowerShell can select each provider:
 
