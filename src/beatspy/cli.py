@@ -317,12 +317,17 @@ def cmd_compare(args: argparse.Namespace) -> int:
         print(json.dumps([{k: v for k, v in r.items() if k not in ("meta",)} for r in runs], indent=2, default=str))
         return 0
 
-    runs = sorted(runs, key=lambda r: (r["group"], -r["metrics"].get("excess_return_vs_spy", 0.0)))
+    runs.sort(key=lambda r: (r["end"], r["created_utc"]), reverse=True)
+    window = tuple(runs[0][key] for key in ("scenario", "start", "end"))
+    latest = {}
+    for run in runs:
+        if tuple(run[key] for key in ("scenario", "start", "end")) == window:
+            latest.setdefault(run["model"], run)
+    runs = sorted(latest.values(), key=lambda r: -r["metrics"].get("excess_return_vs_spy", 0.0))
     frame = pd.DataFrame(
         [
             {
-                "group": r["group"],
-                "model": r["model"],
+                "model": r["model"].rsplit("/", 1)[-1],
                 "scenario": r["scenario"],
                 "period": f"{r['start']}..{r['end']}",
                 "total_return": f"{r['metrics'].get('total_return', 0) * 100:.1f}%",
@@ -342,8 +347,8 @@ def cmd_compare(args: argparse.Namespace) -> int:
     )
     print(frame.to_string(index=False))
     print(
-        "\nGrouped by identical windows, snapshots, and rules; sorted by excess within each group. "
-        "Scores replay against frozen market prices."
+        "\nOne leaderboard for the latest selected window; latest run per model, sorted by excess. "
+        "Full settings and earlier runs are available with --json."
     )
     return 0
 

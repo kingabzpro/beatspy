@@ -79,6 +79,27 @@ def test_invalid_decisions_hold_instead_of_liquidating(tmp_path, monkeypatch, sc
     assert metrics["total_return"] == 0.0  # all cash throughout
 
 
+def test_nested_fragments_never_liquidate_existing_holdings(tmp_path, monkeypatch, scenario, settings):
+    from conftest import PM_JSON
+
+    monkeypatch.setattr("beatspy.data.freeze.download_ohlc", lambda *a, **k: make_prices(scenario.universe))
+    executor = FakeExecutor()
+    malformed = '{"allocations": [{"ticker": "SPY", "weight": 0.3}], "rationale": "unfinished'
+    outputs = iter([PM_JSON, malformed, malformed])
+    executor.outputs["portfolio_manager"] = lambda _: next(outputs)
+    run_dir = asyncio.run(run_benchmark(scenario, settings, executor=executor, out_root=tmp_path, data_root=tmp_path))
+    metrics = json.loads((run_dir / "metrics.json").read_text())
+    decisions = [json.loads(line) for line in (run_dir / "decisions.jsonl").read_text().splitlines()]
+    holdings = [row["market_brief"]["current_portfolio_weights"] for row in decisions[1:]]
+    assert metrics["invalid_outputs"] == 2
+    assert all(weights.get("SPY", 0) > 0 and weights.get("TLT", 0) > 0 for weights in holdings)
+    import csv
+
+    with (run_dir / "trades.csv").open(newline="") as stream:
+        sells = [float(row["notional"]) for row in csv.DictReader(stream) if row["action"] == "sell"]
+    assert all(notional < scenario.initial_capital * 0.1 for notional in sells)
+
+
 def test_report_contains_provenance_and_leaderboard(tmp_path, monkeypatch, scenario, settings):
     monkeypatch.setattr("beatspy.data.freeze.download_ohlc", lambda *a, **k: make_prices(scenario.universe))
     run_dir = asyncio.run(

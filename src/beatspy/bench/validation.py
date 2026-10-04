@@ -143,7 +143,7 @@ async def replay_run(run_dir: Path) -> dict:
             values["role"] = agent.name
             return AgentOutcome(**values)
 
-    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=ReplayExecutor())
+    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=ReplayExecutor(), legacy_parsing=legacy)
     records = []
     recent_summary = None
 

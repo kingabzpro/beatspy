@@ -156,10 +156,12 @@ class DecisionPipeline:
         executor: AgentExecutor | None = None,
         web_tools: bool = False,
         agent_limit: asyncio.Semaphore | None = None,
+        legacy_parsing: bool = False,
     ):
         set_tracing_disabled(True)
         self.settings = settings
         self.scenario = scenario
+        self.legacy_parsing = legacy_parsing
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
             run_config=run_config_for(provider, settings.model.temperature, settings.model.reasoning_effort),
@@ -234,7 +236,7 @@ class DecisionPipeline:
 
         critic = await self._run("critic", prompts.critic_input(brief, artifacts), tctx)
         record.outcomes["critic"] = critic
-        critique_json, critique_err = parse_artifact("critic", critic.final_output)
+        critique_json, critique_err = parse_artifact("critic", critic.final_output, legacy=self.legacy_parsing)
         critique_obj = critique_json.model_dump() if critique_json else critic.final_output[:4000]
         if critique_err:
             record.parse_errors.append(f"critic: {critique_err}")
@@ -246,11 +248,13 @@ class DecisionPipeline:
         if pm.error:
             record.parse_errors.append(f"portfolio_manager: agent error: {pm.error}")
         else:
-            raw = extract_json(pm.final_output)
+            raw = extract_json(pm.final_output, legacy=self.legacy_parsing)
             if raw is None:
                 record.parse_errors.append("portfolio_manager: no JSON object found in output")
         record.raw_decision = raw if isinstance(raw, dict) else None
-        record.validated = validate_decision(raw, self.scenario.universe, self.scenario.max_position_weight)
+        record.validated = validate_decision(
+            raw, self.scenario.universe, self.scenario.max_position_weight, legacy=self.legacy_parsing
+        )
         if record.validated.invalid:
             record.parse_errors.append("portfolio_manager: decision invalid; holding previous portfolio")
         return record
@@ -264,7 +268,7 @@ class DecisionPipeline:
                     record.parse_errors.append(f"{role}: agent error: {outcome.error}")
                 artifacts[role] = "{}"
                 continue
-            parsed, err = parse_artifact(role, outcome.final_output)
+            parsed, err = parse_artifact(role, outcome.final_output, legacy=self.legacy_parsing)
             if parsed is not None:
                 artifacts[role] = parsed.model_dump()
             else:

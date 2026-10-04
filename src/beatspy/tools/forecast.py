@@ -1,6 +1,6 @@
 """Forecast providers: deterministic statistical baselines plus optional extras.
 
-- baseline: log-drift with a 90% band from trailing volatility (default, no deps)
+- baseline: log-drift with a p10-p90 (80%) band from trailing volatility (default, no deps)
 - naive: flat forecast (control: does forecasting help at all?)
 - chronos: local Amazon Chronos (requires `uv sync --extra chronos`)
 - timegpt: Nixtla TimeGPT API (requires `uv sync --extra timegpt` + API key)
@@ -52,7 +52,7 @@ def _direction(expected_pct: float) -> str:
 
 
 def baseline_forecast(ticker: str, closes: list[float], horizon: int, method: str = "drift") -> ForecastResult | None:
-    """Log-drift (or flat) mean with a normal-approximation 90% band. Deterministic."""
+    """Log-drift (or flat) mean with a normal-approximation p10-p90 (80%) band. Deterministic."""
     if len(closes) < 20 or horizon <= 0:
         return None
     last = closes[-1]

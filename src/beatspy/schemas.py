@@ -102,7 +102,7 @@ ARTIFACT_MODELS: dict[str, type[BaseModel]] = {
 # --------------------------------------------------------------------------- #
 
 
-def extract_json(text: str) -> Any | None:
+def extract_json(text: str, *, legacy=False) -> Any | None:
     """Extract the first JSON object from model output, tolerating prose and fences."""
     if not text:
         return None
@@ -116,18 +116,23 @@ def extract_json(text: str) -> Any | None:
             try:
                 return decoder.raw_decode(cleaned, idx)[0]
             except json.JSONDecodeError:
+                if not legacy:
+                    return None  # Never reinterpret a nested fragment as a complete report.
                 continue
     return None
 
 
-def parse_artifact(role: str, text: str) -> tuple[BaseModel | None, str | None]:
+def parse_artifact(role: str, text: str, *, legacy=False) -> tuple[BaseModel | None, str | None]:
     """Parse an agent output into its schema. Returns (model, error)."""
     model_cls = ARTIFACT_MODELS.get(role)
     if model_cls is None:
         return None, f"unknown artifact role: {role}"
-    obj = extract_json(text)
+    obj = extract_json(text, legacy=legacy)
     if obj is None:
         return None, "no JSON object found in output"
+    required = {"research": "summary", "analyst": "trend", "forecaster": "forecasts", "critic": "overall_assessment"}
+    if not legacy and (not isinstance(obj, dict) or required[role] not in obj):
+        return None, "schema validation failed: missing report fields"
     try:
         return model_cls.model_validate(obj), None
     except ValidationError as exc:
@@ -148,7 +153,7 @@ class ValidatedDecision:
     raw: dict | None = None
 
 
-def validate_decision(obj: Any, tradable: list[str], max_weight: float) -> ValidatedDecision:
+def validate_decision(obj: Any, tradable: list[str], max_weight: float, *, legacy=False) -> ValidatedDecision:
     """Clamp a raw portfolio decision to tradable tickers and risk limits.
 
     Deterministic: unknown tickers are dropped, negative weights dropped,
@@ -157,6 +162,8 @@ def validate_decision(obj: Any, tradable: list[str], max_weight: float) -> Valid
     """
     if not isinstance(obj, dict):
         return ValidatedDecision(invalid=True, violations=["decision was not a JSON object"])
+    if not legacy and "allocations" not in obj:
+        return ValidatedDecision(invalid=True, violations=["decision missing allocations"])
     try:
         pm = PortfolioDecision.model_validate(obj)
     except ValidationError:

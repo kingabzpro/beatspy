@@ -57,6 +57,37 @@ def test_compare_empty_results(tmp_path, monkeypatch, capsys):
     assert "No runs found" in capsys.readouterr().out
 
 
+def test_compare_one_window_latest_model_names(monkeypatch, capsys):
+    from beatspy.reporting import dashboard
+
+    def row(model, end, created, value):
+        return {
+            "model": model,
+            "scenario": "recent",
+            "start": "2026-07-05",
+            "end": end,
+            "created_utc": created,
+            "synthetic": False,
+            "metrics": {"total_return": value, "excess_return_vs_spy": value},
+        }
+
+    monkeypatch.setattr(
+        dashboard,
+        "collect_runs",
+        lambda _: [
+            row("vendor/model-a", "2026-10-02", "1", 0.1),
+            row("vendor/model-a", "2026-10-02", "2", 0.2),
+            row("vendor/model-b", "2026-10-02", "2", 0.15),
+            row("vendor/old-model", "2025-12-31", "3", 0.9),
+        ],
+    )
+    assert main(["compare"]) == 0
+    table = capsys.readouterr().out
+    assert table.count("model-a") == table.count("model-b") == 1
+    assert "20.0%" in table and "15.0%" in table
+    assert "vendor/" not in table and "old-model" not in table and "group" not in table
+
+
 def test_version_flag(capsys):
     with __import__("pytest").raises(SystemExit) as exc:
         main(["--version"])

@@ -80,7 +80,7 @@ runs survive another run's failure. Seeded Chronos inference is serialized.
 
 Recent event feeds are sparse and source-linked, not comprehensive news archives.
 Their latest event date is displayed. Optional current fundamentals and web search are
-flagged for look-ahead risk; they belong to separate comparison groups. Historical model
+flagged for look-ahead risk in the recorded capabilities. Historical model
 knowledge and adjusted prices remain limitations even when tools obey date restrictions.
 
 ## Add a scenario or tool
@@ -132,6 +132,8 @@ Forecasts use the actual sessions until the next decision or cutoff. Batch tools
 all tickers within the agent budget; unavailable news/search tools are not offered.
 Agents see complete parsed reports, benchmark-relative evidence, transaction costs,
 and a feasible 12-minus-1-month momentum reference. The manager retains final control.
+Malformed outer JSON is rejected rather than treated as a nested, empty report.
+Decisions without an allocations field are invalid and hold the prior portfolio.
 Each decision includes a market brief, which the validator reconstructs from frozen
 prices and portfolio state. Protocol 2 still replays under its original schedule and
 execution order; existing scores are never rewritten.

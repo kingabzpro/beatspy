@@ -34,6 +34,11 @@ class TestExtractJson:
     def test_unbalanced_returns_none(self):
         assert extract_json('{"a": [1, 2}') is None
 
+    def test_malformed_outer_report_does_not_return_nested_fragment(self):
+        text = '{"forecasts": [{"ticker": "SPY"}], "method_notes": "cut off</tool_call>'
+        assert extract_json(text) is None
+        assert extract_json(text, legacy=True) == {"ticker": "SPY"}
+
 
 class TestParseArtifact:
     def test_research_ok(self):
@@ -48,6 +53,13 @@ class TestParseArtifact:
     def test_validation_failure(self):
         model, err = parse_artifact("research", '{"sentiment": "not a dict"}')
         assert model is None and err and "schema validation" in err
+
+    def test_unrelated_object_cannot_become_empty_report(self):
+        for text in ('{"ticker": "SPY"}', '{"method_notes": "partial"}'):
+            model, err = parse_artifact("forecaster", text)
+            assert model is None and "missing report fields" in err
+            model, err = parse_artifact("forecaster", text, legacy=True)
+            assert err is None and model.forecasts == []
 
 
 class TestValidateDecision:
@@ -95,6 +107,10 @@ class TestValidateDecision:
     def test_wrong_schema_invalid(self):
         result = validate_decision({"allocations": "all of it"}, ["SPY"], 0.35)
         assert result.invalid
+
+    def test_missing_allocations_is_invalid_instead_of_liquidating(self):
+        assert validate_decision({"ticker": "SPY", "weight": 0.3}, ["SPY"], 0.35).invalid
+        assert not validate_decision({"ticker": "SPY"}, ["SPY"], 0.35, legacy=True).invalid
 
     def test_pydantic_model_accepted(self):
         decision = PortfolioDecision(allocations=[{"ticker": "SPY", "weight": 0.2}], expected_direction="up")
