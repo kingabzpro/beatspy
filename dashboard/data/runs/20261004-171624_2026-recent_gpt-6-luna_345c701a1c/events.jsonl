@@ -1,0 +1,20 @@
+{"type": "decision", "date": "2026-07-06", "weights": {"AAPL": 0.25, "JPM": 0.2, "SPY": 0.35, "NVDA": 0.1}, "cash": 0.1, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-06"}
+{"type": "decision", "date": "2026-07-31", "weights": {"AAPL": 0.25, "JPM": 0.2, "XOM": 0.2, "SPY": 0.35}, "cash": 0.0, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-31"}
+{"type": "decision", "date": "2026-08-31", "weights": {"AAPL": 0.25, "JPM": 0.2, "SPY": 0.3, "XOM": 0.25}, "cash": 0.0, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "JPM", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "XOM", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "SPY", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "AAPL", "on_date": "2026-08-31"}, "date": "2026-08-31"}
+{"type": "decision", "date": "2026-09-30", "weights": {"AAPL": 0.2626, "JPM": 0.1859, "SPY": 0.3009, "XOM": 0.2486}, "cash": 0.002, "predicted_direction": "flat", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-30"}

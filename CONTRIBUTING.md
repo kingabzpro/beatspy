@@ -134,6 +134,8 @@ Agents see complete parsed reports, benchmark-relative evidence, transaction cos
 and a feasible 12-minus-1-month momentum reference. The manager retains final control.
 Malformed outer JSON is rejected rather than treated as a nested, empty report.
 Decisions without an allocations field are invalid and hold the prior portfolio.
+`invalid_outputs` counts invalid portfolio decisions; auxiliary report parse errors
+are recorded separately in each decision and shown on the dashboard.
 Each decision includes a market brief, which the validator reconstructs from frozen
 prices and portfolio state. Protocol 2 still replays under its original schedule and
 execution order; existing scores are never rewritten.

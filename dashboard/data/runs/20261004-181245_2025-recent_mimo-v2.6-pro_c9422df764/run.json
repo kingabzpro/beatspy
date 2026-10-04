@@ -1,0 +1,102 @@
+{
+  "artifact_hashes": {
+    "decisions.jsonl": "ed76400f23f945dbeaedf742294b3d89a3dc4d67680b0eec89dccb162f7c9b9f",
+    "equity_curve.csv": "341d3991e09858e5dd5e3738546b4c17b021cf846e1e8d2886345b438eff8449",
+    "events.jsonl": "bc9c36f0a33ffc0d464586824d94676d1f3940c3cedac8e417fa35f4a5959b50",
+    "metrics.json": "4a3329f29da9bed35e9a03f567e26da6d4840175c9d4a629f9a5db5f2d114094",
+    "snapshot/MANIFEST.json": "f5fcdcc12bfb7d3ac9fdabbf834c05925ec4c74d18f78cd39dfca9644f008339",
+    "snapshot/prices.csv": "93027472acce99d277410499a5af447bbf5e7b69ae8553d5b2e304be03918ddc",
+    "trades.csv": "a8d3614239b270ee0c5cd8c51d8dd7d77a7f0387ae51b31117d5c2542ff0cbee"
+  },
+  "beatspy_version": "0.1.0",
+  "bench": {
+    "fee_bps": 5.0,
+    "initial_capital": 100000.0,
+    "max_position_weight": 0.35,
+    "risk_free_annual": 0.0,
+    "slippage_bps": 5.0,
+    "tool_budget_per_agent": 10
+  },
+  "capabilities": {
+    "finnhub_tools": false,
+    "forecast_provider": "baseline",
+    "web_search_tools": false
+  },
+  "created_utc": "2026-10-04T18:12:45+00:00",
+  "data": {
+    "end": "2025-12-31",
+    "fetched_at_utc": "2026-10-04T13:41:39+00:00",
+    "prices_sha256": "93027472acce99d277410499a5af447bbf5e7b69ae8553d5b2e304be03918ddc",
+    "rows": 3024,
+    "snapshot_id": "15dd648f0fc6df6d8b8a425432728659361276eca6d2cbc637b42807ec9b2828",
+    "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
+    "start": "2024-08-29",
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD",
+      "SPY"
+    ]
+  },
+  "disclaimer": "Historical market benchmark. Trades are simulated and scored against frozen market prices.",
+  "event_feed": {
+    "count": 2,
+    "note": "Sparse curated events, not a complete news history; coverage may lag the data cutoff.",
+    "through": "2025-12-10"
+  },
+  "label": "Maintainer benchmark: pipeline protocol 3; monthly; parser fix",
+  "model": {
+    "base_url": "https://token-plan-sgp.xiaomimimo.com/v1",
+    "cost_per_m_input": null,
+    "cost_per_m_output": null,
+    "max_turns": 16,
+    "model": "mimo-v2.6-pro",
+    "reasoning_effort": null,
+    "temperature": 0.0
+  },
+  "protocol_version": 3,
+  "requested": {
+    "end": "2025-12-31",
+    "frequency": "monthly",
+    "start": "2025-10-03"
+  },
+  "run_id": "20261004-181245_2025-recent_mimo-v2.6-pro_c9422df764",
+  "scenario": {
+    "allow_finnhub": false,
+    "allow_web_search": false,
+    "benchmark": "SPY",
+    "cash": true,
+    "description": "The final 90 calendar days ending at the last completed NYSE session of 2025.",
+    "end": "2025-12-31",
+    "fee_bps": 5.0,
+    "forecast_provider": null,
+    "frequency": "monthly",
+    "initial_capital": 100000.0,
+    "lookback_days": 400,
+    "max_position_weight": 0.35,
+    "name": "2025-recent",
+    "slippage_bps": 5.0,
+    "start": "2025-10-03",
+    "title": "2025 \u00b7 final 90 days",
+    "tradable": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD"
+    ],
+    "window_days": 90,
+    "year": 2025
+  },
+  "schema_version": 2,
+  "source_revision": "a07d2c309eddf7b5e5d66202dea6c2609d650a62",
+  "synthetic": false
+}

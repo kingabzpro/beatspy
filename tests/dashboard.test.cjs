@@ -1,7 +1,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
-const {parseCSV, leaderboardRuns, modelName, percent} = require('../dashboard/app.js');
+const {parseCSV, leaderboardRuns, modelName, allocationRow, percent} = require('../dashboard/app.js');
 
 test('CSV supports CRLF, quotes, escaped quotes, and embedded newlines', () => {
   assert.deepEqual(parseCSV('date,note\r\n2026-10-02,"a, b"\r\n2026-10-01,"a ""quote""\nand newline"\r\n'), [
@@ -22,6 +22,13 @@ test('one leaderboard merges reasoning modes, selects latest models, and exclude
   assert.equal(modelName('zai-org/GLM-5.3'), 'GLM-5.3');
   assert.equal(modelName('gpt-6-luna'), 'gpt-6-luna');
   assert.equal(percent(.1234), '12.34%');
+});
+test('invalid decisions display retained holdings instead of a false cash liquidation', () => {
+  assert.deepEqual(allocationRow({date:'2025-11-28',validated:{invalid:true,weights:{},cash:1},
+    market_brief:{current_portfolio_weights:{SPY:.3,TLT:.2},current_cash_weight:.5}}),
+    {date:'2025-11-28',SPY:.3,TLT:.2,CASH:.5});
+  assert.deepEqual(allocationRow({date:'2025-10-03',validated:{invalid:false,weights:{SPY:.35},cash:.65}}),
+    {date:'2025-10-03',SPY:.35,CASH:.65});
 });
 test('frontend uses safe text rendering and independent static files', () => {
   const js = readFileSync('dashboard/app.js', 'utf8');

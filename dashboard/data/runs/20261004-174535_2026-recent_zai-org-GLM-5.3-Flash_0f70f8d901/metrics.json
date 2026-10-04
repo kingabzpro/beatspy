@@ -1,0 +1,26 @@
+{
+  "annual_volatility": 0.129144,
+  "avg_turnover": 0.267887,
+  "baselines": {
+    "equal_weight": 0.111305,
+    "momentum_12_1": 0.094918,
+    "sixty_forty": 0.016363
+  },
+  "cagr": 0.127821,
+  "decisions": 4,
+  "directional_accuracy": 0.5,
+  "estimated_cost_usd": null,
+  "excess_return_vs_spy": 0.003546,
+  "input_tokens": 144765,
+  "invalid_outputs": 0,
+  "max_drawdown": -0.03954,
+  "outperformance_hit_rate": 0.75,
+  "output_tokens": 131397,
+  "requests": 36,
+  "risk_violations": 0,
+  "sharpe": 0.9953,
+  "spy_total_return": 0.026982,
+  "tool_calls": 28,
+  "total_return": 0.030529,
+  "trades": 18
+}

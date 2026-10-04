@@ -1,0 +1,102 @@
+{
+  "artifact_hashes": {
+    "decisions.jsonl": "0d3128f03d0fce58b1836467a84b730efc33272bbb05f06716cd85f090355dda",
+    "equity_curve.csv": "b5f9e393a62e291559fe59ef4f68c98675d440f5a5ced56e31405bce820bee06",
+    "events.jsonl": "d43e3de8c91f6b8abe7233256b9f7d3a18c819b5824d6aa18173bb600fad94c0",
+    "metrics.json": "c66c5ea0124f6920f1bb5fcb9638010d36b2db859f345f912dcfbec76781ee5f",
+    "snapshot/MANIFEST.json": "69f7f85853c4dbed176e9cb1791367a2ea087837b77ba645bd1b00b5b50bbae7",
+    "snapshot/prices.csv": "bbd5c9e612279d9be6375a25e78be8db19bb52087183010238efb3543e83633c",
+    "trades.csv": "e34abf25fbfd907a07201e550d76f81fdbb43033705d4e0660e57b232e87230c"
+  },
+  "beatspy_version": "0.1.0",
+  "bench": {
+    "fee_bps": 5.0,
+    "initial_capital": 100000.0,
+    "max_position_weight": 0.35,
+    "risk_free_annual": 0.0,
+    "slippage_bps": 5.0,
+    "tool_budget_per_agent": 10
+  },
+  "capabilities": {
+    "finnhub_tools": false,
+    "forecast_provider": "baseline",
+    "web_search_tools": false
+  },
+  "created_utc": "2026-10-04T17:12:49+00:00",
+  "data": {
+    "end": "2026-10-02",
+    "fetched_at_utc": "2026-10-04T13:41:41+00:00",
+    "prices_sha256": "bbd5c9e612279d9be6375a25e78be8db19bb52087183010238efb3543e83633c",
+    "rows": 3033,
+    "snapshot_id": "29c6cb831a75ad36c1d29541696b319d63e8b20eb911432f8a307b1f474f0e95",
+    "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
+    "start": "2025-06-02",
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD",
+      "SPY"
+    ]
+  },
+  "disclaimer": "Historical market benchmark. Trades are simulated and scored against frozen market prices.",
+  "event_feed": {
+    "count": 2,
+    "note": "Sparse curated events, not a complete news history; coverage may lag the data cutoff.",
+    "through": "2026-09-16"
+  },
+  "label": "Maintainer benchmark: pipeline protocol 3; monthly",
+  "model": {
+    "base_url": "https://abidali899--ep-deepseek-v4-1-flash-server.us-west.modal.direct/v1",
+    "cost_per_m_input": null,
+    "cost_per_m_output": null,
+    "max_turns": 16,
+    "model": "deepseek-ai/DeepSeek-V4.1-Flash",
+    "reasoning_effort": null,
+    "temperature": 0.0
+  },
+  "protocol_version": 3,
+  "requested": {
+    "end": "2026-10-02",
+    "frequency": "monthly",
+    "start": "2026-07-05"
+  },
+  "run_id": "20261004-171249_2026-recent_deepseek-ai-DeepSeek-V4.1-Flash_5fddb6af87",
+  "scenario": {
+    "allow_finnhub": false,
+    "allow_web_search": false,
+    "benchmark": "SPY",
+    "cash": true,
+    "description": "A rolling 90-calendar-day window ending at the latest completed NYSE session in 2026.",
+    "end": "2026-10-02",
+    "fee_bps": 5.0,
+    "forecast_provider": null,
+    "frequency": "monthly",
+    "initial_capital": 100000.0,
+    "lookback_days": 400,
+    "max_position_weight": 0.35,
+    "name": "2026-recent",
+    "slippage_bps": 5.0,
+    "start": "2026-07-05",
+    "title": "2026 \u00b7 latest 90 days",
+    "tradable": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD"
+    ],
+    "window_days": 90,
+    "year": 2026
+  },
+  "schema_version": 2,
+  "source_revision": "e86ab4702b279928c1c8c6c5e000056d02a13b5c",
+  "synthetic": false
+}

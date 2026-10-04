@@ -1,0 +1,15 @@
+{"type": "decision", "date": "2025-10-03", "weights": {"JPM": 0.35, "NVDA": 0.3, "GLD": 0.3}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2025-10-03"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2025-10-03"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2025-10-03"}
+{"type": "decision", "date": "2025-10-31", "weights": {"JPM": 0.35, "NVDA": 0.33, "GLD": 0.32}, "cash": 0.0, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "NVDA", "on_date": "2025-10-31"}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "JPM", "on_date": "2025-10-31"}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "GLD", "on_date": "2025-10-31"}, "date": "2025-10-31"}
+{"type": "decision", "date": "2025-11-28", "weights": {}, "cash": 1.0, "predicted_direction": "flat", "violations": ["decision was not a JSON object"], "parse_errors": ["portfolio_manager: no JSON object found in output", "portfolio_manager: decision invalid; holding previous portfolio"]}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2025-11-28"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2025-11-28"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2025-11-28"}

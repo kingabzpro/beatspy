@@ -30,6 +30,12 @@ function modelName(model) {
   return String(model).split("/").at(-1);
 }
 
+function allocationRow(row) {
+  const held = row.validated?.invalid ? row.market_brief : null;
+  return {date: row.date, ...(held?.current_portfolio_weights || row.validated?.weights || row.decision?.allocations?.reduce((obj, a) => ({...obj, [a.ticker]: a.weight}), {}) || {}),
+    CASH: held?.current_cash_weight ?? row.validated?.cash ?? row.decision?.cash_weight ?? 0};
+}
+
 function leaderboardRuns(runs) {
   const ordered = [...runs].sort((a, b) => String(b.end).localeCompare(String(a.end)) || String(b.created_utc).localeCompare(String(a.created_utc)));
   if (!ordered.length) return [];
@@ -41,7 +47,7 @@ function leaderboardRuns(runs) {
   return [...models.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
 }
 
-if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, percent};
+if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, allocationRow, percent};
 
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
@@ -211,7 +217,7 @@ if (typeof document !== "undefined") {
         return result;
       });
       chart("drawdown", drawdown, series, percent);
-      const allocationRows = decisions.map(row => ({date: row.date, ...(row.validated?.weights || row.decision?.allocations?.reduce((obj, a) => ({...obj, [a.ticker]: a.weight}), {}) || {}), CASH: row.validated?.cash ?? row.decision?.cash_weight ?? 0}));
+      const allocationRows = decisions.map(allocationRow);
       const tickers = [...new Set(allocationRows.flatMap(row => Object.keys(row).filter(key => key !== "date")))];
       allocationRows.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
       chart("allocations", allocationRows, tickers, percent);

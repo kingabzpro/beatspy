@@ -1,0 +1,12 @@
+{"type": "decision", "date": "2025-10-03", "weights": {"JPM": 0.3, "GLD": 0.28, "NVDA": 0.22, "SPY": 0.12}, "cash": 0.08, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2025-10-03"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2025-10-03"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2025-10-03"}
+{"type": "decision", "date": "2025-10-31", "weights": {"JPM": 0.3, "NVDA": 0.22, "GLD": 0.2, "SPY": 0.15, "TLT": 0.08}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2025-10-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2025-10-31"}
+{"type": "decision", "date": "2025-11-28", "weights": {"GLD": 0.22, "JPM": 0.24, "AAPL": 0.18, "NVDA": 0.1, "SPY": 0.14, "TLT": 0.07}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2025-11-28"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2025-11-28"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2025-11-28"}

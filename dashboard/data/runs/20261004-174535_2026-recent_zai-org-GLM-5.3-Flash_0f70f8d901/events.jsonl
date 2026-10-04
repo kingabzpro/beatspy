@@ -1,0 +1,32 @@
+{"type": "decision", "date": "2026-07-06", "weights": {"AAPL": 0.35, "JPM": 0.3, "SPY": 0.25, "TLT": 0.1}, "cash": 0.0, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "XOM", "days": 60}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "XOM", "on_date": "2026-05-29"}, "date": "2026-07-06"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "XOM", "on_date": "2026-05-15"}, "date": "2026-07-06"}
+{"type": "decision", "date": "2026-07-31", "weights": {"AAPL": 0.35, "JPM": 0.28, "XOM": 0.22, "SPY": 0.1}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "GLD", "days": 90}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "MSFT", "days": 90}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "MSFT", "on_date": "2026-07-29"}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "MSFT", "on_date": "2026-07-30"}, "date": "2026-07-31"}
+{"type": "decision", "date": "2026-08-31", "weights": {"AAPL": 0.348, "XOM": 0.3, "JPM": 0.274, "SPY": 0.05}, "cash": 0.028, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "MSFT", "days": 120}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_price_history", "args": {"ticker": "GLD", "days": 180}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "MSFT", "on_date": "2026-07-29"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "GLD", "on_date": "2026-08-27"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "MSFT", "on_date": "2026-07-30"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "MSFT", "on_date": "2026-07-31"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "GLD", "on_date": "2026-08-28"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "GLD", "on_date": "2026-08-26"}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "critic", "tool": "verify_price", "args": {"ticker": "GLD", "on_date": "2026-06-30"}, "date": "2026-08-31"}
+{"type": "decision", "date": "2026-09-30", "weights": {"AAPL": 0.35, "XOM": 0.34, "NVDA": 0.21, "SPY": 0.05}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-30"}
