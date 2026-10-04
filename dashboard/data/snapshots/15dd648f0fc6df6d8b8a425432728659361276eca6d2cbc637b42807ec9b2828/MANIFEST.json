@@ -1,0 +1,25 @@
+{
+  "end": "2025-12-31",
+  "fetched_at_utc": "2026-10-04T13:41:39+00:00",
+  "lookback_days": 400,
+  "prices_sha256": "93027472acce99d277410499a5af447bbf5e7b69ae8553d5b2e304be03918ddc",
+  "requested_end": "2025-12-31",
+  "requested_start": "2025-10-03",
+  "rows": 3024,
+  "scenario": "2025-recent",
+  "schema_version": 2,
+  "snapshot_id": "15dd648f0fc6df6d8b8a425432728659361276eca6d2cbc637b42807ec9b2828",
+  "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
+  "start": "2024-08-29",
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "META",
+    "JPM",
+    "XOM",
+    "TLT",
+    "GLD",
+    "SPY"
+  ]
+}

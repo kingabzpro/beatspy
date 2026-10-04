@@ -1,0 +1,2 @@
+# Published artifacts are hashed byte-for-byte; never normalize their line endings.
+dashboard/data/** -text

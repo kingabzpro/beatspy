@@ -8,7 +8,7 @@
 
 **[Open dashboard →](https://beatspy.vercel.app)** · [Contribution guide](CONTRIBUTING.md)
 
-![BeatSPY dashboard — local synthetic preview](docs/assets/dashboard.png)
+![BeatSPY dashboard — maintainer benchmark results](docs/assets/dashboard.png)
 
 | Part | Purpose |
 | :--- | :--- |
@@ -63,7 +63,8 @@ uv run beatspy demo                  # clearly labeled synthetic preview
 
 **Community submitted** means the recorded decisions, trades, and scores replay.
 **Maintainer run** identifies a separately generated, owner-controlled run.
-The public dashboard starts empty and defaults to maintainer results.
+The dashboard shows GLM, GLM Flash, and DeepSeek maintainer runs for 2025 and 2026.
+It opens on the latest year; complete decisions, trades, and frozen prices are downloadable.
 
 <details>
 <summary><strong>Optional integrations</strong></summary>

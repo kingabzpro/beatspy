@@ -1,0 +1,101 @@
+{
+  "artifact_hashes": {
+    "decisions.jsonl": "11128dfefbc38bee54859addc81df687e6d0aec1c105d88585b7b1a192717a73",
+    "equity_curve.csv": "e23ead1620f25c7bdd598cdc64bb90aedeadccf51022290be29f490022de18af",
+    "events.jsonl": "ac1604cc5159b8f1502a1ded2d00bb9803e632a3b6e2cd81253c8e9207484bb2",
+    "metrics.json": "bd0c7a5725452567d9d829f20cfbc379a9d20d8bcfed33c0f1f7743b8e489996",
+    "snapshot/MANIFEST.json": "f5fcdcc12bfb7d3ac9fdabbf834c05925ec4c74d18f78cd39dfca9644f008339",
+    "snapshot/prices.csv": "93027472acce99d277410499a5af447bbf5e7b69ae8553d5b2e304be03918ddc",
+    "trades.csv": "307a6d5ada2af0083687a96b3fe9dc4a7fee19eaed0712cfcca7375726c33f48"
+  },
+  "beatspy_version": "0.1.0",
+  "bench": {
+    "fee_bps": 5.0,
+    "initial_capital": 100000.0,
+    "max_position_weight": 0.35,
+    "risk_free_annual": 0.0,
+    "slippage_bps": 5.0,
+    "tool_budget_per_agent": 10
+  },
+  "capabilities": {
+    "finnhub_tools": false,
+    "forecast_provider": "baseline",
+    "web_search_tools": false
+  },
+  "created_utc": "2026-10-04T15:39:48+00:00",
+  "data": {
+    "end": "2025-12-31",
+    "fetched_at_utc": "2026-10-04T13:41:39+00:00",
+    "prices_sha256": "93027472acce99d277410499a5af447bbf5e7b69ae8553d5b2e304be03918ddc",
+    "rows": 3024,
+    "snapshot_id": "15dd648f0fc6df6d8b8a425432728659361276eca6d2cbc637b42807ec9b2828",
+    "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
+    "start": "2024-08-29",
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD",
+      "SPY"
+    ]
+  },
+  "disclaimer": "Historical market benchmark. Trades are simulated and scored against frozen market prices.",
+  "event_feed": {
+    "count": 2,
+    "note": "Sparse curated events, not a complete news history; coverage may lag the data cutoff.",
+    "through": "2025-12-10"
+  },
+  "label": "Maintainer benchmark: real model API calls, monthly decisions",
+  "model": {
+    "base_url": "https://abidali899--ep-glm-5-3-flash-server.us-west.modal.direct/v1",
+    "cost_per_m_input": null,
+    "cost_per_m_output": null,
+    "max_turns": 16,
+    "model": "zai-org/GLM-5.3-Flash",
+    "temperature": 0.0
+  },
+  "protocol_version": 2,
+  "requested": {
+    "end": "2025-12-31",
+    "frequency": "monthly",
+    "start": "2025-10-03"
+  },
+  "run_id": "20261004-153948_2025-recent_zai-org-GLM-5.3-Flash_0df50243c6",
+  "scenario": {
+    "allow_finnhub": false,
+    "allow_web_search": false,
+    "benchmark": "SPY",
+    "cash": true,
+    "description": "The final 90 calendar days ending at the last completed NYSE session of 2025.",
+    "end": "2025-12-31",
+    "fee_bps": 5.0,
+    "forecast_provider": null,
+    "frequency": "monthly",
+    "initial_capital": 100000.0,
+    "lookback_days": 400,
+    "max_position_weight": 0.35,
+    "name": "2025-recent",
+    "slippage_bps": 5.0,
+    "start": "2025-10-03",
+    "title": "2025 \u00b7 final 90 days",
+    "tradable": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD"
+    ],
+    "window_days": 90,
+    "year": 2025
+  },
+  "schema_version": 2,
+  "source_revision": "ea672166695609ccf144a0f7609cd64eff32fceb",
+  "synthetic": false
+}

@@ -26,6 +26,7 @@ Review free-text outputs before sharing them; redact personal content and rerun 
 Submission includes `run.json`, `metrics.json`, `equity_curve.csv`, `trades.csv`,
 `decisions.jsonl`, `events.jsonl`, and the exact snapshot's `prices.csv` and `MANIFEST.json`.
 Snapshots are deduplicated by hash. Existing published run directories are immutable.
+Git preserves exported artifact bytes across platforms; do not normalize their line endings.
 Legacy local runs remain viewable but must be rerun to produce protocol 2 evidence.
 Synthetic demos cannot be submitted. Individual artifacts are limited to 25 MB.
 
@@ -93,7 +94,7 @@ The live dashboard is https://beatspy.vercel.app. The frontend lives in `dashboa
 and reads `data/index.json`; details load on demand.
 No backend, API keys, framework, package installation, or build step is needed.
 
-Preview the empty public site:
+Preview the public site:
 
 ```bash
 python -m http.server 8000 --bind 127.0.0.1 --directory dashboard
@@ -107,4 +108,8 @@ In Vercel, import the repository, set Root Directory to `dashboard`, Framework P
 security headers. Deployments follow approved merges on the production branch. This
 project is connected to the GitHub repository; production updates follow pushes to `main`.
 PR preview deployments are disabled; only production publishes approved changes.
-Do not serve the whole repository or expose credentials. The public catalog starts empty.
+Do not serve the whole repository or expose credentials. Public results are explicitly
+exported and reviewed before publication. The initial maintainer comparison uses GLM-5.3,
+GLM-5.3-Flash, and DeepSeek-V4.1-Flash with monthly decisions, temperature 0, baseline
+forecasts, tool budget 10 per agent, and `BEATSPY_MAX_TURNS=16` for every model. Exact
+settings, dates, endpoint names, and request telemetry are included in each run record.
