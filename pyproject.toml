@@ -49,7 +49,10 @@ build-backend = "hatchling.build"
 packages = ["src/beatspy"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"dashboard" = "beatspy/reporting/static"
+"dashboard/index.html" = "beatspy/reporting/static/index.html"
+"dashboard/styles.css" = "beatspy/reporting/static/styles.css"
+"dashboard/app.js" = "beatspy/reporting/static/app.js"
+"dashboard/vercel.json" = "beatspy/reporting/static/vercel.json"
 
 [tool.ruff]
 line-length = 120

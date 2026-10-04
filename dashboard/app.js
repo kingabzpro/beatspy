@@ -255,6 +255,8 @@ if (typeof document !== "undefined") {
       runs = catalog.runs;
       $("trust").value = catalog.default_trust || "maintainer";
       options("year", runs.map(run => run.year), "All years"); options("scenario", runs.map(run => run.scenario), "All scenarios");
+      const defaultRuns = runs.filter(run => catalog.default_trust === "all" || run.trust === $("trust").value);
+      $("year").value = defaultRuns.map(run => run.year).filter(Boolean).sort().at(-1) || "";
       ["trust", "year", "scenario"].forEach(id => {$(id).onchange = filter;});
       $("group").onchange = () => {loading++; selected = null; $("run-details").hidden = true; renderBoard();};
       window.addEventListener("hashchange", hashSelection); filter();

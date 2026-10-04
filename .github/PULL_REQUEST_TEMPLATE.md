@@ -8,7 +8,7 @@ What changes and why, in one or two sentences.
 - [ ] New tools consume the per-agent budget via `_guard`.
 - [ ] Metrics remain deterministic; any randomness is seeded.
 - [ ] Submitted text is rendered as text, never interpreted as HTML.
-- [ ] Backtest outputs keep the hypothetical-results disclaimer; synthetic data stays labeled.
+- [ ] Run artifacts retain their dates, frozen-data hashes, and trade records; synthetic data stays labeled.
 
 ## Tests
 

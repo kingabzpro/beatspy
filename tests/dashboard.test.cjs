@@ -27,5 +27,13 @@ test('frontend uses safe text rendering and independent static files', () => {
   assert.match(js, /textContent/);
   assert.match(html, /aria-live="polite"/);
   assert.match(html, /styles\.css/);
-  assert.deepEqual(JSON.parse(readFileSync('dashboard/data/index.json', 'utf8')).runs, []);
+  const catalog = JSON.parse(readFileSync('dashboard/data/index.json', 'utf8'));
+  assert.equal(catalog.schema_version, 1);
+  assert.equal(catalog.default_trust, 'maintainer');
+  assert.ok(Array.isArray(catalog.runs));
+  for (const run of catalog.runs) {
+    assert.equal(run.synthetic, false);
+    assert.ok(['maintainer', 'community'].includes(run.trust));
+    assert.equal(run.dir, `runs/${run.run_id}`);
+  }
 });
