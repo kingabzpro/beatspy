@@ -171,7 +171,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     print("\nProbing model capabilities...")
     # probes fail fast: no retries, short timeout, so a dead endpoint answers quickly
     provider = BeatSpyModelProvider(base_url, api_key or None, request_timeout=15.0, max_retries=0)
-    probes = asyncio.run(probe_capabilities(provider, model))
+    probes = asyncio.run(probe_capabilities(provider, model, settings.model.reasoning_effort))
     for name, (ok, detail) in probes.items():
         print(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
 
@@ -200,7 +200,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     provider = BeatSpyModelProvider(
         settings.model.base_url, model_api_key(settings), request_timeout=15.0, max_retries=0
     )
-    probes = asyncio.run(probe_capabilities(provider, settings.model.model))
+    probes = asyncio.run(probe_capabilities(provider, settings.model.model, settings.model.reasoning_effort))
     for name, (ok, detail) in probes.items():
         checks.append((f"model {name}", "PASS" if ok else "FAIL", detail))
 

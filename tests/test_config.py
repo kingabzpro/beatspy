@@ -61,3 +61,30 @@ def test_render_config_shapes(home):
 def test_defaults_when_missing(home):
     loaded = load_settings()
     assert loaded == Settings()
+
+
+def test_reasoning_effort_roundtrip_and_wire_settings(home, monkeypatch):
+    from beatspy.models.provider import run_config_for
+
+    settings = Settings()
+    settings.model.reasoning_effort = "none"
+    save_settings(settings, {})
+    assert load_settings().model.reasoning_effort == "none"
+    monkeypatch.setenv("BEATSPY_REASONING_EFFORT", "high")
+    assert load_settings().model.reasoning_effort == "high"
+    wire = run_config_for(None, 0, "none").model_settings
+    assert wire.reasoning.effort == "none" and wire.temperature == 0
+    monkeypatch.setenv("BEATSPY_REASONING_EFFORT", "typo")
+    with pytest.raises(ValueError):
+        load_settings()
+
+
+def test_reasoning_effort_groups_preserve_legacy_and_separate_modes():
+    from beatspy.reporting.catalog import comparison_group
+
+    legacy = {"model": {"temperature": 0, "max_turns": 16}}
+    explicit_default = {"model": {**legacy["model"], "reasoning_effort": None}}
+    none = {"model": {**legacy["model"], "reasoning_effort": "none"}}
+    high = {"model": {**legacy["model"], "reasoning_effort": "high"}}
+    assert comparison_group(legacy) == comparison_group(explicit_default)
+    assert len({comparison_group(legacy), comparison_group(none), comparison_group(high)}) == 3

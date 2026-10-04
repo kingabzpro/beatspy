@@ -20,6 +20,7 @@ from agents import (
 )
 from agents.items import ToolCallItem
 from openai import AsyncOpenAI
+from openai.types.shared import Reasoning
 
 log = logging.getLogger(__name__)
 
@@ -41,10 +42,14 @@ class BeatSpyModelProvider(ModelProvider):
         return self._models[name]
 
 
-def run_config_for(provider: BeatSpyModelProvider, temperature: float) -> RunConfig:
+def run_config_for(
+    provider: BeatSpyModelProvider, temperature: float, reasoning_effort: str | None = None
+) -> RunConfig:
     return RunConfig(
         model_provider=provider,
-        model_settings=ModelSettings(temperature=temperature),
+        model_settings=ModelSettings(
+            temperature=temperature, reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort else None
+        ),
         tracing_disabled=True,
     )
 
@@ -55,18 +60,20 @@ def _ping_tool() -> str:
     return "pong"
 
 
-async def probe_chat(provider: BeatSpyModelProvider, model_name: str) -> tuple[bool, str]:
+async def probe_chat(provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None) -> tuple[bool, str]:
     """Minimal chat completion. Returns (ok, detail)."""
     agent = Agent(name="probe", instructions="Reply with the single word: pong.", model=model_name)
     try:
-        result = await Runner.run(agent, "ping", max_turns=1, run_config=run_config_for(provider, 0.0))
+        result = await Runner.run(
+            agent, "ping", max_turns=1, run_config=run_config_for(provider, 0.0, reasoning_effort)
+        )
         text = str(result.final_output).strip()
         return True, text[:80] if text else "empty response"
     except Exception as exc:
         return False, f"{type(exc).__name__}: {exc}"
 
 
-async def probe_tools(provider: BeatSpyModelProvider, model_name: str) -> tuple[bool, str]:
+async def probe_tools(provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None) -> tuple[bool, str]:
     """Check that the model can call tools (BeatSPY's hard requirement)."""
     agent = Agent(
         name="probe-tools",
@@ -75,7 +82,9 @@ async def probe_tools(provider: BeatSpyModelProvider, model_name: str) -> tuple[
         tools=[_ping_tool],
     )
     try:
-        result = await Runner.run(agent, "Call _ping_tool now.", max_turns=3, run_config=run_config_for(provider, 0.0))
+        result = await Runner.run(
+            agent, "Call _ping_tool now.", max_turns=3, run_config=run_config_for(provider, 0.0, reasoning_effort)
+        )
         saw_call = any(isinstance(item, ToolCallItem) for item in result.new_items)
         if saw_call:
             return True, "tool call observed"
@@ -84,9 +93,11 @@ async def probe_tools(provider: BeatSpyModelProvider, model_name: str) -> tuple[
         return False, f"{type(exc).__name__}: {exc}"
 
 
-async def probe_capabilities(provider: BeatSpyModelProvider, model_name: str) -> dict[str, tuple[bool, str]]:
+async def probe_capabilities(
+    provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None
+) -> dict[str, tuple[bool, str]]:
     """Run all probes in one event loop (the HTTP client is loop-bound)."""
     return {
-        "chat": await probe_chat(provider, model_name),
-        "tools": await probe_tools(provider, model_name),
+        "chat": await probe_chat(provider, model_name, reasoning_effort),
+        "tools": await probe_tools(provider, model_name, reasoning_effort),
     }

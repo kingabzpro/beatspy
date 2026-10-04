@@ -11,6 +11,7 @@ import json
 import os
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -33,6 +34,7 @@ class ModelConfig(BaseModel):
     model: str = "gpt-4o-mini"
     temperature: float = 0.0
     max_turns: int = 8
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] | None = None
     cost_per_m_input: float | None = None
     cost_per_m_output: float | None = None
 
@@ -122,6 +124,9 @@ def load_settings(path: Path | None = None) -> Settings:
         m.temperature = float(v)
     if (v := os.environ.get("BEATSPY_MAX_TURNS")) is not None:
         m.max_turns = int(v)
+    if (v := os.environ.get("BEATSPY_REASONING_EFFORT")) is not None:
+        m.reasoning_effort = v
+        settings = Settings.model_validate(settings.model_dump())
     if (v := os.environ.get("BEATSPY_FORECAST_PROVIDER")) is not None:
         settings.tools.forecast_provider = v
     return settings
@@ -163,6 +168,8 @@ def render_config(settings: Settings) -> str:
     ]
     if m.cost_per_m_input is not None:
         lines.append(f"cost_per_m_input = {_toml_value(m.cost_per_m_input)}")
+    if m.reasoning_effort is not None:
+        lines.append(f"reasoning_effort = {_toml_value(m.reasoning_effort)}")
     if m.cost_per_m_output is not None:
         lines.append(f"cost_per_m_output = {_toml_value(m.cost_per_m_output)}")
     lines += [

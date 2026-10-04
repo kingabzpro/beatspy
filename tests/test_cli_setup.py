@@ -17,7 +17,7 @@ def home(tmp_path, monkeypatch):
 
 
 def async_probes(results):
-    async def _probe(provider, model):
+    async def _probe(provider, model, reasoning_effort=None):
         return results
 
     return _probe

@@ -159,7 +159,7 @@ class DecisionPipeline:
         self.scenario = scenario
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
-            run_config=run_config_for(provider, settings.model.temperature),
+            run_config=run_config_for(provider, settings.model.temperature, settings.model.reasoning_effort),
             max_turns=settings.model.max_turns,
         )
         self.agents: dict[str, Agent] = {}

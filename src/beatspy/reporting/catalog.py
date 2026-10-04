@@ -24,6 +24,8 @@ def comparison_group(meta):
         "temperature": meta.get("model", {}).get("temperature"),
         "max_turns": meta.get("model", {}).get("max_turns"),
     }
+    if (effort := meta.get("model", {}).get("reasoning_effort")) is not None:
+        payload["reasoning_effort"] = effort
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -32,7 +34,7 @@ def summary(meta, metrics, directory, trust="community"):
     requested = meta.get("requested") or {}
     start = requested.get("start") or scenario.get("start", "")
     end = requested.get("end") or scenario.get("end", "")
-    return {
+    result = {
         "run_id": meta["run_id"],
         "dir": directory,
         "model": (meta.get("model") or {}).get("model", "?"),
@@ -49,6 +51,9 @@ def summary(meta, metrics, directory, trust="community"):
         "group": comparison_group(meta),
         "metrics": metrics,
     }
+    if (effort := meta.get("model", {}).get("reasoning_effort")) is not None:
+        result["reasoning_effort"] = effort
+    return result
 
 
 def build_catalog(data_root: Path, *, registry_path: Path | None = None, validate=True):

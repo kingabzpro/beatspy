@@ -76,7 +76,7 @@ if (typeof document !== "undefined") {
     const oldGroup = $("group").value;
     $("group").replaceChildren();
     const groups = [...new Map(candidates.map(run => [run.group, run])).values()];
-    for (const run of groups) $("group").add(new Option(`${run.scenario} · ${run.start} → ${run.end} · ${run.group.slice(0, 6)}`, run.group));
+    for (const run of groups) $("group").add(new Option(`${run.scenario} · ${run.start} → ${run.end}${run.reasoning_effort ? ` · reasoning ${run.reasoning_effort}` : ""} · ${run.group.slice(0, 6)}`, run.group));
     if (groups.some(run => run.group === oldGroup)) $("group").value = oldGroup;
     if (!groups.length) $("group").add(new Option("No matching benchmark group", ""));
     renderBoard();

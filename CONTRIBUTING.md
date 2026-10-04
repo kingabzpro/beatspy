@@ -20,6 +20,9 @@ and suitable local frozen prices; they are excluded from ordinary runs.
 5. Review and commit the generated files in `dashboard/data/`, then open a PR.
 
 Include the model/provider, exact command, optional tools, and any integrity caveats.
+Optional reasoning effort is set with `BEATSPY_REASONING_EFFORT` or `reasoning_effort`
+in `[model]`. GPT-6 Luna requires `none` for Chat Completions tool calling. Explicit
+reasoning settings get separate comparison groups and are preserved in exported records.
 The command prepares files locally; it never sends a PR or credentials for you.
 Review free-text outputs before sharing them; redact personal content and rerun validation.
 
