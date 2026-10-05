@@ -453,6 +453,7 @@ if (typeof document !== "undefined") {
     if (!rows.length) {container.append(node("p", "No chart data", "caption")); return;}
     const hidden = new Set(), labels = node("div", undefined, "legend"), plot = node("div", undefined, "chart");
     const tooltip = node("div", "Move over the chart for exact values.", "tooltip");
+    const seriesLabel = key => key === "large_company_core" ? "Stock core (baseline)" : key;
     tooltip.setAttribute("aria-live", "polite");
     const W = 640, H = 250, L = 62, R = 16, T = 16, B = 35;
     function draw() {
