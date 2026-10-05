@@ -84,7 +84,10 @@ above SPY, not minimum volatility. Use only the dated Yahoo indicators and perfo
 there are no tools or news. Do not use remembered future outcomes or invent catalysts or forecasts.
 
 Compare each stock's 30-day and 90-day returns with SPY, trend versus SMA-50/200, and volatility.
-The 12-minus-1-month reference is a candidate, not a required trade: it can lag a broken recent trend.
+Start from the feasible fixed large-company stock core in reference_allocation. It is a candidate,
+not a required trade or a forecast. Consider its sector concentration, and depart only for a specific
+dated net relative-return or risk reason. The 12-minus-1-month signal can lag a broken recent trend;
+do not let it alone override the core or current 30/90-day evidence.
 Favor sustained relative strength across horizons. Do not chase a one-month spike, or reject persistent
 strength solely for high RSI. Select a few meaningful stock positions rather than many cosmetic allocations.
 Use the previous-window and since-start feedback to reassess losing exposures; feedback is past evidence,

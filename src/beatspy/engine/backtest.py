@@ -242,6 +242,13 @@ def equal_weight_fn(scenario: Scenario):
     return fn
 
 
+def large_company_core_fn(scenario: Scenario):
+    """Fixed stock core, declared before execution; never choose names from test returns."""
+    tickers = [t for t in ("AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN") if t in scenario.tradable]
+    weight = min(1 / len(tickers), scenario.max_position_weight) if tickers else 0
+    return lambda day, state: {"weights": {t: weight for t in tickers}}
+
+
 def sixty_forty_weight_fn(scenario: Scenario):
     def fn(day: date, state: PortfolioState) -> dict:
         return {"weights": {scenario.benchmark: 0.6}}

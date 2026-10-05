@@ -62,6 +62,18 @@ def test_feedback_uses_current_and_previous_values_only(settings, data_service, 
     assert feedback["previous_window"]["benchmark_return_pct"] == round((current_price / start_price - 1) * 100, 3)
 
 
+def test_large_company_core_is_fixed_and_cannot_include_spy():
+    from beatspy.engine.backtest import large_company_core_fn
+    from beatspy.scenarios import load_scenario
+
+    scenario = load_scenario("2026-ytd")
+    weights = large_company_core_fn(scenario)(None, None)["weights"]
+    assert set(weights) == {"AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN"}
+    assert all(weight == pytest.approx(1 / 6) for weight in weights.values())
+    assert sum(weights.values()) == pytest.approx(1)
+    assert max(weights.values()) <= scenario.max_position_weight
+
+
 def test_invalid_pm_output_holds_portfolio(pipeline, data_service, scenario):
     pipeline.executor.outputs["portfolio_manager"] = "I cannot decide right now, sorry."
     tctx = make_tctx(data_service, scenario)

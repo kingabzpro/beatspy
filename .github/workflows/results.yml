@@ -81,7 +81,7 @@ jobs:
                   if meta['scenario']['name'] != '2026-ytd' or meta['requested']['start'] != '2026-01-01':
                       raise SystemExit('New leaderboard results must use the 2026 year-to-date benchmark.')
                   from beatspy.scenarios import load_scenario
-                  if (meta['protocol_version'] != 7
+                  if (meta['protocol_version'] != 8
                           or meta['scenario'].get('pipeline') != 'single'
                           or meta['model'].get('max_turns') != 1
                           or meta['model'].get('max_output_tokens') != 4096

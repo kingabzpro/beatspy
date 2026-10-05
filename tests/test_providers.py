@@ -23,6 +23,12 @@ def test_output_limit_matches_provider_contract():
         assert config.model_settings.max_tokens == expected_tokens
         assert config.model_settings.extra_body == expected_body
 
+    provider = SimpleNamespace(client=SimpleNamespace(base_url=httpx.URL("https://token-plan-sgp.xiaomimimo.com/v1")))
+    config = run_config_for(provider, 0, "none", 4096)
+    assert config.model_settings.extra_body == {"thinking": {"type": "disabled"}}
+    assert config.model_settings.reasoning is None
+    assert config.model_settings.max_tokens == 4096
+
 
 def test_olostep_search_contract_and_provider_errors(monkeypatch):
     def respond(request):

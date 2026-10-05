@@ -19,7 +19,7 @@ from typing import Protocol
 from agents import Agent, RunConfig, Runner, set_tracing_disabled
 from agents.items import ToolCallItem
 
-from ..engine.backtest import momentum_weight_fn
+from ..engine.backtest import large_company_core_fn, momentum_weight_fn
 from ..models.provider import BeatSpyModelProvider, run_config_for
 from ..schemas import extract_json, parse_artifact, validate_decision
 from ..tools.context import ToolContext
@@ -207,7 +207,12 @@ class DecisionPipeline:
             self.agents["research"].instructions = prompts.INSTRUCTIONS["research"]
         if not self.single and self.protocol_version >= 5 and tctx.olostep_api_key:
             self.agents["research"].instructions += prompts.WEB_RESEARCH_INSTRUCTIONS
-        reference = momentum_weight_fn(tctx.scenario, tctx.data)(tctx.as_of, None)["weights"]
+        reference_fn = (
+            large_company_core_fn(tctx.scenario)
+            if self.protocol_version >= 8
+            else momentum_weight_fn(tctx.scenario, tctx.data)
+        )
+        reference = reference_fn(tctx.as_of, None)["weights"]
         reference = {
             ticker: min(weight, tctx.scenario.max_position_weight)
             for ticker, weight in reference.items()
@@ -231,7 +236,11 @@ class DecisionPipeline:
                 "news_available": bool(tctx.finnhub_api_key),
                 "web_search_available": bool(tctx.olostep_api_key),
                 "reference_allocation": {
-                    "method": "12-minus-1-month momentum; top three, clipped to position limits",
+                    "method": (
+                        "Fixed equal-weight large-company stock core; concentrated in technology and related sectors"
+                        if self.protocol_version >= 8
+                        else "12-minus-1-month momentum; top three, clipped to position limits"
+                    ),
                     "weights": reference,
                     "cash": round(1 - sum(reference.values()), 4),
                 },

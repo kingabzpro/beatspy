@@ -123,6 +123,8 @@ async def run_benchmark(
         settings.model.max_output_tokens = settings.model.max_output_tokens or 4096
         if settings.model.reasoning_effort is None and "GLM-5" in settings.model.model.upper():
             settings.model.reasoning_effort = "low"
+        if settings.model.reasoning_effort is None and settings.model.model.lower().startswith("mimo-v2.6"):
+            settings.model.reasoning_effort = "none"
     provider = BeatSpyModelProvider(
         settings.model.base_url,
         model_api_key(settings),
@@ -147,7 +149,7 @@ async def run_benchmark(
             executor=executor,
             web_tools=web_enabled,
             agent_limit=agent_limit,
-            protocol_version=7 if single else 5,
+            protocol_version=8 if single else 5,
         )
 
         start_day = date.fromisoformat(start or scenario.start)
@@ -223,7 +225,14 @@ async def run_benchmark(
         from .scoring import score_run
 
         metrics, equity_df = await score_run(
-            data, scenario, settings, result, decision_dates, decisions, harness_violations
+            data,
+            scenario,
+            settings,
+            result,
+            decision_dates,
+            decisions,
+            harness_violations,
+            protocol_version=8 if single else 5,
         )
 
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
@@ -232,7 +241,7 @@ async def run_benchmark(
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 7 if single else 5,
+            "protocol_version": 8 if single else 5,
             "source_revision": source_revision(),
             "code_sha256": run_code_digest,
             "run_id": run_id,

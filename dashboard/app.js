@@ -214,6 +214,7 @@ if (typeof document !== "undefined") {
     if (!rows.length) {container.append(node("p", "No chart data", "caption")); return;}
     const hidden = new Set(), labels = node("div", undefined, "legend"), plot = node("div", undefined, "chart");
     const tooltip = node("div", "Move over the chart for exact values.", "tooltip");
+    const seriesLabel = key => key === "large_company_core" ? "Stock core (baseline)" : key;
     tooltip.setAttribute("aria-live", "polite");
     const W = 640, H = 250, L = 62, R = 16, T = 16, B = 35;
     function draw() {
@@ -248,13 +249,13 @@ if (typeof document !== "undefined") {
         const px = (event.clientX - box.left) * W / box.width;
         const i = Math.max(0, Math.min(rows.length - 1, Math.round((px - L) * (rows.length - 1) / (W - L - R))));
         cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
-        tooltip.textContent = `${rows[i].date} · ${keys.map(key => `${key}: ${format(Number(rows[i][key]))}`).join(" · ")}`;
+        tooltip.textContent = `${rows[i].date} · ${keys.map(key => `${seriesLabel(key)}: ${format(Number(rows[i][key]))}`).join(" · ")}`;
       };
       svg.onpointerleave = () => cross.setAttribute("visibility", "hidden");
       plot.append(svg);
     }
     series.forEach((key, i) => {
-      const button = node("button", `● ${key}`); button.style.color = COLORS[i % COLORS.length];
+      const button = node("button", `● ${seriesLabel(key)}`); button.style.color = COLORS[i % COLORS.length];
       button.setAttribute("aria-pressed", "true");
       button.onclick = () => {if (hidden.has(key)) hidden.delete(key); else hidden.add(key); button.setAttribute("aria-pressed", !hidden.has(key)); draw();};
       labels.append(button);

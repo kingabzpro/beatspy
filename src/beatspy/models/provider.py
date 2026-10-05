@@ -50,13 +50,19 @@ def run_config_for(
 ) -> RunConfig:
     # New OpenAI models require max_completion_tokens; compatible servers use max_tokens.
     openai_limit = bool(provider and provider.client.base_url.host == "api.openai.com" and max_output_tokens)
+    mimo_no_thinking = bool(
+        provider and provider.client.base_url.host.endswith("xiaomimimo.com") and reasoning_effort == "none"
+    )
+    extra_body = {"max_completion_tokens": max_output_tokens} if openai_limit else None
+    if mimo_no_thinking:
+        extra_body = {"thinking": {"type": "disabled"}}
     return RunConfig(
         model_provider=provider,
         model_settings=ModelSettings(
             temperature=temperature,
-            reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort else None,
+            reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort and not mimo_no_thinking else None,
             max_tokens=None if openai_limit else max_output_tokens,
-            extra_body={"max_completion_tokens": max_output_tokens} if openai_limit else None,
+            extra_body=extra_body,
         ),
         tracing_disabled=True,
     )

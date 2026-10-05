@@ -2,13 +2,17 @@
 
 ## Fast default
 
-Protocol 7 uses 12 dates spread across the full 2026 evaluation period and one
+Protocol 8 uses 12 dates spread across the full 2026 evaluation period and one
 portfolio manager call per date, without tools. Frozen Yahoo indicators, holdings,
-transaction costs, the momentum reference, and realized performance versus SPY are supplied directly.
+transaction costs, a fixed six-company stock core reference, and realized performance versus SPY are supplied directly.
 Feedback is calculated only through each decision date and replayed from portfolio accounting. Each request
 has a 4,096-token default cap, a 90-second timeout, and no automatic retries.
 Daily scoring and offline replay still cover the full period. The five-agent
 protocol below remains available with `--team` for local experiments.
+
+The core is AAPL, MSFT, NVDA, GOOGL, META, and AMZN, equally weighted within the
+position limits. It is also scored separately as a non-model baseline. Its sector
+concentration is explicit; models can depart based on dated price evidence.
 
 ## Components
 

@@ -7,7 +7,13 @@ from datetime import date
 
 import pandas as pd
 
-from ..engine.backtest import equal_weight_fn, momentum_weight_fn, run_backtest, sixty_forty_weight_fn
+from ..engine.backtest import (
+    equal_weight_fn,
+    large_company_core_fn,
+    momentum_weight_fn,
+    run_backtest,
+    sixty_forty_weight_fn,
+)
 from ..engine.metrics import (
     annualized_volatility,
     cagr,
@@ -28,7 +34,9 @@ def estimate_cost(settings, input_tokens, output_tokens):
     return round((input_tokens * (m.cost_per_m_input or 0) + output_tokens * (m.cost_per_m_output or 0)) / 1e6, 4)
 
 
-async def score_run(data, scenario, settings, result, decision_dates, decisions, harness_violations, *, legacy=False):
+async def score_run(
+    data, scenario, settings, result, decision_dates, decisions, harness_violations, *, legacy=False, protocol_version=5
+):
     # SPY buy-and-hold from the same start value, through the same price data.
     spy_values: dict[date, float] = {}
     base_close = None
@@ -48,6 +56,12 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
         ("momentum_12_1", momentum_weight_fn(scenario, data)),
     ]:
         baselines[name] = (await run_backtest(data, decision_dates, fn, scenario, legacy=legacy)).equity
+    if protocol_version >= 8:
+        baselines["large_company_core"] = (
+            await run_backtest(
+                data, decision_dates, large_company_core_fn(scenario), scenario, allowed_tickers=scenario.tradable
+            )
+        ).equity
 
     daily_returns = result.equity.pct_change().dropna()
     p_windows = window_returns(result.equity, decision_dates)
@@ -92,4 +106,6 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
             "momentum_12_1": baselines["momentum_12_1"],
         }
     )
+    if protocol_version >= 8:
+        equity_df["large_company_core"] = baselines["large_company_core"]
     return metrics, equity_df

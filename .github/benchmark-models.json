@@ -14,7 +14,8 @@
     "cost_per_m_input": 0.435,
     "cost_per_m_output": 0.87,
     "pricing_source": "https://openrouter.ai/xiaomi/mimo-v2.6-pro",
-    "pricing_checked": "2026-10-05"
+    "pricing_checked": "2026-10-05",
+    "reasoning_effort": "none"
   },
   "zai-org/GLM-5.3": {
     "base_url": "https://abidali899--ep-glm-5-3-server.us-west.modal.direct/v1",
