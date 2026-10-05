@@ -46,6 +46,7 @@
     "cost_per_m_input": 0.67,
     "cost_per_m_output": 14.0,
     "pricing_source": "https://openrouter.ai/moonshotai/kimi-k3",
-    "pricing_checked": "2026-10-05"
+    "pricing_checked": "2026-10-05",
+    "reasoning_effort": "low"
   }
 }

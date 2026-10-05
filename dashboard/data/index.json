@@ -1,5 +1,49 @@
 {
   "default_trust": "all",
-  "runs": [],
+  "runs": [
+    {
+      "created_utc": "2026-10-05T13:59:02+00:00",
+      "data_cutoff": "2026-10-02",
+      "dir": "runs/20261005-135902_2026-ytd_gpt-6-luna_c48abcfee3",
+      "end": "2026-10-02",
+      "group": "da2e87fa98ed2c53",
+      "label": "0.2.0 2026-ytd rerun",
+      "metrics": {
+        "annual_volatility": 0.16751,
+        "avg_turnover": 0.110393,
+        "baselines": {
+          "equal_weight": 0.116763,
+          "momentum_12_1": 0.181767,
+          "sixty_forty": 0.076494
+        },
+        "cagr": 0.179435,
+        "decisions": 36,
+        "directional_accuracy": 0.6667,
+        "estimated_cost_usd": 0.4797,
+        "excess_return_vs_spy": -0.004349,
+        "input_tokens": 3728310,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.094303,
+        "outperformance_hit_rate": 0.5556,
+        "output_tokens": 213833,
+        "requests": 458,
+        "risk_violations": 4,
+        "sharpe": 1.0687,
+        "spy_total_return": 0.135371,
+        "tool_calls": 639,
+        "total_return": 0.131022,
+        "trades": 188
+      },
+      "model": "gpt-6-luna",
+      "reasoning_effort": "none",
+      "run_id": "20261005-135902_2026-ytd_gpt-6-luna_c48abcfee3",
+      "scenario": "2026-ytd",
+      "snapshot_id": "f2a0335999f104340d19023bb204f1440d08059e736b67f92c73e023c2bc420d",
+      "start": "2026-01-01",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    }
+  ],
   "schema_version": 1
 }
