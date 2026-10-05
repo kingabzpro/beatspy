@@ -4,13 +4,54 @@
 
 [Open dashboard →](https://beatspy.vercel.app) · [Contribution guide](CONTRIBUTING.md)
 
-The benchmark uses the archived five-agent logic: research, technical analysis,
-and local statistical forecasts run in parallel; a critic reviews them before
-the portfolio manager decides. A feasible momentum reference is a candidate,
-not a required allocation. Python handles trading, risk rules, and scoring.
+BeatSPY compares model-controlled portfolios with SPY using frozen historical
+prices. The default preserves the earlier five-agent workflow, with 12 decisions
+over **July 6–October 2, 2026**. Python validates allocations, executes trades,
+and scores the portfolio daily through the end of the period.
 
-See the [completed six-model comparison](docs/12-decision-comparison.md) for
-the 12-decision results, original four-decision scores, runtimes, and costs.
+The latest six-model batch had **5 of 6 models beat SPY's 2.70% return**.
+The non-model momentum baseline returned 12.62%, outperforming every model.
+See the [full comparison](docs/12-decision-comparison.md) for results, runtimes,
+cost estimates, and differences from the original four-decision archive.
+
+## How it works
+
+```mermaid
+flowchart TD
+    Prices["Frozen Yahoo Finance prices"] --> Context["Decision context: holdings, history and risk limits"]
+    Context --> Research["Research: dated local events"]
+    Context --> Analyst["Analyst: technical indicators"]
+    Context --> Forecast["Forecaster: batched local forecasts"]
+    Research --> Critic["Critic reviews the three reports"]
+    Analyst --> Critic
+    Forecast --> Critic
+    Critic --> Manager["Portfolio manager chooses allocations"]
+    Context --> Manager
+    Manager --> Validate["Validate stocks, hedges and cash"]
+    Validate --> Execute["Fill at next session's open with trading costs"]
+    Execute -->|Next decision| Context
+    Execute --> Score["Daily scoring through October 2, 2026"]
+    Score --> Results["Save artifacts, replay scores and publish results"]
+```
+
+Research, analysis, and forecasting run in parallel. The portfolio manager
+receives their reports, the critic's review, and a feasible momentum candidate;
+it retains control of allocations. The candidate is not a required portfolio.
+
+| Default setting | Value |
+| --- | --- |
+| Scenario | `2026-comparison` |
+| Scored period | July 6–October 2, 2026 |
+| Decisions | 12, selected across weekly candidate dates |
+| Individual stocks | AAPL, MSFT, NVDA, META, JPM, XOM |
+| Hedges and cash | TLT, GLD, cash |
+| Benchmark | SPY, comparison-only; models cannot buy it |
+| Data and forecasts | Cached Yahoo adjusted prices and local statistical forecasts |
+| Research services | No Olostep, Finnhub, or TimeGPT calls by default |
+
+Warmup history is excluded from scoring. This fixed surviving stock basket has
+survivorship bias, and models may already know historical outcomes. The period
+has also been used during development; these scores are not an untouched holdout.
 
 ## Run a benchmark
 
@@ -26,58 +67,26 @@ uv run beatspy results
 uv run beatspy report --open
 ```
 
-The default benchmark, `2026-comparison`, is a continuous portfolio from
-**July 6 through October 2, 2026**, the same scored period as the archived
-four-decision runs. **12 decisions per model** are spread across that fixed
-period using weekly candidate dates. Decisions
-use frozen adjusted prices, with extra warmup history excluded from scoring.
-The original basket is AAPL, MSFT, NVDA, META, JPM, and XOM. TLT and GLD are permitted hedges;
-SPY is comparison-only and cannot be bought by the model portfolio.
-This fixed surviving universe
-has survivorship bias; it is not historical index membership.
-
-The default uses cached Yahoo Finance adjusted prices, batched local forecasts,
-and no Olostep, Finnhub, or TimeGPT calls. Each decision runs all five agents;
-tool turns mean more than five model requests may be needed. Each agent has
-three tool calls per decision and eight turns at most. Output is limited to
-4,096 tokens; requests time out after 90 seconds without automatic retries. Failed
-decisions hold the previous portfolio and remain visible in the results.
-
-The old archive allowed SPY holdings because of an eligibility flaw; current
-runs keep SPY comparison-only. This is a corrected comparison, not a promise
-to reproduce the old return. The larger stock universe and full-year single-call
-experiment remain available with `--scenario 2026-ytd`.
-Optional news and forecasting integrations remain available in other scenarios.
-Models may already know historical outcomes; frozen inputs do not
-eliminate that limitation.
-
-For a local Olostep comparison, set `OLOSTEP_API_KEY` and run:
-
-```bash
-uv run beatspy run --web-research
-```
-
-This experimental mode uses Olostep's [Google parser](https://docs.olostep.com/features/structured-content/parsers)
-and [page scrapes](https://docs.olostep.com/api-reference/scrapes/create), with no generated web answers.
-Each decision allows two searches and three scrapes, with cached responses.
-Search snippets are withheld; page text requires a publication date and must not
-be published or updated after the decision date. Publisher metadata is not an
-authenticated historical archive, so these runs are excluded from the official leaderboard.
-Finnhub monthly recommendation trends are analyst sentiment, not weekly forecasts;
-they are unavailable for past decisions without an authenticated archive.
-Its separate price-target endpoint may require a paid entitlement.
-
 The five-agent workflow requires an OpenAI-compatible endpoint with tool calling. To avoid setup prompts:
 
 ```bash
 uv run beatspy setup --model your-model --base-url https://your-endpoint/v1 --api-key-env YOUR_MODEL_KEY
 ```
 
-`--max-decisions 60` selects 60 decisions across the same period for a local experiment.
-`--scenario`, `--model`, `--jobs`, and `--concurrency` remain available for custom
-experiments. Historical scenarios and 2025/2026 recent windows remain accessible.
-The dashboard has no filters and shows only the latest execution per model, with
-each result's period displayed. Earlier experiments remain in the archive.
+For a shorter local experiment, use `uv run beatspy run --max-decisions 6`.
+The cap selects fewer dates across the same period; it does not add dates beyond
+the scenario's schedule. `--model`, `--jobs`, and `--concurrency` control model
+selection and parallel work. Decisions within one portfolio remain sequential.
+
+Each agent has at most three tool calls, eight turns, and 4,096 output tokens
+per decision. Requests time out after 90 seconds without automatic retries.
+Twelve decisions can require more than twelve model requests. Failed portfolio
+decisions retain the previous allocation, with errors recorded in the artifacts.
+
+`--scenario 2026-ytd` is a separate full-year, single-call experiment with
+23 companies across 11 sectors. Optional research integrations, including the
+local Olostep trial, are described in the [contribution guide](CONTRIBUTING.md).
+The dashboard shows only the latest execution per model and its exact period.
 
 ## Submit in one command
 
@@ -92,12 +101,15 @@ validates the latest real run and sends a verification request; it never shares
 API keys. `beatspy submit` prepares the request locally without sending it.
 The dashboard's **Submit for verification** button opens a prefilled request too.
 
-Accepted new leaderboard results come from the trusted main-branch runner using
-approved endpoints and owner-controlled credentials. It reruns the model, checks
-code integrity, replays scores, signs the exact exported artifacts with Ed25519,
-and automatically prepares a results PR. Each accepted run has a unique
-verification ID and downloadable signature. Reruns may differ from local scores.
-Local runs remain unsigned until the trusted workflow reruns and signs them.
+The trusted main-branch workflow reruns approved models, checks code integrity,
+replays scores, and signs exported artifacts with the owner's Ed25519 private
+key before preparing a results PR. The public key validates the signature;
+a unique verification ID binds the result to its source and execution.
+
+**The current six results are replay-checked but unsigned.** Trusted signing
+requires the owner's key configuration, documented in
+[Owner setup](CONTRIBUTING.md#owner-setup-once). Local runs remain unsigned;
+a trusted rerun may produce different scores.
 
 ## Development
 
@@ -111,29 +123,8 @@ uv build
 ```
 
 Browser tests require `uv run playwright install chromium`. Ordinary tests use
-scripted agents; live forecast checks are opt-in. Chronos and TimeGPT remain
-optional extras. [Architecture](ARCHITECTURE.md) · [Apache-2.0](LICENSE)
+scripted agents; live forecast checks are opt-in. Generated runs and market
+caches are ignored by Git; published dashboard artifacts retain their frozen
+prices and provenance for replay.
 
-## Benchmark stock mix
-
-The fixed universe balances sector coverage with large, established companies.
-It is not a live ranking or a historical reconstruction of index membership.
-
-| Sector | Companies |
-| --- | --- |
-| Technology | Apple (AAPL), Microsoft (MSFT), Nvidia (NVDA) |
-| Communication services | Alphabet (GOOGL), Meta (META) |
-| Consumer discretionary | Amazon (AMZN), Home Depot (HD) |
-| Consumer staples | Walmart (WMT), Procter & Gamble (PG) |
-| Financials | JPMorgan Chase (JPM), Visa (V) |
-| Healthcare | Eli Lilly (LLY), Johnson & Johnson (JNJ) |
-| Energy | ExxonMobil (XOM), Chevron (CVX) |
-| Industrials | Caterpillar (CAT), GE Aerospace (GE) |
-| Utilities | NextEra Energy (NEE), Southern Company (SO) |
-| Materials | Linde (LIN), Sherwin-Williams (SHW) |
-| Real estate | Prologis (PLD), American Tower (AMT) |
-
-TLT and GLD are hedges; cash is allowed. SPY remains in frozen prices, research,
-forecasts, and baseline charts solely for comparison. Protocol 4 separates the
-market-data universe from the investable list, drops forbidden allocations with
-recorded violations, and rejects forbidden orders at execution and offline replay.
+[Architecture](ARCHITECTURE.md) · [Contribution guide](CONTRIBUTING.md) · [Apache-2.0](LICENSE)

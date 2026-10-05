@@ -15,6 +15,7 @@ htmlcov/
 build/
 dist/
 .test-tmp*/
+pytest-cache-files-*/
 
 # Credentials and local configuration
 .env
