@@ -73,8 +73,8 @@ async def replay_run(run_dir: Path) -> dict:
     meta = read_json(run_dir / "run.json")
     if meta.get("synthetic") is not False:
         raise ValueError("synthetic or incomplete results cannot be submitted")
-    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5, 6):
-        raise ValueError("only complete protocol 2 through 6 runs support submission; rerun legacy results")
+    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5, 6, 7):
+        raise ValueError("only complete protocol 2 through 7 runs support submission; rerun legacy results")
     legacy = meta["protocol_version"] == 2
     if not SAFE_ID.fullmatch(meta["run_id"]) or meta["run_id"] != run_dir.name:
         raise ValueError("invalid or mismatched run id")
@@ -82,7 +82,7 @@ async def replay_run(run_dir: Path) -> dict:
         raise ValueError("submission cannot assign its own trust")
     check_numbers(meta)
     scenario = Scenario.model_validate(meta["scenario"])
-    single = meta["protocol_version"] == 6
+    single = meta["protocol_version"] >= 6
     roles = ["portfolio_manager"] if single else ROLES
     if single and (
         scenario.pipeline != "single"
@@ -204,7 +204,13 @@ async def replay_run(run_dir: Path) -> dict:
             finnhub_api_key="replay-enabled" if meta["capabilities"].get("finnhub_tools") else None,
             olostep_api_key="replay-enabled" if meta["capabilities"].get("web_search_tools") else None,
         )
-        record = await pipeline.decide(context, invested, 1 - sum(invested.values()), recent_summary)
+        record = await pipeline.decide(
+            context,
+            invested,
+            1 - sum(invested.values()),
+            recent_summary,
+            portfolio_equity=state.equity(day, data) if single else None,
+        )
         if not legacy and row.get("market_brief") != record.market_brief:
             raise ValueError(f"market brief replay mismatch on {day}")
         for name, expected in {

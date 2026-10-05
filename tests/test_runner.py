@@ -161,7 +161,7 @@ def test_fast_run_calls_only_manager_disables_research_and_replays(tmp_path, mon
     )
     meta = validate_run(directory)
     metrics = json.loads((directory / "metrics.json").read_text())
-    assert meta["protocol_version"] == 6
+    assert meta["protocol_version"] == 7
     assert executor.calls == ["portfolio_manager"] * metrics["decisions"]
     assert metrics["requests"] == metrics["decisions"] and metrics["tool_calls"] == 0
     assert meta["capabilities"] == {
@@ -176,6 +176,11 @@ def test_fast_run_calls_only_manager_disables_research_and_replays(tmp_path, mon
     assert all(
         not row["market_brief"]["news_available"] and not row["market_brief"]["web_search_available"] for row in rows
     )
+    feedback = rows[-1]["market_brief"]["performance_feedback"]
+    assert feedback["as_of"] == rows[-1]["date"]
+    assert feedback["since_start"]["start"] == rows[0]["date"]
+    assert feedback["previous_window"]["start"] == rows[-2]["date"]
+    assert feedback["since_start"]["portfolio_return_pct"] != 0
     assert pd.read_csv(directory / "equity_curve.csv").date.max() == scenario.end
 
     meta["capabilities"]["finnhub_tools"] = True

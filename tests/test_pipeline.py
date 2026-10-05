@@ -45,6 +45,23 @@ def test_single_call_has_no_tools_and_keeps_spy_guard(settings, data_service, sc
     assert any("SPY" in violation for violation in record.validated.violations)
 
 
+def test_feedback_uses_current_and_previous_values_only(settings, data_service, scenario):
+    from datetime import timedelta
+
+    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=FakeExecutor(), protocol_version=7)
+    tctx = make_tctx(data_service, scenario)
+    first = asyncio_run(pipeline.decide(tctx, {}, 1, None, portfolio_equity=100000))
+    tctx.as_of += timedelta(days=7)
+    second = asyncio_run(pipeline.decide(tctx, {}, 1, None, portfolio_equity=102000))
+    feedback = second.market_brief["performance_feedback"]
+    assert first.market_brief["performance_feedback"]["since_start"]["portfolio_return_pct"] == 0
+    assert feedback["previous_window"]["portfolio_return_pct"] == 2
+    assert feedback["previous_window"]["start"] == first.date.isoformat()
+    start_price = data_service.last_close(scenario.benchmark, first.date)[1]
+    current_price = data_service.last_close(scenario.benchmark, second.date)[1]
+    assert feedback["previous_window"]["benchmark_return_pct"] == round((current_price / start_price - 1) * 100, 3)
+
+
 def test_invalid_pm_output_holds_portfolio(pipeline, data_service, scenario):
     pipeline.executor.outputs["portfolio_manager"] = "I cannot decide right now, sorry."
     tctx = make_tctx(data_service, scenario)

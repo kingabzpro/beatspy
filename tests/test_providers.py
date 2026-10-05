@@ -9,6 +9,21 @@ from beatspy.config import Settings, provider_api_key, secret_values
 from beatspy.tools import web
 
 
+def test_output_limit_matches_provider_contract():
+    from types import SimpleNamespace
+
+    from beatspy.models.provider import run_config_for
+
+    for url, expected_tokens, expected_body in (
+        ("https://api.openai.com/v1", None, {"max_completion_tokens": 4096}),
+        ("https://example.modal.direct/v1", 4096, None),
+    ):
+        provider = SimpleNamespace(client=SimpleNamespace(base_url=httpx.URL(url)))
+        config = run_config_for(provider, 0, "low", 4096)
+        assert config.model_settings.max_tokens == expected_tokens
+        assert config.model_settings.extra_body == expected_body
+
+
 def test_olostep_search_contract_and_provider_errors(monkeypatch):
     def respond(request):
         body = json.loads(request.content)

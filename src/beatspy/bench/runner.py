@@ -121,6 +121,8 @@ async def run_benchmark(
         settings = settings.model_copy(deep=True)
         settings.model.max_turns = 1
         settings.model.max_output_tokens = settings.model.max_output_tokens or 4096
+        if settings.model.reasoning_effort is None and "GLM-5" in settings.model.model.upper():
+            settings.model.reasoning_effort = "low"
     provider = BeatSpyModelProvider(
         settings.model.base_url,
         model_api_key(settings),
@@ -145,7 +147,7 @@ async def run_benchmark(
             executor=executor,
             web_tools=web_enabled,
             agent_limit=agent_limit,
-            protocol_version=6 if single else 5,
+            protocol_version=7 if single else 5,
         )
 
         start_day = date.fromisoformat(start or scenario.start)
@@ -185,7 +187,13 @@ async def run_benchmark(
                 next_decision_date=period["next_decision_date"],
             )
             invested = state.weights(day, data)
-            record = await pipeline.decide(tctx, invested, 1.0 - sum(invested.values()), recent_summary)
+            record = await pipeline.decide(
+                tctx,
+                invested,
+                1.0 - sum(invested.values()),
+                recent_summary,
+                portfolio_equity=state.equity(day, data) if single else None,
+            )
             decisions.append(record)
             # An unparseable decision means "hold", never "liquidate": a model
             # failure must not turn into an unwanted trade.
@@ -224,7 +232,7 @@ async def run_benchmark(
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 6 if single else 5,
+            "protocol_version": 7 if single else 5,
             "source_revision": source_revision(),
             "code_sha256": run_code_digest,
             "run_id": run_id,

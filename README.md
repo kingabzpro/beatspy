@@ -5,7 +5,7 @@
 [Open dashboard →](https://beatspy.vercel.app) · [Contribution guide](CONTRIBUTING.md)
 
 The fast benchmark supplies frozen Yahoo price indicators directly to one portfolio
-manager call per decision. Python handles trading, risk rules, and scoring.
+manager call per decision, including its realized performance versus SPY. Python handles trading, risk rules, and scoring.
 
 ## Run a benchmark
 

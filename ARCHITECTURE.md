@@ -2,9 +2,10 @@
 
 ## Fast default
 
-Protocol 6 uses 12 dates spread across the full 2026 evaluation period and one
+Protocol 7 uses 12 dates spread across the full 2026 evaluation period and one
 portfolio manager call per date, without tools. Frozen Yahoo indicators, holdings,
-transaction costs, and the momentum reference are supplied directly. Each request
+transaction costs, the momentum reference, and realized performance versus SPY are supplied directly.
+Feedback is calculated only through each decision date and replayed from portfolio accounting. Each request
 has a 4,096-token default cap, a 90-second timeout, and no automatic retries.
 Daily scoring and offline replay still cover the full period. The five-agent
 protocol below remains available with `--team` for local experiments.

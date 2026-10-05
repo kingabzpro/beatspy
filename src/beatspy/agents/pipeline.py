@@ -165,6 +165,7 @@ class DecisionPipeline:
         self.legacy_parsing = legacy_parsing
         self.protocol_version = protocol_version
         self.single = protocol_version >= 6
+        self.feedback_history = []
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
             run_config=run_config_for(
@@ -194,6 +195,7 @@ class DecisionPipeline:
         holdings: dict[str, float],
         cash: float,
         recent_decision: str | None,
+        portfolio_equity: float | None = None,
     ) -> DecisionRecord:
         if not self.single:
             self.agents["research"].tools = tools_for_role(
@@ -233,6 +235,11 @@ class DecisionPipeline:
                     "weights": reference,
                     "cash": round(1 - sum(reference.values()), 4),
                 },
+                **(
+                    {"performance_feedback": self._feedback(tctx, portfolio_equity)}
+                    if self.protocol_version >= 7
+                    else {}
+                ),
             },
             tradable_tickers=self.scenario.tradable if self.protocol_version >= 4 else None,
         )
@@ -287,6 +294,28 @@ class DecisionPipeline:
         if record.validated.invalid:
             record.parse_errors.append("portfolio_manager: decision invalid; holding previous portfolio")
         return record
+
+    def _feedback(self, tctx, equity):
+        """Only marked-to-market values through the current decision date enter feedback."""
+        if equity is None or equity <= 0:
+            raise ValueError("performance feedback requires current portfolio equity")
+        benchmark = tctx.data.last_close(tctx.scenario.benchmark, tctx.as_of)[1]
+        current = (tctx.as_of.isoformat(), equity, benchmark)
+        feedback = {"as_of": current[0], "note": "Past realized returns; not a prediction."}
+        for label, previous in (
+            ("since_start", self.feedback_history[0] if self.feedback_history else current),
+            ("previous_window", self.feedback_history[-1] if self.feedback_history else current),
+        ):
+            portfolio_return = (equity / previous[1] - 1) * 100
+            benchmark_return = (benchmark / previous[2] - 1) * 100
+            feedback[label] = {
+                "start": previous[0],
+                "portfolio_return_pct": round(portfolio_return, 3),
+                "benchmark_return_pct": round(benchmark_return, 3),
+                "excess_return_pct": round(portfolio_return - benchmark_return, 3),
+            }
+        self.feedback_history.append(current)
+        return feedback
 
     def _parse_artifacts(self, record: DecisionRecord) -> dict[str, object]:
         artifacts: dict[str, object] = {}
