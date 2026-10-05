@@ -164,19 +164,24 @@ class DecisionPipeline:
         self.scenario = scenario
         self.legacy_parsing = legacy_parsing
         self.protocol_version = protocol_version
+        self.single = protocol_version >= 6
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
-            run_config=run_config_for(provider, settings.model.temperature, settings.model.reasoning_effort),
-            max_turns=settings.model.max_turns,
+            run_config=run_config_for(
+                provider, settings.model.temperature, settings.model.reasoning_effort, settings.model.max_output_tokens
+            ),
+            max_turns=1 if self.single else settings.model.max_turns,
         )
         self.agents: dict[str, Agent] = {}
-        for role in ROLES:
+        for role in ["portfolio_manager"] if self.single else ROLES:
             model_name = settings.model.model
             self.agents[role] = Agent(
                 name=role,
-                instructions=prompts.INSTRUCTIONS[role],
+                instructions=prompts.SINGLE_MANAGER_INSTRUCTIONS if self.single else prompts.INSTRUCTIONS[role],
                 model=model_name,
-                tools=tools_for_role(role, web_enabled=web_tools, protocol_version=protocol_version),
+                tools=[]
+                if self.single
+                else tools_for_role(role, web_enabled=web_tools, protocol_version=protocol_version),
             )
 
     async def _run(self, role, input_text, tctx):
@@ -190,14 +195,15 @@ class DecisionPipeline:
         cash: float,
         recent_decision: str | None,
     ) -> DecisionRecord:
-        self.agents["research"].tools = tools_for_role(
-            "research",
-            web_enabled=bool(tctx.olostep_api_key),
-            news_enabled=bool(tctx.finnhub_api_key),
-            protocol_version=self.protocol_version,
-        )
-        self.agents["research"].instructions = prompts.INSTRUCTIONS["research"]
-        if self.protocol_version >= 5 and tctx.olostep_api_key:
+        if not self.single:
+            self.agents["research"].tools = tools_for_role(
+                "research",
+                web_enabled=bool(tctx.olostep_api_key),
+                news_enabled=bool(tctx.finnhub_api_key),
+                protocol_version=self.protocol_version,
+            )
+            self.agents["research"].instructions = prompts.INSTRUCTIONS["research"]
+        if not self.single and self.protocol_version >= 5 and tctx.olostep_api_key:
             self.agents["research"].instructions += prompts.WEB_RESEARCH_INSTRUCTIONS
         reference = momentum_weight_fn(tctx.scenario, tctx.data)(tctx.as_of, None)["weights"]
         reference = {
@@ -232,6 +238,10 @@ class DecisionPipeline:
         )
         record = DecisionRecord(date=tctx.as_of, market_brief=json.loads(brief))
 
+        if self.single:
+            pm = await self._run("portfolio_manager", brief, tctx)
+            return self._finish(record, pm)
+
         tasks = [asyncio.create_task(self._run(role, getattr(prompts, f"{role}_input")(brief), tctx)) for role in TRIO]
         try:
             trio_outcomes = await asyncio.gather(*tasks)
@@ -255,6 +265,9 @@ class DecisionPipeline:
             record.parse_errors.append(f"critic: {critique_err}")
 
         pm = await self._run("portfolio_manager", prompts.pm_input(brief, artifacts, critique_obj), tctx)
+        return self._finish(record, pm)
+
+    def _finish(self, record, pm):
         record.outcomes["portfolio_manager"] = pm
 
         raw = None

@@ -43,12 +43,17 @@ class BeatSpyModelProvider(ModelProvider):
 
 
 def run_config_for(
-    provider: BeatSpyModelProvider, temperature: float, reasoning_effort: str | None = None
+    provider: BeatSpyModelProvider,
+    temperature: float,
+    reasoning_effort: str | None = None,
+    max_output_tokens: int | None = None,
 ) -> RunConfig:
     return RunConfig(
         model_provider=provider,
         model_settings=ModelSettings(
-            temperature=temperature, reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort else None
+            temperature=temperature,
+            reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort else None,
+            max_tokens=max_output_tokens,
         ),
         tracing_disabled=True,
     )
@@ -94,10 +99,11 @@ async def probe_tools(provider: BeatSpyModelProvider, model_name: str, reasoning
 
 
 async def probe_capabilities(
-    provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None
+    provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None, *, require_tools=False
 ) -> dict[str, tuple[bool, str]]:
     """Run all probes in one event loop (the HTTP client is loop-bound)."""
-    return {
-        "chat": await probe_chat(provider, model_name, reasoning_effort),
-        "tools": await probe_tools(provider, model_name, reasoning_effort),
-    }
+    probes = {"chat": await probe_chat(provider, model_name, reasoning_effort)}
+    if require_tools:
+        probes["tools"] = await probe_tools(provider, model_name, reasoning_effort)
+    await provider.client.close()
+    return probes

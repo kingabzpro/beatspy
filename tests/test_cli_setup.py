@@ -17,7 +17,7 @@ def home(tmp_path, monkeypatch):
 
 
 def async_probes(results):
-    async def _probe(provider, model, reasoning_effort=None):
+    async def _probe(provider, model, reasoning_effort=None, *, require_tools=False):
         return results
 
     return _probe
@@ -32,7 +32,7 @@ def run_setup(monkeypatch, answers: list[str], probes: dict | None = None) -> in
         "probe_capabilities",
         async_probes(probes or {"chat": (True, "pong"), "tools": (True, "tool call observed")}),
     )
-    return cli.main(["setup"])
+    return cli.main(["setup", "--team"])
 
 
 def test_setup_writes_config_and_secrets(home, monkeypatch):
@@ -55,6 +55,20 @@ def test_setup_blank_keys_keep_previous_secrets(home, monkeypatch):
     run_setup(monkeypatch, ["1", "", "llama3.1:8b", "", "", "", ""])
     secrets = (home / "secrets.env").read_text()
     assert "BEATSPY_API_KEY=old-key" in secrets  # blank prompt must not wipe the stored key
+
+
+def test_fast_setup_needs_only_model_and_chat_probe(home, monkeypatch):
+    answers = iter(["2", "http://localhost:8000/v1", "test-model", "model-key"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(answers))
+    monkeypatch.setattr(cli, "_secret_input", lambda prompt="": next(answers))
+
+    async def probe(provider, model, reasoning_effort=None, *, require_tools=False):
+        assert not require_tools
+        return {"chat": (True, "pong")}
+
+    monkeypatch.setattr(cli, "probe_capabilities", probe)
+    assert cli.main(["setup"]) == 0
+    assert "BEATSPY_API_KEY=model-key" in (home / "secrets.env").read_text()
 
 
 def test_setup_reports_failed_probe(home, monkeypatch):
@@ -85,7 +99,7 @@ def test_doctor_fails_when_tool_calling_missing(home, monkeypatch, capsys):
     monkeypatch.setattr(
         cli, "probe_capabilities", async_probes({"chat": (True, "pong"), "tools": (False, "model never called a tool")})
     )
-    assert cli.main(["doctor"]) == 1
+    assert cli.main(["doctor", "--team"]) == 1
     assert "FAIL" in capsys.readouterr().out
 
 

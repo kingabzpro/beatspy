@@ -113,14 +113,31 @@ async def run_benchmark(
     external_limit = external_limit or asyncio.Semaphore(6)
     run_code_digest = code_digest()
     data, manifest = prepared_data or await asyncio.to_thread(ensure_data, scenario, data_root, refresh_data)
-    provider = BeatSpyModelProvider(settings.model.base_url, model_api_key(settings))
+    single = scenario.pipeline == "single"
+    if single:
+        scenario = scenario.model_copy(
+            update={"allow_finnhub": False, "allow_web_search": False, "forecast_provider": None}
+        )
+        settings = settings.model_copy(deep=True)
+        settings.model.max_turns = 1
+        settings.model.max_output_tokens = settings.model.max_output_tokens or 4096
+    provider = BeatSpyModelProvider(
+        settings.model.base_url,
+        model_api_key(settings),
+        request_timeout=90.0 if single else 180.0,
+        max_retries=0 if single else 3,
+    )
     try:
         web_enabled = scenario.allow_web_search and provider_api_key(settings, "olostep") is not None
-        forecast_fn = get_forecast_fn(
-            scenario.forecast_provider or settings.tools.forecast_provider,
-            provider_api_key(settings, "timegpt"),
+        forecast_fn = (
+            None
+            if single
+            else get_forecast_fn(
+                scenario.forecast_provider or settings.tools.forecast_provider,
+                provider_api_key(settings, "timegpt"),
+            )
         )
-        events = load_events(scenario.name)
+        events = [] if single else load_events(scenario.name)
         pipeline = DecisionPipeline(
             settings,
             scenario,
@@ -128,6 +145,7 @@ async def run_benchmark(
             executor=executor,
             web_tools=web_enabled,
             agent_limit=agent_limit,
+            protocol_version=6 if single else 5,
         )
 
         start_day = date.fromisoformat(start or scenario.start)
@@ -206,7 +224,7 @@ async def run_benchmark(
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 5,
+            "protocol_version": 6 if single else 5,
             "source_revision": source_revision(),
             "code_sha256": run_code_digest,
             "run_id": run_id,
@@ -236,7 +254,7 @@ async def run_benchmark(
                 "web_search_tools": web_enabled,
                 "web_research_provider": "olostep-search-scrape" if web_enabled else None,
                 "finnhub_tools": scenario.allow_finnhub and provider_api_key(settings, "finnhub") is not None,
-                "forecast_provider": scenario.forecast_provider or settings.tools.forecast_provider,
+                "forecast_provider": None if single else scenario.forecast_provider or settings.tools.forecast_provider,
             },
             "bench": settings.bench.model_dump(),
             "event_feed": {

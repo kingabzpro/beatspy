@@ -34,6 +34,7 @@ class ModelConfig(BaseModel):
     model: str = "gpt-4o-mini"
     temperature: float = 0.0
     max_turns: int = 8
+    max_output_tokens: int | None = Field(default=None, ge=256, le=32768)
     reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] | None = None
     cost_per_m_input: float | None = None
     cost_per_m_output: float | None = None
@@ -173,6 +174,8 @@ def render_config(settings: Settings) -> str:
     ]
     if m.cost_per_m_input is not None:
         lines.append(f"cost_per_m_input = {_toml_value(m.cost_per_m_input)}")
+    if m.max_output_tokens is not None:
+        lines.append(f"max_output_tokens = {_toml_value(m.max_output_tokens)}")
     if m.reasoning_effort is not None:
         lines.append(f"reasoning_effort = {_toml_value(m.reasoning_effort)}")
     if m.cost_per_m_output is not None:

@@ -1,14 +1,15 @@
 title = "2026 year to date"
-description = "Up to 36 weekly decisions across 2026 year to date and 11 sectors, ending at the latest completed NYSE session."
+description = "Up to 12 single-call decisions across 2026 year to date and 11 sectors, using frozen Yahoo prices."
 start = "2026-01-01"
 through_latest = true
 frequency = "weekly"
-max_decisions = 36
+max_decisions = 12
+pipeline = "single"
 benchmark = "SPY"
 # Established stocks across all 11 sectors.
 # Technology, communication, discretionary, staples, financials, healthcare,
 # energy, industrials, utilities, materials, and real estate; bonds and gold.
 tradable = ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "HD", "WMT", "PG", "JPM", "V", "LLY", "JNJ", "XOM", "CVX", "CAT", "GE", "NEE", "SO", "LIN", "SHW", "PLD", "AMT", "TLT", "GLD"]
 lookback_days = 400
-allow_finnhub = true
+allow_finnhub = false
 allow_web_search = false

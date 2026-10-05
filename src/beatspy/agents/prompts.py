@@ -79,6 +79,18 @@ INSTRUCTIONS = {
     "portfolio_manager": PORTFOLIO_MANAGER_INSTRUCTIONS,
 }
 
+SINGLE_MANAGER_INSTRUCTIONS = (
+    PORTFOLIO_MANAGER_INSTRUCTIONS.replace(
+        "You receive research, market analysis, forecasts, and the Critic's report.",
+        "Use only the frozen Yahoo price indicators in the brief. There are no research reports or tools. "
+        "Do not use remembered news, future outcomes, or invented forecasts.",
+    ).replace("weighing the evidence and the critic's points", "weighing the supplied price evidence")
+    + """
+
+Keep the rationale under 80 words. Return the allocation JSON immediately; do not write a separate report.
+"""
+)
+
 WEB_RESEARCH_INSTRUCTIONS = """
 
 Olostep research trial rules:

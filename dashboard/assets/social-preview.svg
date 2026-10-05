@@ -8,7 +8,7 @@
     <text x="64" y="164" fill="#b4f272" font-size="13" font-family="Consolas, monospace" letter-spacing="3">OPEN BENCHMARK / REAL DATA</text>
     <text x="60" y="269" fill="#f1f4f7" font-size="88" font-weight="650" letter-spacing="-4">Can AI beat</text>
     <text x="60" y="370" fill="#b4f272" font-size="88" font-weight="650" letter-spacing="-4">the market?</text>
-    <text x="64" y="434" fill="#a7b0ba" font-size="25">One model. Five trading agents.</text>
+    <text x="64" y="434" fill="#a7b0ba" font-size="25">One model. Twelve portfolio decisions.</text>
     <text x="64" y="479" fill="#a7b0ba" font-size="19">2026 → latest completed session · 11 sectors</text>
     <g fill="#b4f272">
       <rect x="850" y="355" width="54" height="124"/>

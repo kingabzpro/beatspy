@@ -6,6 +6,7 @@ import asyncio
 import json
 
 import pandas as pd
+import pytest
 
 from beatspy.bench.runner import run_benchmark
 from conftest import FakeExecutor, make_prices
@@ -111,7 +112,7 @@ def test_report_contains_provenance_and_leaderboard(tmp_path, monkeypatch, scena
 
     path = render_dashboard(tmp_path, run_id=run_dir.name)
     html = path.read_text(encoding="utf-8")
-    assert "Real model calls. Five trading agents. Frozen market data." in html
+    assert "Real model calls. Frozen Yahoo prices. Fast portfolio decisions." in html
     assert "Leaderboard" in html
     assert "scenario.name" not in html  # no unrendered placeholders
 
@@ -141,3 +142,43 @@ def test_spy_attempt_cannot_create_trades_but_comparison_is_preserved(tmp_path, 
     rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
     assert all("SPY" not in row["validated"]["weights"] for row in rows)
     assert all(any("SPY" in violation for violation in row["validated"]["violations"]) for row in rows)
+
+
+def test_fast_run_calls_only_manager_disables_research_and_replays(tmp_path, monkeypatch, scenario, settings):
+    from beatspy.bench.validation import validate_run
+
+    monkeypatch.setattr("beatspy.data.freeze.download_ohlc", lambda *a, **k: make_prices(scenario.universe))
+    monkeypatch.setattr("beatspy.bench.runner.get_forecast_fn", lambda *a: pytest.fail("forecast initialized"))
+    for name in ("FINNHUB_API_KEY", "OLOSTEP_API_KEY", "NIXTLA_API_KEY"):
+        monkeypatch.setenv(name, "configured-but-must-not-be-used")
+    scenario = scenario.model_copy(update={"pipeline": "single", "allow_finnhub": True, "allow_web_search": True})
+    settings.tools.forecast_provider = "timegpt"
+    executor = FakeExecutor()
+    directory = asyncio.run(
+        run_benchmark(
+            scenario, settings, executor=executor, out_root=tmp_path / "results", data_root=tmp_path / "cache"
+        )
+    )
+    meta = validate_run(directory)
+    metrics = json.loads((directory / "metrics.json").read_text())
+    assert meta["protocol_version"] == 6
+    assert executor.calls == ["portfolio_manager"] * metrics["decisions"]
+    assert metrics["requests"] == metrics["decisions"] and metrics["tool_calls"] == 0
+    assert meta["capabilities"] == {
+        "web_search_tools": False,
+        "web_research_provider": None,
+        "finnhub_tools": False,
+        "forecast_provider": None,
+    }
+    assert meta["model"]["max_output_tokens"] == 4096
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+    assert all(set(row["agent_runs"]) == {"portfolio_manager"} and row["artifacts"] == {} for row in rows)
+    assert all(
+        not row["market_brief"]["news_available"] and not row["market_brief"]["web_search_available"] for row in rows
+    )
+    assert pd.read_csv(directory / "equity_curve.csv").date.max() == scenario.end
+
+    meta["capabilities"]["finnhub_tools"] = True
+    (directory / "run.json").write_text(json.dumps(meta))
+    with pytest.raises(ValueError, match="prices only"):
+        validate_run(directory)

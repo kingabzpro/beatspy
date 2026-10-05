@@ -11,7 +11,7 @@ import json
 import math
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -256,6 +256,7 @@ class Scenario(BaseModel):
     year: int | None = Field(default=None, ge=2000, le=2100)
     window_days: int = Field(default=90, ge=2, le=366)
     frequency: str = "monthly"  # weekly | monthly
+    pipeline: Literal["team", "single"] = "team"
     max_decisions: int | None = Field(default=None, ge=2, le=10_000, strict=True)
     benchmark: str = "SPY"
     tradable: list[str] = Field(default_factory=list)

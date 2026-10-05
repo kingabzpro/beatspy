@@ -109,8 +109,9 @@ def test_ytd_resolves_latest_session_and_covers_sectors():
     assert len(scenario.tradable) == 25
     assert "SPY" not in scenario.tradable and {"TLT", "GLD"} <= set(scenario.tradable)
     assert {"META", "WMT", "V", "LLY", "GE", "SO", "LIN"} <= set(scenario.tradable)
-    assert scenario.allow_finnhub and not scenario.allow_web_search
-    assert scenario.max_decisions == 36
+    assert not scenario.allow_finnhub and not scenario.allow_web_search
+    assert scenario.pipeline == "single"
+    assert scenario.max_decisions == 12
     assert scenario.frequency == "weekly"
     assert not scenario.through_latest
     assert {"AMT", "LIN", "SO", "JNJ", "CAT", "PG", "JPM", "XOM", "GOOGL", "AMZN", "MSFT"} <= set(scenario.tradable)
@@ -127,7 +128,7 @@ def test_ytd_schedule_only_scores_2026_and_respects_limit():
         scenario.frequency,
         max_decisions=scenario.max_decisions,
     )
-    assert 1 < len(days) == 36
+    assert 1 < len(days) == 12
     assert {day.year for day in days} == {2026}
     assert days[0] == date(2026, 1, 2)
     assert days[-1] == date(2026, 9, 25)

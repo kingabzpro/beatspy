@@ -28,6 +28,23 @@ def test_full_decision(pipeline, data_service, scenario):
     assert totals["requests"] == 5
 
 
+def test_single_call_has_no_tools_and_keeps_spy_guard(settings, data_service, scenario):
+    executor = FakeExecutor(
+        {
+            "portfolio_manager": '{"allocations":[{"ticker":"SPY","weight":0.3},'
+            '{"ticker":"MSFT","weight":0.3}],"cash_weight":0.4}'
+        }
+    )
+    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=executor, protocol_version=6)
+    record = asyncio_run(pipeline.decide(make_tctx(data_service, scenario), {}, 1.0, None))
+    assert executor.calls == ["portfolio_manager"]
+    assert pipeline.agents["portfolio_manager"].tools == []
+    assert set(record.outcomes) == {"portfolio_manager"}
+    assert record.artifacts == {}
+    assert record.validated.weights == {"MSFT": 0.3}
+    assert any("SPY" in violation for violation in record.validated.violations)
+
+
 def test_invalid_pm_output_holds_portfolio(pipeline, data_service, scenario):
     pipeline.executor.outputs["portfolio_manager"] = "I cannot decide right now, sorry."
     tctx = make_tctx(data_service, scenario)

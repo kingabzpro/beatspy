@@ -1,11 +1,11 @@
 # BeatSPY
 
-**One model. Five trading agents. Can it beat SPY?**
+**One model. Twelve decisions. Can it beat SPY?**
 
 [Open dashboard →](https://beatspy.vercel.app) · [Contribution guide](CONTRIBUTING.md)
 
-Research, analyst, and forecasting agents work in parallel, then a critic and
-portfolio manager make the decision. Python handles trading, risk rules, and scoring.
+The fast benchmark supplies frozen Yahoo price indicators directly to one portfolio
+manager call per decision. Python handles trading, risk rules, and scoring.
 
 ## Run a benchmark
 
@@ -23,22 +23,22 @@ uv run beatspy report --open
 
 The default benchmark is a continuous portfolio from **2026-01-01 through the
 latest completed NYSE session** available at the run's release. Weekly decisions
-are capped at **36 per model** and span the full year-to-date period. Decisions
+are capped at **12 per model** and span the full year-to-date period. Decisions
 use frozen adjusted prices, with extra warmup history excluded from scoring.
 23 large, established companies cover all 11 sectors. TLT and GLD are permitted hedges;
 SPY is comparison-only and cannot be bought by the model portfolio.
 This fixed surviving universe
 has survivorship bias; it is not historical index membership.
 
-Finnhub dated company news activates when its key is available. Olostep is disabled
-for the default benchmark. TimeGPT forecasting is optional: install with
-`uv sync --extra timegpt`, configure `NIXTLA_API_KEY`, and select `timegpt` during setup
-or set `BEATSPY_FORECAST_PROVIDER=timegpt`. Use `FINNHUB_API_KEY`, the `BEATSPY_` equivalents,
-or enter them during setup. Secrets stay in environment variables or
-`~/.beatspy/secrets.env`. The dashboard contains no credentials.
-Current fundamentals and unarchived historical analyst ratings are withheld.
-Date-constrained news is not a complete historical archive, and models
-may already know historical outcomes.
+The default uses cached Yahoo Finance adjusted prices and one model request per
+decision, with no Olostep, Finnhub, or TimeGPT calls. Output is limited to 4,096
+tokens; requests time out after 90 seconds without automatic retries. Failed
+decisions hold the previous portfolio and remain visible in the results.
+
+For the slower five-agent pipeline, use `--team --max-decisions 36`.
+Its optional Finnhub news and forecasting integrations remain available for local
+experiments. Models may already know historical outcomes; frozen inputs do not
+eliminate that limitation.
 
 For a local Olostep comparison, set `OLOSTEP_API_KEY` and run:
 
@@ -56,7 +56,7 @@ Finnhub monthly recommendation trends are analyst sentiment, not weekly forecast
 they are unavailable for past decisions without an authenticated archive.
 Its separate price-target endpoint may require a paid entitlement.
 
-Any OpenAI-compatible endpoint with tool calling works. To avoid setup prompts:
+Any OpenAI-compatible chat endpoint works in fast mode; the optional team mode requires tool calling. To avoid setup prompts:
 
 ```bash
 uv run beatspy setup --model your-model --base-url https://your-endpoint/v1 --api-key-env YOUR_MODEL_KEY

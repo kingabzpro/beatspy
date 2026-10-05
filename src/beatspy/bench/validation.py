@@ -73,8 +73,8 @@ async def replay_run(run_dir: Path) -> dict:
     meta = read_json(run_dir / "run.json")
     if meta.get("synthetic") is not False:
         raise ValueError("synthetic or incomplete results cannot be submitted")
-    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5):
-        raise ValueError("only complete protocol 2, 3, 4, or 5 runs support submission; rerun legacy results")
+    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5, 6):
+        raise ValueError("only complete protocol 2 through 6 runs support submission; rerun legacy results")
     legacy = meta["protocol_version"] == 2
     if not SAFE_ID.fullmatch(meta["run_id"]) or meta["run_id"] != run_dir.name:
         raise ValueError("invalid or mismatched run id")
@@ -82,6 +82,18 @@ async def replay_run(run_dir: Path) -> dict:
         raise ValueError("submission cannot assign its own trust")
     check_numbers(meta)
     scenario = Scenario.model_validate(meta["scenario"])
+    single = meta["protocol_version"] == 6
+    roles = ["portfolio_manager"] if single else ROLES
+    if single and (
+        scenario.pipeline != "single"
+        or scenario.allow_finnhub
+        or scenario.allow_web_search
+        or any(
+            meta["capabilities"].get(name)
+            for name in ("finnhub_tools", "web_search_tools", "web_research_provider", "forecast_provider")
+        )
+    ):
+        raise ValueError("single-call runs must use prices only")
     if not scenario.start or not scenario.end:
         raise ValueError("submission dates must be resolved")
     if date.fromisoformat(scenario.end) > completed_session():
@@ -133,7 +145,9 @@ async def replay_run(run_dir: Path) -> dict:
     for event in events:
         if event.get("date") not in {day.isoformat() for day in decision_dates}:
             raise ValueError("event outside decision schedule")
-        if event.get("type") in ("tool_call", "budget_exhausted") and event.get("agent") not in ROLES:
+        if single and event.get("type") != "decision":
+            raise ValueError("single-call runs cannot contain tool events")
+        if event.get("type") in ("tool_call", "budget_exhausted") and event.get("agent") not in roles:
             raise ValueError("unknown agent in tool event")
     lookup = {row["date"]: row for row in submitted}
 
@@ -161,9 +175,14 @@ async def replay_run(run_dir: Path) -> dict:
     async def weights(day, state):
         nonlocal recent_summary
         row = lookup[day.isoformat()]
-        if set(row["agent_runs"]) != set(ROLES):
-            raise ValueError("incomplete five-agent outputs")
-        for role in ROLES:
+        if set(row["agent_runs"]) != set(roles):
+            raise ValueError("incomplete pipeline outputs")
+        if single and (
+            row["agent_runs"]["portfolio_manager"]["tool_calls"]
+            or row["agent_runs"]["portfolio_manager"]["requests"] > 1
+        ):
+            raise ValueError("single-call runs allow one model request and no tools per decision")
+        for role in roles:
             calls = [
                 event
                 for event in events
