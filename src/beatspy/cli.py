@@ -10,6 +10,7 @@ import asyncio
 import getpass
 import json
 import logging
+import subprocess
 import sys
 import webbrowser
 from pathlib import Path
@@ -50,6 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     p = sub.add_parser("setup", parents=[common], help="interactive configuration wizard")
+    p.add_argument("--model", help="configure without prompts using existing environment keys")
+    p.add_argument("--base-url", help="OpenAI-compatible endpoint")
+    p.add_argument("--api-key-env", help="existing environment variable containing the model key")
     p.set_defaults(func=cmd_setup)
 
     p = sub.add_parser("doctor", parents=[common], help="check config, model, and data health")
@@ -59,13 +63,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_scenarios)
 
     p = sub.add_parser("run", parents=[common], help="run a benchmark scenario")
-    p.add_argument("--scenario", action="append", help="repeat for multiple scenarios (default: 2026-recent)")
+    p.add_argument("--scenario", action="append", help="repeat for multiple scenarios (default: 2026-ytd)")
     p.add_argument("--model", action="append", help="repeat for multiple models")
     p.add_argument("--base-url", help="override configured model base URL")
     p.add_argument("--freq", choices=["weekly", "monthly"], help="decision frequency override")
+    p.add_argument("--max-decisions", type=positive_int, help="limit decisions, evenly spread across the full period")
     p.add_argument("--start", help="override start date YYYY-MM-DD")
     p.add_argument("--end", help="override end date YYYY-MM-DD")
     p.add_argument("--label", help="free-text label stored in the run record")
+    p.add_argument("--submit", action="store_true", help="request trusted leaderboard verification after the run")
     p.add_argument("--refresh-data", action="store_true", help="re-download the frozen price snapshot")
     p.add_argument("--jobs", type=positive_int, default=2, help="parallel independent runs (default: 2)")
     p.add_argument(
@@ -73,7 +79,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.set_defaults(func=cmd_run)
 
-    p = sub.add_parser("compare", parents=[common], help="leaderboard across runs")
+    p = sub.add_parser("results", aliases=["compare"], parents=[common], help="view the latest result for each model")
     p.add_argument("--scenario", help="filter by scenario name")
     p.add_argument("--json", action="store_true", help="machine-readable output")
     p.add_argument("--include-synthetic", action="store_true", help="include synthetic demo runs")
@@ -92,9 +98,11 @@ def build_parser() -> argparse.ArgumentParser:
         p = sub.add_parser(
             command, parents=[common], help="replay a run" if command == "validate" else "prepare result files for a PR"
         )
-        p.add_argument("--run", required=True, type=Path, help="path to a completed run directory")
+        p.add_argument("--run", type=Path, help="completed run directory (default: latest real run)")
         if command == "submit":
-            p.add_argument("--data-root", type=Path, default=Path("dashboard/data"))
+            p.add_argument("--send", action="store_true", help="send a verification request using GitHub CLI")
+        else:
+            p.add_argument("--public-key", type=Path, default=Path(".github/verification-key.pem"))
         p.set_defaults(func=cmd_validate if command == "validate" else cmd_submit)
 
     return parser
@@ -118,6 +126,24 @@ def _secret_input(prompt: str) -> str:
 
 
 def cmd_setup(args: argparse.Namespace) -> int:
+    current_settings = load_settings()
+    if args.model:
+        import os
+
+        settings = current_settings
+        settings.model.model = args.model
+        if args.base_url:
+            settings.model.base_url = args.base_url
+        if args.api_key_env:
+            if not os.environ.get(args.api_key_env):
+                raise ValueError(f"model key environment variable is empty: {args.api_key_env}")
+            os.environ["BEATSPY_API_KEY_ENV"] = args.api_key_env
+        saved = read_secrets()
+        if key := model_api_key(settings):
+            saved["BEATSPY_API_KEY"] = key
+        save_settings(settings, saved)
+        print(f"Configured {args.model}. Run: beatspy run")
+        return 0
     print("BeatSPY setup")
     print("API keys are stored in your home directory, never inside a repository.\n")
 
@@ -141,10 +167,13 @@ def cmd_setup(args: argparse.Namespace) -> int:
     api_key = _secret_input("Model API key (leave empty for local servers): ").strip()
 
     print("\nOptional integrations; press Enter to skip any of them.")
-    olostep = _secret_input("Olostep API key (web search): ").strip()
     finnhub = _secret_input("Finnhub API key (news, fundamentals): ").strip()
     timegpt = _secret_input("TimeGPT API key (forecasting): ").strip()
-    forecast = input("Forecast provider [baseline/naive/chronos/timegpt, default baseline]: ").strip() or "baseline"
+    default_forecast = "timegpt" if timegpt or provider_api_key(current_settings, "timegpt") else "baseline"
+    forecast = (
+        input(f"Forecast provider [baseline/naive/chronos/timegpt, default {default_forecast}]: ").strip()
+        or default_forecast
+    )
 
     settings = Settings(
         model=ModelConfig(base_url=base_url, model=model),
@@ -157,7 +186,6 @@ def cmd_setup(args: argparse.Namespace) -> int:
             k: v
             for k, v in {
                 "BEATSPY_API_KEY": api_key,
-                "BEATSPY_OLOSTEP_API_KEY": olostep,
                 "BEATSPY_FINNHUB_API_KEY": finnhub,
                 "BEATSPY_TIMEGPT_API_KEY": timegpt,
             }.items()
@@ -170,14 +198,14 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
     print("\nProbing model capabilities...")
     # probes fail fast: no retries, short timeout, so a dead endpoint answers quickly
-    provider = BeatSpyModelProvider(base_url, api_key or None, request_timeout=15.0, max_retries=0)
+    provider = BeatSpyModelProvider(base_url, api_key or model_api_key(settings), request_timeout=15.0, max_retries=0)
     probes = asyncio.run(probe_capabilities(provider, model, settings.model.reasoning_effort))
     for name, (ok, detail) in probes.items():
         print(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
 
     print("\nNext steps:")
     print("  beatspy doctor                      # full health check")
-    print("  beatspy run --scenario 2026-recent    # first benchmark run")
+    print("  beatspy run                          # 2026 through latest completed session")
     print("  beatspy report                      # HTML dashboard")
     return 0 if all(ok for ok, _ in probes.values()) else 1
 
@@ -229,6 +257,12 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     else:
         checks.append(("forecast provider", "PASS", f"{forecast} (built-in, no dependencies)"))
 
+    for integration in ("finnhub",):
+        enabled = bool(provider_api_key(settings, integration))
+        checks.append(
+            (integration, "PASS" if enabled else "WARN", "enabled" if enabled else "add a key with beatspy setup")
+        )
+
     _print_checks(checks)
     return 0 if all(status != "FAIL" for _, status, _ in checks) else 1
 
@@ -267,9 +301,17 @@ def cmd_run(args: argparse.Namespace) -> int:
     settings = load_settings()
     if args.base_url:
         settings.model.base_url = args.base_url
+    scenarios = [load_scenario(name) for name in (args.scenario or ["2026-ytd"])]
+    if args.max_decisions is not None:
+        from .schemas import Scenario
+
+        scenarios = [
+            Scenario.model_validate({**scenario.model_dump(), "max_decisions": args.max_decisions})
+            for scenario in scenarios
+        ]
     outcomes = asyncio.run(
         run_batch(
-            [load_scenario(name) for name in (args.scenario or ["2026-recent"])],
+            scenarios,
             settings,
             args.model,
             jobs=args.jobs,
@@ -297,6 +339,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             f"  Requests {metrics['requests']} | Tokens {metrics['input_tokens']:,} in / "
             f"{metrics['output_tokens']:,} out"
         )
+        if args.submit:
+            request_submission(outcome, send=True)
     print("Benchmark complete. Preview with: beatspy report")
     return int(failed)
 
@@ -310,20 +354,18 @@ def cmd_compare(args: argparse.Namespace) -> int:
     if args.scenario:
         runs = [r for r in runs if r["scenario"] == args.scenario]
     if not runs:
-        print("No runs found in ./results. Try: beatspy run --scenario 2026-recent  (or beatspy demo)")
+        print("No runs found in ./results. Try: beatspy run  (or beatspy demo)")
         return 1
 
+    runs.sort(key=lambda r: r["created_utc"], reverse=True)
+    latest = {}
+    for run in runs:
+        latest.setdefault(run["model"], run)
+    runs = sorted(latest.values(), key=lambda r: -r["metrics"].get("excess_return_vs_spy", 0.0))
     if args.json:
         print(json.dumps([{k: v for k, v in r.items() if k not in ("meta",)} for r in runs], indent=2, default=str))
         return 0
 
-    runs.sort(key=lambda r: (r["end"], r["created_utc"]), reverse=True)
-    window = tuple(runs[0][key] for key in ("scenario", "start", "end"))
-    latest = {}
-    for run in runs:
-        if tuple(run[key] for key in ("scenario", "start", "end")) == window:
-            latest.setdefault(run["model"], run)
-    runs = sorted(latest.values(), key=lambda r: -r["metrics"].get("excess_return_vs_spy", 0.0))
     frame = pd.DataFrame(
         [
             {
@@ -347,7 +389,7 @@ def cmd_compare(args: argparse.Namespace) -> int:
     )
     print(frame.to_string(index=False))
     print(
-        "\nOne leaderboard for the latest selected window; latest run per model, sorted by excess. "
+        "\nLatest run per model, sorted by excess; each row shows its evaluation period. "
         "Full settings and earlier runs are available with --json."
     )
     return 0
@@ -387,20 +429,69 @@ def cmd_demo(args: argparse.Namespace) -> int:
 def cmd_validate(args):
     from .bench.validation import validate_run
 
-    meta = validate_run(args.run)
+    directory = resolve_run(args.run)
+    meta = validate_run(directory)
     print(f"PASS: {meta['run_id']} — artifact hashes, decisions, trades, equity, and metrics replay correctly.")
-    print("Model identity remains unverified.")
+    if (directory / "verification.json").exists():
+        from .bench.verification import verify_result
+
+        payload = verify_result(directory, args.public_key.read_bytes())
+        print(f"Verified signature: {payload['verification_id']}")
+    else:
+        print("Unsigned local result. Use beatspy submit --send for trusted verification.")
     return 0
 
 
 def cmd_submit(args):
-    from .reporting.catalog import submit_run
+    return request_submission(resolve_run(args.run), send=args.send)
 
-    path = submit_run(args.run, args.data_root)
-    print(f"Prepared community submission: {path}")
-    print(
-        "Review the exported files, commit dashboard/data, and open a PR: https://github.com/kingabzpro/beatspy/compare"
+
+def resolve_run(directory: Path | None) -> Path:
+    if directory is not None:
+        return directory
+    from .reporting.dashboard import collect_runs
+
+    runs = [row for row in collect_runs(results_dir()) if not row["synthetic"]]
+    if not runs:
+        raise ValueError("No completed real runs. Start with: beatspy run")
+    return results_dir() / max(runs, key=lambda row: row["created_utc"])["dir"]
+
+
+def request_submission(directory: Path, *, send=False) -> int:
+    from .bench.validation import validate_run
+
+    meta = validate_run(directory)
+    if meta["scenario"]["name"] != "2026-ytd":
+        raise ValueError("Leaderboard requests require 2026-ytd. Run: beatspy run")
+    request = {
+        "model": meta["model"]["model"],
+        "benchmark": "2026-ytd",
+        "beatspy_version": __version__,
+        "local_run_id": meta["run_id"],
+    }
+    path = directory / "submission.md"
+    path.write_text(
+        "Please verify this model on the trusted runner.\n\n```json\n" + json.dumps(request, indent=2) + "\n```\n",
+        encoding="utf-8",
     )
+    if send:
+        subprocess.run(
+            [
+                "gh",
+                "issue",
+                "create",
+                "--repo",
+                "kingabzpro/beatspy",
+                "--title",
+                f"Benchmark verification: {meta['model']['model']}",
+                "--body-file",
+                str(path),
+            ],
+            check=True,
+        )
+        print("Verification requested. The trusted runner will rerun, replay, sign, and prepare leaderboard results.")
+    else:
+        print(f"Submission ready: {path}\nSend it with: beatspy submit --send")
     return 0
 
 

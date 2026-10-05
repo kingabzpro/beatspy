@@ -1,6 +1,9 @@
 /.github/ @kingabzpro
 /src/beatspy/bench/validation.py @kingabzpro
 /src/beatspy/reporting/catalog.py @kingabzpro
-/dashboard/data/maintainer-runs.json @kingabzpro
 /dashboard/app.js @kingabzpro
 /dashboard/index.html @kingabzpro
+/dashboard/data/ @kingabzpro
+/src/beatspy/bench/verification.py @kingabzpro
+/src/beatspy/bench/trusted.py @kingabzpro
+/.github/verification-key.pem @kingabzpro

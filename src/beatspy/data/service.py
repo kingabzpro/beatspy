@@ -71,7 +71,9 @@ class DataService:
         later = [d for d in self.calendar if d > day]
         return later[0] if later else None
 
-    def decision_dates(self, start: date, end: date, freq: str = "monthly", *, legacy=False) -> list[date]:
+    def decision_dates(
+        self, start: date, end: date, freq: str = "monthly", *, legacy=False, max_decisions: int | None = None
+    ) -> list[date]:
         """First trading day on/after start, then weekly Fridays or month-ends."""
         days = [d for d in self.calendar if start <= d <= end]
         if not days:
@@ -87,6 +89,12 @@ class DataService:
             out += [d for key, d in month_ends.items() if (not legacy or key != first_month) and d != days[0]]
         if not legacy:
             out = [d for d in out if (following := self.next_trading_day(d)) is not None and following <= end]
+        if max_decisions is not None:
+            if type(max_decisions) is not int or max_decisions < 2:
+                raise ValueError("max_decisions must be an integer of at least 2")
+            if len(out) > max_decisions:
+                # Retain both ends of the schedule and spread decisions over the full history.
+                out = [out[i * (len(out) - 1) // (max_decisions - 1)] for i in range(max_decisions)]
         return out
 
     # ------------------------------------------------------------- analytics

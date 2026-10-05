@@ -30,12 +30,19 @@ excludes unfinished bars. Fresh sessions create content-addressed snapshots unde
 `.beatspy-data/snapshots/`; scenario pointers select the latest without changing old files.
 
 `validate` reparses agent outputs and replays decisions offline against the included
-prices. `submit` prepares reviewed public artifacts under `dashboard/data/`, redacts known
-credentials, deduplicates snapshots, and rebuilds the catalog. Validation proves recorded
-score consistency, not model identity. Maintainer attestations are owner-controlled hashes
-of separately generated run records. The dashboard shows one board for the selected
-window and the latest result per model. Exact protocol, snapshot, tools, budgets, and
-model settings stay in each artifact; earlier runs remain immutable. Synthetic data stays separate.
+prices. `submit --send` requests an approved trusted rerun on main-branch code, using
+owner-controlled endpoints and credentials. The runner exports replayed artifacts,
+redacts known credentials, deduplicates snapshots, and signs the result with Ed25519.
+The pinned public key validates a unique verification ID, artifact bytes, benchmark
+version, code/dependency digest, and execution provenance. A separate base-branch
+validator checks signatures and replay before accepting new leaderboard records.
+The default continuous benchmark spans 2026 through the latest completed market session
+and includes 23 stocks across 11 sectors. Weekly decisions are capped at 36, retaining
+both ends of the year-to-date schedule and daily equity scoring through
+the cutoff. The same cap is recorded in the scenario and enforced during replay.
+Finnhub is enabled where available; Olostep is disabled. Trusted runs use TimeGPT
+when its key is available. The dashboard shows one latest execution per model, with
+no filters. Old runs have been removed from the active catalog.
 
 The static dashboard uses safe text rendering and native SVG charts. A local report is a
 copy of that same frontend with a local catalog. See [CONTRIBUTING](CONTRIBUTING.md) for

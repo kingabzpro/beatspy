@@ -157,7 +157,7 @@ async def get_company_news(ctx: RunContextWrapper[ToolContext], ticker: str, day
         }
         for item in items
     ]
-    news = [n for n in news if n["date"] <= _as_of(tctx)]
+    news = [n for n in news if start.isoformat() <= n["date"] <= _as_of(tctx)]
     news.sort(key=lambda n: n["date"], reverse=True)  # newest first, provider-order independent
     news = news[:10]
     return _out({"ticker": ticker, "as_of": _as_of(tctx), "news": news})
@@ -283,9 +283,11 @@ async def search_web(ctx: RunContextWrapper[ToolContext], query: str) -> str:
         # Cache key includes the decision date: the same query at a later
         # decision date must not serve an earlier date's frozen answer.
         cache_dir = _cache_dir(tctx) / "web" / _as_of(tctx)
-        data = await _external(tctx, web.olostep_answers, tctx.olostep_api_key, query, cache_dir=cache_dir)
+        task = f"Research using only sources published on or before {_as_of(tctx)}. Cite source URLs. {query}"
+        data = await _external(tctx, web.olostep_answers, tctx.olostep_api_key, task, cache_dir=cache_dir)
     except Exception as exc:
         return _out({"error": f"web search failed: {exc}"})
+    tctx.record_violation("future_data_risk", "Live web research cannot authenticate historical publication dates")
     return _out(
         {
             "query": query,

@@ -29,6 +29,10 @@ def completed_session(year: int | None = None, now: datetime | None = None) -> d
 
 
 def resolve_scenario(scenario: Scenario, now: datetime | None = None) -> Scenario:
+    if scenario.through_latest:
+        return scenario.model_copy(
+            update={"end": completed_session(now=now).isoformat(), "through_latest": False}, deep=True
+        )
     if scenario.start and scenario.end:
         return scenario.model_copy(deep=True)
     cutoff = completed_session(scenario.year, now)

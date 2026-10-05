@@ -1,179 +1,93 @@
 # Contributing
 
-## Development
+## Run and submit
 
-Use Python 3.11+ and `uv sync --extra dev`. Run `uv run --extra dev pytest`, `uv run --extra dev ruff check .`,
-`uv run --extra dev ruff format --check .`, `node --test tests/dashboard.test.cjs`, and `uv build`.
-Commit `uv.lock` when dependencies change. Unit tests must not call model or data APIs.
+1. Clone the repo and run `uv sync` (Python 3.11+ required).
+2. Run `uv run beatspy setup` to select a model and optionally add Finnhub/TimeGPT keys. TimeGPT requires `uv sync --extra timegpt`.
+3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with weekly decisions capped at 36 per model. Olostep is disabled.
+4. View `uv run beatspy results` or `uv run beatspy report --open`.
+5. Run `uv run beatspy submit --send`. Authenticate GitHub CLI first with `gh auth login`.
 
-For browser integration checks: `uv sync --extra dev --extra browser`, then
-`uv run --extra dev --extra browser playwright install chromium` and `uv run --extra dev --extra browser pytest tests/test_browser.py`.
-Live forecast checks require `BEATSPY_LIVE_TESTS=1`, the optional package, credentials,
-and suitable local frozen prices; they are excluded from ordinary runs.
+No run IDs, artifact copying, commits, or forks are needed to request verification.
+`beatspy run --submit` combines running and submission. `beatspy submit` only prepares
+a request file; `beatspy validate` replays the latest real run without sending anything.
 
-## Submit a result
+Submission creates a GitHub issue containing the model name and local run ID.
+The owner adds the `verify-benchmark` label to start an approved trusted rerun.
+Unknown models need an owner-reviewed entry in `.github/benchmark-models.json`.
+Requests cannot set endpoints, scenarios, scripts, or signing credentials.
+Once the rerun finishes, the workflow checks and signs its own new result and opens
+a leaderboard PR. Publication follows its review and merge. The public dashboard
+also offers a prefilled verification request button.
 
-1. Fork and clone the repository. Configure your endpoint with `beatspy setup`.
-2. Run `uv run beatspy run --scenario 2026-recent` (or another bundled scenario).
-3. Validate `uv run beatspy validate --run results/<run-id>`.
-4. Prepare `uv run beatspy submit --run results/<run-id>`.
-5. Review and commit the generated files in `dashboard/data/`, then open a PR.
+## Owner setup (once)
 
-Include the model/provider, exact command, optional tools, and any integrity caveats.
-Optional reasoning effort is set with `BEATSPY_REASONING_EFFORT` or `reasoning_effort`
-in `[model]`. GPT-6 Luna requires `none` for Chat Completions tool calling. Explicit
-reasoning settings are preserved in exported records.
-The command prepares files locally; it never sends a PR or credentials for you.
-Review free-text outputs before sharing them; redact personal content and rerun validation.
+- Commit the **public** Ed25519 PEM key to `.github/verification-key.pem`.
+- Put the matching existing **private** PEM key in the `BEATSPY_SIGNING_KEY` secret
+  of the `leaderboard-signing` GitHub environment. Never commit the private key.
+- Configure that environment to allow only protected `main` and require owner approval.
+- Add the model API secrets listed in `.github/benchmark-models.json`, plus
+  `FINNHUB_API_KEY` and `NIXTLA_API_KEY` when those integrations should be enabled.
+  The trusted workflow selects TimeGPT when its key is present, otherwise the built-in forecast.
+- Enable Actions to create PRs. Require the result-validation check and CODEOWNER
+  review for protected code/workflows/public-key changes before merging.
+- Optionally set `BEATSPY_SUBMISSION_TOKEN` to a repository-scoped GitHub App/PAT
+  token so generated PR checks start automatically. With the default Actions token,
+  approve the generated PR's workflow runs before merging ([GitHub behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)).
 
-Submission includes `run.json`, `metrics.json`, `equity_curve.csv`, `trades.csv`,
-`decisions.jsonl`, `events.jsonl`, and the exact snapshot's `prices.csv` and `MANIFEST.json`.
-Snapshots are deduplicated by hash. Existing published run directories are immutable.
-Git preserves exported artifact bytes across platforms; do not normalize their line endings.
-Legacy local runs remain viewable. Complete protocol 2 and 3 artifacts support replay;
-older formats need a new run before submission.
-Synthetic demos cannot be submitted. Individual artifacts are limited to 25 MB.
+The trusted workflow only checks out main-branch code; it never executes submitted
+code or downloads a user's proposed result to sign. Its signing key is available
+only in the signing step, after model execution. New submissions must pass the
+pinned public-key signature, benchmark version/code digest checks, full historical
+period check, artifact hashes, and deterministic replay using base-branch code.
+A unique verification ID binds the result, release, source revision, and execution URL.
+Modified unsigned legacy records cannot be accepted as new verified results.
+Only an owner-authored PR can reset the leaderboard to an empty catalog; that exception
+accepts no result artifacts. Every subsequent addition still needs a trusted signature.
 
-### What validation establishes
+The private key signs; the public key validates. Signatures attest the controlled
+execution and exact artifact bytes, not predictive skill or freedom from model
+knowledge leakage. Nondeterministic reruns can legitimately produce different scores.
 
-The trusted validator checks hashes, ticker coverage, finite values, dates, the decision
-schedule, and complete five-agent outputs. It reparses model outputs, reapplies risk rules,
-replays next-session orders, and recomputes equity, trades, baselines, and all metrics.
-A self-consistent fabricated transcript can still pass: this does **not** authenticate
-provider/model identity, model requests, or token usage.
-
-Submitted PR data is parsed using base-branch code, without secrets or executing submitted
-files. The catalog is recomputed; submitted trust labels are not authoritative. Protect
-`.github/`, the validator/catalog code, and the maintainer registry with required CODEOWNER
-review in GitHub branch protection. Repository settings must be enabled by the owner.
-
-### Maintainer runs
-
-Community results stay labeled **Community submitted** after review and merge.
-To obtain a **Maintainer run**, the owner runs the claimed model separately using trusted
-code and controlled endpoint credentials, then exports that new result. The owner adds
-its exported `run.json` SHA-256 under its run ID in `dashboard/data/maintainer-runs.json`.
-Only an owner-authored PR from this repository may modify that registry. Rebuild the
-catalog using `build_catalog(Path('dashboard/data'))` from `beatspy.reporting.catalog`.
-Changing a registered artifact removes its designation until the owner attests again.
-A different rerun score is normal for nondeterministic models and is not proof of fraud.
-
-## Recent windows and reproducibility
-
-`2026-recent` resolves a rolling 90-calendar-day window using completed NYSE sessions;
-`2025-recent` ends at the final completed session of 2025. NYSE holidays and early closes
-are handled by `exchange-calendars`; daily bars become eligible 15 minutes after close.
-Older scenarios use explicit dates. `--start`, `--end`, and `--freq` override the window.
-
-Prices include extra warmup history, excluded from scoring. Missing required tickers or
-late provider data fail clearly. No automatic stale-data fallback is used. Once another
-session completes, new recent runs download a fresh snapshot. Within the same cutoff,
-the existing snapshot is reused; `--refresh-data` explicitly checks revised prices.
-Both versions remain immutable. Legacy files are preserved. Fetch time is metadata,
-not part of the snapshot identity. Runs retain an exact local copy of the snapshot.
-
-`--jobs` limits independent runs; `--concurrency` separately limits active agents and
-external tools across the batch. Defaults are 2 and 6. Lower them for provider limits.
-The three initial agents overlap, then critic and manager run in order. Portfolio dates
-stay sequential. Timeouts and bounded retries prevent indefinite requests. Completed
-runs survive another run's failure. Seeded Chronos inference is serialized.
-
-Recent event feeds are sparse and source-linked, not comprehensive news archives.
-Their latest event date is displayed. Optional current fundamentals and web search are
-flagged for look-ahead risk in the recorded capabilities. Historical model
-knowledge and adjusted prices remain limitations even when tools obey date restrictions.
-
-## Add a scenario or tool
-
-Scenarios are TOML files in `src/beatspy/scenarios/builtin/` or `~/.beatspy/scenarios/`.
-Use fixed `start`/`end`, or `year` and `window_days`; include universe, costs, and limits.
-Add a dated `<name>.events.toml` with source URLs. Test it with scripted agents.
-Tools must charge the correct agent budget and clamp data to the harness's `as_of` date.
-Heavy forecasting packages remain optional. Metrics must be deterministic and have a
-hand-calculated or regression check. Never add an LLM judge.
-
-## Dashboard and Vercel
-
-The live dashboard is https://beatspy.vercel.app. The frontend lives in `dashboard/`
-and reads `data/index.json`; details load on demand.
-No backend, API keys, framework, package installation, or build step is needed.
-
-Preview the public site:
+## Develop
 
 ```bash
-python -m http.server 8000 --bind 127.0.0.1 --directory dashboard
+uv sync --extra dev --extra browser
+uv run playwright install chromium
+uv run --no-sync pytest
+uv run --no-sync ruff check .
+uv run --no-sync ruff format --check .
+node --test tests/dashboard.test.cjs
+uv build
 ```
 
-`uv run beatspy report --open` prepares and serves local results instead. Local runs stay
-unverified; synthetic runs have their own label. Nothing local is published automatically.
+Commit `uv.lock` for dependency changes. Unit tests must not call model/data APIs.
+Live forecast checks require `BEATSPY_LIVE_TESTS=1` and provider credentials.
+Scenarios live in `src/beatspy/scenarios/builtin/`; tools must enforce their decision
+date and budget. Prices include warmup data, but scoring starts at the stated start.
+Snapshots remain immutable and must cover every ticker/session. Recent scenarios
+remain available for quick experiments; leaderboard requests use `2026-ytd`.
 
-In Vercel, import the repository, set Root Directory to `dashboard`, Framework Preset to
-**Other**, and leave Build/Install Commands blank. `dashboard/vercel.json` includes static
-security headers. Deployments follow approved merges on the production branch. This
-project is connected to the GitHub repository; production updates follow pushes to `main`.
-PR preview deployments are disabled; only production publishes approved changes.
-Do not serve the whole repository or expose credentials. Public results are explicitly
-exported and reviewed before publication. Maintainer runs cover GLM-5.3,
-GLM-5.3-Flash, DeepSeek-V4.1-Flash, GPT-6 Luna, and MiMo-V2.6-Pro with monthly decisions, temperature 0, baseline
-forecasts, tool budget 10 per agent, and `BEATSPY_MAX_TURNS=16` for every model. Exact
-settings, dates, endpoint names, and request telemetry are included in each run record.
-Luna uses explicit reasoning effort `none`. Other runs
-leave reasoning unspecified, using each provider's default behavior.
+The fixed stock universe has survivorship bias. Curated events and Finnhub history
+may be sparse. Current fundamentals carry recorded look-ahead
+risk; adjusted prices and model knowledge remain historical-test limitations.
 
-The dashboard has one leaderboard per window, showing each model's latest run. Earlier
-artifacts stay immutable and accessible by their run links. Model/provider settings can
-differ; inspect the recorded settings when interpreting the scores. **All years** selects
-the latest window in each year, then averages each model's latest result in those windows
-with equal weight per available year. Repeated runs do not receive extra weight. The Years
-column exposes missing coverage; select a model to see each window and open its evidence.
-Sharpe and drawdown are averages of window metrics, not metrics of a continuous portfolio.
+## Dashboard
 
-### Cost visualization
+The static frontend in `dashboard/` reads `data/index.json`. It displays the latest
+execution per model, never selects the best score, and lists each evaluation period.
+Details include decisions, trades, cost estimates, provenance, and verification IDs.
+Cost estimates use OpenRouter's standard uncached input/output token prices, checked
+2026-10-05. They exclude provider cache discounts, subscriptions, and external tool fees.
+Custom rates can be entered in the dashboard. Run estimates are not provider invoices.
 
-The dashboard calculates USD as `(input tokens × input rate + output tokens × output rate) / 1,000,000`.
-Recorded run rates take precedence; otherwise reference API rates checked on 2026-10-04 are used.
-Each run links to its official pricing source and allows temporary rate overrides/reset. Missing
-rates or token usage show as unavailable, not zero. All years averages costs once per available
-year; cumulative charts use decision dates, not execution timestamps. Agent and decision totals
-come from `decisions.jsonl`; the leaderboard uses recorded total tokens. Calculations happen in
-the browser and never change signed artifacts or portfolio metrics.
+Preview with `python -m http.server 8000 --bind 127.0.0.1 --directory dashboard`.
+Vercel uses Root Directory `dashboard`, Framework Preset **Other**, and no build or
+install command. `beatspy report --open` serves local results separately.
+Production follows approved merges; private credentials must never be deployed.
 
-Reference prices assume uncached input: OpenAI standard short context, DeepSeek peak hours,
-Z.AI list prices, and MiMo overseas real-time rates. Hosted GPU endpoints and MiMo Token Plan
-subscriptions are shown at API-equivalent cost, not actual invoices. Cache savings, long-context
-surcharges, infrastructure, subscriptions, external tools, taxes, and failed unrecorded calls are
-excluded. Actual spend needs provider billing records; wall-clock timings are not in these runs.
-
-## Pipeline protocol 3
-
-Protocol 3 includes the first month's last session, skips decisions with no possible
-fill before the cutoff, and applies pending open fills before that day's close decisions.
-Forecasts use the actual sessions until the next decision or cutoff. Batch tools cover
-all tickers within the agent budget; unavailable news/search tools are not offered.
-Agents see complete parsed reports, benchmark-relative evidence, transaction costs,
-and a feasible 12-minus-1-month momentum reference. The manager retains final control.
-Malformed outer JSON is rejected rather than treated as a nested, empty report.
-Decisions without an allocations field are invalid and hold the prior portfolio.
-`invalid_outputs` counts invalid portfolio decisions; auxiliary report parse errors
-are recorded separately in each decision and shown on the dashboard.
-Each decision includes a market brief, which the validator reconstructs from frozen
-prices and portfolio state. Protocol 2 still replays under its original schedule and
-execution order; existing scores are never rewritten.
-
-These changes were developed after reviewing the initial results. Reruns on those
-same windows measure this iteration, not performance on unseen future periods.
-
-With the keys already saved as environment variables, PowerShell can select each provider:
-
-```powershell
-$env:BEATSPY_API_KEY_ENV = "OPENAI_API_KEY"
-$env:BEATSPY_BASE_URL = "https://api.openai.com/v1"
-$env:BEATSPY_REASONING_EFFORT = "none"
-$env:BEATSPY_MAX_TURNS = "16"
-uv run beatspy run --model gpt-6-luna --scenario 2025-recent --scenario 2026-recent
-
-$env:BEATSPY_API_KEY_ENV = "XIAOMI_TOKEN_PLAN_SGP_API_KEY"
-$env:BEATSPY_BASE_URL = "https://token-plan-sgp.xiaomimimo.com/v1"
-Remove-Item Env:BEATSPY_REASONING_EFFORT
-uv run beatspy run --model mimo-v2.6-pro --scenario 2025-recent --scenario 2026-recent
-```
+Website branding lives in `dashboard/assets/`: SVG source artwork, a 1200×630 PNG
+social preview, and home-screen icons. `index.html` includes Open Graph/X sharing
+metadata and the canonical public URL. Keep image URLs, dimensions, and alternate
+text synchronized when replacing the preview. All branding assets ship in local
+reports and the Python wheel too.

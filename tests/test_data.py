@@ -80,6 +80,23 @@ class TestLookAheadProtection:
 
 
 class TestDecisionDates:
+    def test_capped_schedule_preserves_full_history(self):
+        from beatspy.data.service import DataService
+        from conftest import make_prices
+
+        data = DataService(make_prices(["AAPL"], start="2005-01-01", end="2026-10-02"))
+        start, end = date(2006, 1, 1), date(2026, 10, 2)
+        complete = data.decision_dates(start, end)
+        for limit in (50, 60):
+            days = data.decision_dates(start, end, max_decisions=limit)
+            assert len(days) == len(set(days)) == limit
+            assert days[0] == complete[0] and days[-1] == complete[-1]
+            assert {day.year for day in days} == set(range(2006, 2027))
+            assert all(day in complete and data.next_trading_day(day) <= end for day in days)
+        assert data.decision_dates(start, end, max_decisions=500) == complete
+        with __import__("pytest").raises(ValueError, match="at least 2"):
+            data.decision_dates(start, end, max_decisions=1)
+
     def test_monthly_last_trading_day(self, data_service):
         days = data_service.decision_dates(date(2022, 1, 3), date(2022, 3, 31), "monthly")
         assert days[0] == date(2022, 1, 3)  # first trading day on/after start

@@ -38,7 +38,7 @@ def test_demo_compare_and_report(tmp_path, monkeypatch, capsys):
     assert "dashboard" in capsys.readouterr().out
 
     html = (results / "dashboard/index.html").read_text(encoding="utf-8")
-    assert "Synthetic demo" in html
+    assert "Synthetic demo" in (results / "dashboard/app.js").read_text(encoding="utf-8")
     assert "Real model calls. Five trading agents. Frozen market data." in html
 
 
@@ -85,14 +85,14 @@ def test_compare_one_window_latest_model_names(monkeypatch, capsys):
     table = capsys.readouterr().out
     assert table.count("model-a") == table.count("model-b") == 1
     assert "20.0%" in table and "15.0%" in table
-    assert "vendor/" not in table and "old-model" not in table and "group" not in table
+    assert "vendor/" not in table and "old-model" in table and "group" not in table
 
 
 def test_version_flag(capsys):
     with __import__("pytest").raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "0.1.0" in capsys.readouterr().out
+    assert "0.2.0" in capsys.readouterr().out
 
 
 def test_no_command_shows_help(capsys):
@@ -107,6 +107,7 @@ def test_run_defaults_and_repeated_arguments():
     args = parser.parse_args(["run", "--model", "a", "--model", "b", "--scenario", "2025-recent"])
     assert args.model == ["a", "b"] and args.scenario == ["2025-recent"]
     assert args.jobs == 2 and args.concurrency == 6
+    assert parser.parse_args(["run", "--max-decisions", "60"]).max_decisions == 60
     with __import__("pytest").raises(SystemExit):
         parser.parse_args(["run", "--jobs", "0"])
 

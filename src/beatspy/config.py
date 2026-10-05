@@ -100,7 +100,10 @@ def read_secrets() -> dict[str, str]:
 
 def secret_values() -> set[str]:
     values = set(read_secrets().values()) | {
-        value for key, value in os.environ.items() if key.startswith("BEATSPY_") and "KEY" in key
+        value
+        for key, value in os.environ.items()
+        if (key.startswith("BEATSPY_") and "KEY" in key)
+        or key in {"FINNHUB_API_KEY", "OLOSTEP_API_KEY", "NIXTLA_API_KEY"}
     }
     if value := os.environ.get(os.environ.get("BEATSPY_API_KEY_ENV", DEFAULT_MODEL_API_KEY_ENV)):
         values.add(value)
@@ -144,7 +147,9 @@ def provider_api_key(settings: Settings, which: str) -> str | None:
         "finnhub": "BEATSPY_FINNHUB_API_KEY",
         "timegpt": "BEATSPY_TIMEGPT_API_KEY",
     }
-    value = os.environ.get(env_names[which])
+    value = os.environ.get(env_names[which]) or os.environ.get(
+        {"olostep": "OLOSTEP_API_KEY", "finnhub": "FINNHUB_API_KEY", "timegpt": "NIXTLA_API_KEY"}[which]
+    )
     return value or None
 
 

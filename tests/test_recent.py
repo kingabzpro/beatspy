@@ -101,3 +101,32 @@ def test_snapshot_id_excludes_fetch_time(tmp_path, scenario, monkeypatch):
     second = {**first, "fetched_at_utc": "2030-01-01T00:00:00Z"}
     assert freeze.snapshot_id(first) == freeze.snapshot_id(second)
     assert json.loads((tmp_path / scenario.name / "latest.json").read_text())["snapshot_id"] == first["snapshot_id"]
+
+
+def test_ytd_resolves_latest_session_and_covers_sectors():
+    scenario = resolve_scenario(load_scenario("2026-ytd"), datetime(2026, 10, 4, tzinfo=UTC))
+    assert scenario.start == "2026-01-01" and scenario.end == "2026-10-02"
+    assert len(scenario.tradable) == 25
+    assert scenario.allow_finnhub and not scenario.allow_web_search
+    assert scenario.max_decisions == 36
+    assert scenario.frequency == "weekly"
+    assert not scenario.through_latest
+    assert {"AMT", "APD", "DUK", "JNJ", "CAT", "PG", "JPM", "XOM", "GOOGL", "AMZN", "MSFT"} <= set(scenario.tradable)
+
+
+def test_ytd_schedule_only_scores_2026_and_respects_limit():
+    from beatspy.data.service import DataService
+
+    scenario = resolve_scenario(load_scenario("2026-ytd"), datetime(2026, 10, 4, tzinfo=UTC))
+    data = DataService(make_prices(["AAPL"], start="2025-01-01", end=scenario.end))
+    days = data.decision_dates(
+        date.fromisoformat(scenario.start),
+        date.fromisoformat(scenario.end),
+        scenario.frequency,
+        max_decisions=scenario.max_decisions,
+    )
+    assert 1 < len(days) == 36
+    assert {day.year for day in days} == {2026}
+    assert days[0] == date(2026, 1, 2)
+    assert days[-1] == date(2026, 9, 25)
+    assert all(data.next_trading_day(day) <= date.fromisoformat(scenario.end) for day in days)

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#101214"/>
+  <g font-family="Inter, Segoe UI, Arial, sans-serif">
+    <g transform="translate(64 56)">
+      <path d="M0 32V20h6v12zm11 0V11h6v21zm11 0V2h6v30z" fill="#b4f272"/>
+      <text x="44" y="29" fill="#f1f4f7" font-size="30" font-weight="700" letter-spacing="-1">BeatSPY</text>
+    </g>
+    <text x="64" y="164" fill="#b4f272" font-size="13" font-family="Consolas, monospace" letter-spacing="3">OPEN BENCHMARK / REAL DATA</text>
+    <text x="60" y="269" fill="#f1f4f7" font-size="88" font-weight="650" letter-spacing="-4">Can AI beat</text>
+    <text x="60" y="370" fill="#b4f272" font-size="88" font-weight="650" letter-spacing="-4">the market?</text>
+    <text x="64" y="434" fill="#a7b0ba" font-size="25">One model. Five trading agents.</text>
+    <text x="64" y="479" fill="#a7b0ba" font-size="19">2026 → latest completed session · 11 sectors</text>
+    <g fill="#b4f272">
+      <rect x="850" y="355" width="54" height="124"/>
+      <rect x="935" y="269" width="54" height="210"/>
+      <rect x="1020" y="181" width="54" height="298"/>
+    </g>
+    <path d="M64 541H1136" stroke="#30363d"/>
+    <text x="64" y="586" fill="#a7b0ba" font-size="17">Frozen market data · Replayable scores · Open results</text>
+    <text x="1136" y="586" text-anchor="end" fill="#b4f272" font-size="17">beatspy.vercel.app</text>
+  </g>
+</svg>

@@ -1,6 +1,7 @@
 """Optional headless Chromium checks. Install the browser extra and Chromium first."""
 
 import json
+import struct
 import threading
 from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
@@ -88,9 +89,7 @@ def test_dashboard_interactions_and_safe_rendering(site, width):
         assert "portfolio:" in page.locator("#performance .tooltip").inner_text()
         page.get_by_role("button", name="Return", exact=False).first.click()
         assert page.locator("th[aria-sort=descending]").count() == 1
-        page.locator("#trust").select_option("maintainer")
-        assert "No results match" in page.locator("#status").inner_text()
-        page.locator("#trust").select_option("synthetic")
+        assert page.locator("#trust, #year, #scenario").count() == 0
         assert page.locator("#leaderboard-table tbody tr").count() == 3
         attack = page.get_by_role("button", name='<img src=x onerror="window.compromised=true">', exact=True)
         attack.click()
@@ -110,14 +109,16 @@ def test_dashboard_interactions_and_safe_rendering(site, width):
 
 
 @pytest.mark.parametrize("width", [1280, 390])
-def test_all_years_average_and_yearly_drilldown(site, width):
+def test_latest_per_model_and_brand_alignment(site, width):
     url, directory = site
     catalog = json.loads((directory / "data/index.json").read_text())
     catalog["runs"] = catalog["runs"][:2]
     catalog.pop("selected", None)
-    for row, year, value in zip(catalog["runs"], ["2025", "2026"], [0.1, 0.3], strict=True):
-        row.update(model="demo-beta", year=year, start=f"{year}-10-03", end=f"{year}-12-31", scenario=f"{year}-recent")
-        row["metrics"].update(total_return=value, spy_total_return=0.02, excess_return_vs_spy=value - 0.02)
+    for row, year, created, value in zip(
+        catalog["runs"], ["2026", "2025"], ["2026-10-01", "2026-10-04"], [0.9, 0.1], strict=True
+    ):
+        row.update(model="demo-beta", year=year, start=f"{year}-10-03", end=f"{year}-12-31", created_utc=created)
+        row["metrics"].update(total_return=value, excess_return_vs_spy=value)
     with playwright.sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": width, "height": 900})
@@ -125,38 +126,17 @@ def test_all_years_average_and_yearly_drilldown(site, width):
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.route("**/data/index.json", lambda route: route.fulfill(json=catalog))
         page.goto(url)
-        page.get_by_role("button", name="demo-beta", exact=True).click()
-        page.locator("#run-details:not([hidden])").wait_for()
-        assert page.locator("#scenario").input_value() == "2026-recent"
-        page.locator("#year").select_option("")
-        assert page.locator("#scenario").input_value() == ""
+        page.get_by_role("button", name="demo-beta", exact=True).wait_for()
         assert page.locator("#leaderboard-table tbody tr").count() == 1
-        assert "20.00%" in page.locator("#leaderboard-table tbody").inner_text()
-        assert "Average per run" in page.locator("#cost-window").inner_text()
-        assert "2025, 2026" in page.locator("#leaderboard-table tbody").inner_text()
-        page.get_by_role("button", name="Avg Return", exact=False).click()
-        page.get_by_role("button", name="demo-beta", exact=True).focus()
-        page.keyboard.press("Enter")
-        page.locator("#average-details:not([hidden])").wait_for()
-        assert not page.locator("#run-details").is_visible()
-        assert page.locator("#average-runs tbody tr").count() == 2
-        assert page.evaluate("location.hash") == "#model=demo-beta"
-        page.reload()
-        page.locator("#average-details:not([hidden])").wait_for()
-        assert page.locator("#year").input_value() == ""
-        assert "20.00%" in page.locator("#leaderboard-table tbody").inner_text()
-        page.locator("#average-runs").get_by_role("link", name="2025", exact=True).click()
-        page.locator("#run-details:not([hidden])").wait_for()
-        assert page.locator("#year").input_value() == "2025"
-        assert page.evaluate("location.hash").startswith("#run=")
-        assert not page.locator("#average-details").is_visible()
         assert "10.00%" in page.locator("#leaderboard-table tbody").inner_text()
-        page.locator("#year").select_option("")
+        assert "2025-10-03" in page.locator("#leaderboard-table tbody").inner_text()
         page.get_by_role("button", name="demo-beta", exact=True).click()
-        page.locator("#average-details:not([hidden])").wait_for()
-        page.locator("#trust").select_option("maintainer")
-        assert "No results match" in page.locator("#status").inner_text()
-        assert not page.locator("#average-details").is_visible()
+        page.locator("#run-details:not([hidden])").wait_for()
+        assert "Unsigned" in page.locator("#verification").inner_text()
+        assert "github.com/kingabzpro/beatspy/issues/new" in page.locator("#submit-result").get_attribute("href")
+        logo = page.locator(".brandmark").bounding_box()
+        text = page.locator(".brand span").bounding_box()
+        assert abs((logo["y"] + logo["height"] / 2) - (text["y"] + text["height"] / 2)) < 1
         assert page.evaluate("document.documentElement.scrollWidth") <= width
         assert not errors
         browser.close()
@@ -169,7 +149,11 @@ def test_empty_and_failed_fetch_states(site):
         page = browser.new_page()
         page.route("**/data/index.json", lambda route: route.fulfill(json={"schema_version": 1, "runs": []}))
         page.goto(url)
-        page.get_by_text("No published runs yet.", exact=False).wait_for()
+        page.get_by_text("No new results yet.", exact=False).wait_for()
+        assert page.locator("#run-count").inner_text() == "0 results"
+        assert page.locator("#leaderboard-table tbody tr").count() == 0
+        assert page.locator("#run-details").is_hidden()
+        assert page.locator("#cost-overview").is_hidden()
         page.unroute("**/data/index.json")
         page.route("**/data/index.json", lambda route: route.fulfill(status=500, body="unavailable"))
         page.reload()
@@ -189,4 +173,38 @@ def test_empty_and_failed_fetch_states(site):
         page.get_by_role("button", name=catalog["runs"][0]["model"], exact=True).click()
         page.get_by_text("Invalid artifact path", exact=False).wait_for()
         assert not page.locator("#run-details").is_visible()
+        browser.close()
+
+
+def test_brand_assets_metadata_and_keyboard_navigation(site):
+    url, _ = site
+    with playwright.sync_playwright() as p:
+        browser = p.chromium.launch()
+        page = browser.new_page()
+        page.goto(url)
+        assert page.locator('link[rel="canonical"]').get_attribute("href") == "https://beatspy.vercel.app/"
+        assert page.locator('meta[property="og:type"]').get_attribute("content") == "website"
+        assert page.locator('meta[name="twitter:card"]').get_attribute("content") == "summary_large_image"
+        assert page.locator('meta[property="og:image:alt"]').get_attribute("content")
+        for name, dimensions in [
+            ("social-preview.png", (1200, 630)),
+            ("apple-touch-icon.png", (180, 180)),
+            ("icon-192.png", (192, 192)),
+            ("icon-512.png", (512, 512)),
+        ]:
+            response = page.request.get(f"{url}/assets/{name}")
+            assert response.ok
+            content = response.body()
+            assert content[:8] == b"\x89PNG\r\n\x1a\n"
+            assert struct.unpack(">II", content[16:24]) == dimensions
+        for asset in ("favicon.ico", "assets/favicon.svg", "site.webmanifest", "robots.txt", "sitemap.xml"):
+            assert page.request.get(f"{url}/{asset}").ok
+        manifest = page.request.get(f"{url}/site.webmanifest").json()
+        assert manifest["short_name"] == "BeatSPY"
+        for icon in manifest["icons"]:
+            assert page.request.get(f"{url}/{icon['src']}").ok
+        page.keyboard.press("Tab")
+        assert page.locator(".skip-link").evaluate("element => element === document.activeElement")
+        page.keyboard.press("Enter")
+        assert page.evaluate("document.activeElement.id") == "main-content"
         browser.close()

@@ -252,9 +252,11 @@ class Scenario(BaseModel):
     description: str = ""
     start: str = ""
     end: str = ""
+    through_latest: bool = False
     year: int | None = Field(default=None, ge=2000, le=2100)
     window_days: int = Field(default=90, ge=2, le=366)
     frequency: str = "monthly"  # weekly | monthly
+    max_decisions: int | None = Field(default=None, ge=2, le=10_000, strict=True)
     benchmark: str = "SPY"
     tradable: list[str] = Field(default_factory=list)
     cash: bool = True
@@ -275,12 +277,16 @@ class Scenario(BaseModel):
             raise ValueError("invalid scenario name")
         if self.frequency not in ("weekly", "monthly"):
             raise ValueError("frequency must be weekly or monthly")
-        if bool(self.start) != bool(self.end):
+        if self.through_latest:
+            if not self.start or self.end or self.year is not None:
+                raise ValueError("through_latest requires start only")
+            date.fromisoformat(self.start)
+        elif bool(self.start) != bool(self.end):
             raise ValueError("provide both start and end")
-        if not self.start or not self.end:
+        if not self.through_latest and (not self.start or not self.end):
             if self.year is None:
                 raise ValueError("scenario needs start/end or year")
-        elif date.fromisoformat(self.start) > date.fromisoformat(self.end):
+        elif self.end and date.fromisoformat(self.start) > date.fromisoformat(self.end):
             raise ValueError("start must not follow end")
         if not self.tradable or len(self.universe) != len(set(self.universe)):
             raise ValueError("scenario needs a ticker universe")

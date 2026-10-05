@@ -118,7 +118,11 @@ async def replay_run(run_dir: Path) -> dict:
         raise ValueError("snapshot includes prices beyond the evaluation cutoff")
     data = DataService(prices, scenario.benchmark)
     decision_dates = data.decision_dates(
-        date.fromisoformat(scenario.start), date.fromisoformat(scenario.end), scenario.frequency, legacy=legacy
+        date.fromisoformat(scenario.start),
+        date.fromisoformat(scenario.end),
+        scenario.frequency,
+        legacy=legacy,
+        max_decisions=scenario.max_decisions,
     )
     submitted = lines(run_dir / "decisions.jsonl")
     events = lines(run_dir / "events.jsonl")

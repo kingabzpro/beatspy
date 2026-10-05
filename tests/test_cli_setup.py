@@ -38,7 +38,7 @@ def run_setup(monkeypatch, answers: list[str], probes: dict | None = None) -> in
 def test_setup_writes_config_and_secrets(home, monkeypatch):
     code = run_setup(
         monkeypatch,
-        ["2", "http://localhost:8000/v1", "qwen2.5:7b", "sk-abc", "", "finnhub-key", "", "naive"],
+        ["2", "http://localhost:8000/v1", "qwen2.5:7b", "sk-abc", "finnhub-key", "", "naive"],
     )
     assert code == 0
     config = (home / "config.toml").read_text()
@@ -52,7 +52,7 @@ def test_setup_writes_config_and_secrets(home, monkeypatch):
 
 def test_setup_blank_keys_keep_previous_secrets(home, monkeypatch):
     (home / "secrets.env").write_text("# BeatSPY secrets. Do not commit or share this file.\nBEATSPY_API_KEY=old-key\n")
-    run_setup(monkeypatch, ["1", "", "llama3.1:8b", "", "", "", "", ""])
+    run_setup(monkeypatch, ["1", "", "llama3.1:8b", "", "", "", ""])
     secrets = (home / "secrets.env").read_text()
     assert "BEATSPY_API_KEY=old-key" in secrets  # blank prompt must not wipe the stored key
 
@@ -60,7 +60,7 @@ def test_setup_blank_keys_keep_previous_secrets(home, monkeypatch):
 def test_setup_reports_failed_probe(home, monkeypatch):
     code = run_setup(
         monkeypatch,
-        ["4", "", "gpt-4o-mini", "sk", "", "", "", ""],
+        ["4", "", "gpt-4o-mini", "sk", "", "", ""],
         probes={"chat": (True, "pong"), "tools": (False, "no tool call observed")},
     )
     assert code == 1

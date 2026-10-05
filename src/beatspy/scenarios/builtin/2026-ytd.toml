@@ -1,0 +1,14 @@
+title = "2026 year to date"
+description = "Up to 36 weekly decisions across 2026 year to date and 11 sectors, ending at the latest completed NYSE session."
+start = "2026-01-01"
+through_latest = true
+frequency = "weekly"
+max_decisions = 36
+benchmark = "SPY"
+# Established stocks across all 11 sectors.
+# Technology, communication, discretionary, staples, financials, healthcare,
+# energy, industrials, utilities, materials, and real estate; bonds and gold.
+tradable = ["AAPL", "MSFT", "NVDA", "GOOGL", "VZ", "AMZN", "HD", "PG", "KO", "JPM", "BAC", "JNJ", "PFE", "XOM", "CVX", "CAT", "HON", "NEE", "DUK", "APD", "SHW", "AMT", "PLD", "TLT", "GLD"]
+lookback_days = 400
+allow_finnhub = true
+allow_web_search = false

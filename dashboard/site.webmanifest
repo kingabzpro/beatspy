@@ -1,0 +1,15 @@
+{
+  "id": "./",
+  "name": "BeatSPY · AI Trading Benchmark",
+  "short_name": "BeatSPY",
+  "description": "Compare AI trading portfolios against SPY using frozen historical market data.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "minimal-ui",
+  "background_color": "#101214",
+  "theme_color": "#101214",
+  "icons": [
+    {"src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+  ]
+}

@@ -48,6 +48,16 @@ def load_scenario(name: str) -> Scenario:
 
 
 def load_events(name: str) -> list[EventItem]:
+    if name == "2026-ytd":
+        # Reuse the bundled dated events; uncovered years remain explicitly sparse.
+        builtin = resources.files("beatspy.scenarios") / "builtin"
+        events = {}
+        for entry in builtin.iterdir():
+            if entry.name.endswith(".events.toml"):
+                for item in _read_toml(entry).get("events", []):
+                    event = EventItem.model_validate(item)
+                    events[(event.date, event.headline)] = event
+        return sorted(events.values(), key=lambda event: (event.date, event.headline))
     user_file = user_scenario_dir() / f"{name}.events.toml"
     if user_file.exists():
         data = _read_toml(user_file)

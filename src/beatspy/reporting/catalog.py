@@ -31,7 +31,7 @@ def comparison_group(meta):
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def summary(meta, metrics, directory, trust="community"):
+def summary(meta, metrics, directory, trust="replayed"):
     scenario = meta.get("scenario") or {}
     requested = meta.get("requested") or {}
     start = requested.get("start") or scenario.get("start", "")
@@ -58,20 +58,28 @@ def summary(meta, metrics, directory, trust="community"):
     return result
 
 
-def build_catalog(data_root: Path, *, registry_path: Path | None = None, validate=True):
+def build_catalog(data_root: Path, *, public_key: Path | None = None, validate=True):
     if any((data_root / name).is_symlink() for name in ("runs", "snapshots")):
         raise ValueError("catalog directories must not be symlinks")
-    registry_path = registry_path or data_root / "maintainer-runs.json"
-    registry = read_json(registry_path) if registry_path.exists() else {}
+    from ..bench.verification import verify_result
+
+    public_key = public_key or Path(".github/verification-key.pem")
     runs = []
+    identities = set()
     for directory in sorted((data_root / "runs").glob("*")):
         if not directory.is_dir():
             continue
         meta = validate_run(directory) if validate else read_json(directory / "run.json")
         metrics = read_json(directory / "metrics.json")
-        trust = "maintainer" if registry.get(meta["run_id"]) == sha256(directory / "run.json") else "community"
-        runs.append(summary(meta, metrics, f"runs/{directory.name}", trust))
-    atomic_json(data_root / "index.json", {"schema_version": 1, "default_trust": "maintainer", "runs": runs})
+        row = summary(meta, metrics, f"runs/{directory.name}", "replayed")
+        if (directory / "verification.json").exists():
+            verified = verify_result(directory, public_key.read_bytes())
+            if verified["verification_id"] in identities:
+                raise ValueError("duplicate verification ID")
+            identities.add(verified["verification_id"])
+            row.update(trust="verified", verification_id=verified["verification_id"])
+        runs.append(row)
+    atomic_json(data_root / "index.json", {"schema_version": 1, "default_trust": "all", "runs": runs})
     return runs
 
 

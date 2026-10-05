@@ -65,9 +65,10 @@ wheels = [
 
 [[package]]
 name = "beatspy"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cryptography" },
     { name = "exchange-calendars" },
     { name = "httpx" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -99,6 +100,7 @@ timegpt = [
 requires-dist = [
     { name = "build", marker = "extra == 'dev'", specifier = ">=1.2" },
     { name = "chronos-forecasting", marker = "extra == 'chronos'", specifier = ">=1.4,<2" },
+    { name = "cryptography", specifier = ">=44" },
     { name = "exchange-calendars", specifier = ">=4.11,<5" },
     { name = "httpx", specifier = ">=0.27" },
     { name = "nixtla", marker = "extra == 'timegpt'", specifier = ">=0.6" },

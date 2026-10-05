@@ -111,6 +111,7 @@ async def run_benchmark(
     )
     scenario = Scenario.model_validate(scenario.model_dump())
     external_limit = external_limit or asyncio.Semaphore(6)
+    run_code_digest = code_digest()
     data, manifest = prepared_data or await asyncio.to_thread(ensure_data, scenario, data_root, refresh_data)
     provider = BeatSpyModelProvider(settings.model.base_url, model_api_key(settings))
     try:
@@ -131,7 +132,9 @@ async def run_benchmark(
 
         start_day = date.fromisoformat(start or scenario.start)
         end_day = date.fromisoformat(end or scenario.end)
-        decision_dates = data.decision_dates(start_day, end_day, freq or scenario.frequency)
+        decision_dates = data.decision_dates(
+            start_day, end_day, freq or scenario.frequency, max_decisions=scenario.max_decisions
+        )
         if not decision_dates:
             raise RuntimeError("No decision dates in the requested range; check scenario start/end.")
 
@@ -145,6 +148,7 @@ async def run_benchmark(
         async def weight_fn(day: date, state) -> dict:
             nonlocal recent_summary
             done["count"] += 1
+            log.info("%s: decision %d/%d (%s)", settings.model.model, done["count"], len(decision_dates), day)
             if progress is not None:
                 progress(done["count"], len(decision_dates), day)
             period = data.decision_period(day, decision_dates, end_day)
@@ -202,6 +206,7 @@ async def run_benchmark(
             "schema_version": 2,
             "protocol_version": 3,
             "source_revision": source_revision(),
+            "code_sha256": run_code_digest,
             "run_id": run_id,
             "label": label,
             "beatspy_version": __version__,
@@ -282,3 +287,9 @@ def source_revision() -> str:
         return subprocess.check_output(["git", "rev-parse", "HEAD"], stderr=subprocess.DEVNULL, text=True).strip()
     except (OSError, subprocess.CalledProcessError):
         return "unknown"
+
+
+def code_digest() -> str:
+    from .verification import code_digest as digest
+
+    return digest()

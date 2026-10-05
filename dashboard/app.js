@@ -1,16 +1,17 @@
 "use strict";
 
 const COLORS = ["#b4f272", "#79b6ff", "#ffbc79", "#cb9aff", "#ff9292", "#74d8cb", "#f0b9da", "#d1d7de", "#8d9969"];
-const TRUST = {maintainer: "Maintainer run", community: "Community submitted", local: "Local · unverified", synthetic: "SYNTHETIC", mixed: "Mixed evidence"};
+const TRUST = {verified: "Verified", replayed: "Replay checked · unsigned", local: "Local · unsigned", synthetic: "Synthetic demo"};
 const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
 const dollars = value => typeof value === "number" && Number.isFinite(value) ? `$${value.toFixed(4)}` : "—";
-// Reference API rates checked 2026-10-04. Hosted/subscription runs are API-equivalent estimates, not invoices.
+// OpenRouter standard uncached token rates checked 2026-10-05; estimates are not invoices.
 const PRICES = {
-  "GLM-5.3": {input: 1.4, output: 4.4, source: "https://docs.z.ai/guides/overview/pricing", note: "Z.AI list price"},
-  "GLM-5.3-Flash": {input: .15, output: .5, source: "https://docs.z.ai/guides/overview/pricing", note: "Z.AI list price"},
-  "DeepSeek-V4.1-Flash": {input: .3, output: 1.2, source: "https://api-docs.deepseek.com/quick_start/pricing/", note: "DeepSeek peak list price; off-peak is half"},
-  "gpt-6-luna": {input: .1, output: .5, source: "https://developers.openai.com/api/docs/pricing", note: "OpenAI standard short-context list price"},
-  "mimo-v2.6-pro": {input: .435, output: .87, source: "https://mimo.mi.com/docs/en-US/quick-start/usage-guide/text-generation/batch-api", note: "MiMo overseas real-time API price; Token Plan billing differs"},
+  "Kimi-K3": {"input": 0.67, "output": 14.0, "source": "https://openrouter.ai/moonshotai/kimi-k3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "gpt-6-luna": {"input": 0.1, "output": 0.5, "source": "https://openrouter.ai/openai/gpt-6-luna", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "mimo-v2.6-pro": {"input": 0.435, "output": 0.87, "source": "https://openrouter.ai/xiaomi/mimo-v2.6-pro", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "GLM-5.3": {"input": 0.05, "output": 7.0, "source": "https://openrouter.ai/z-ai/glm-5.3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "GLM-5.3-Flash": {"input": 0.15, "output": 0.5, "source": "https://openrouter.ai/z-ai/glm-5.3-flash", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "DeepSeek-V4.1-Flash": {"input": 0.3, "output": 1.2, "source": "https://openrouter.ai/deepseek/deepseek-v4.1-flash", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
 };
 
 function tokenCost(usage, rates) {
@@ -73,32 +74,10 @@ function allocationRow(row) {
     CASH: held?.current_cash_weight ?? row.validated?.cash ?? row.decision?.cash_weight ?? 0};
 }
 
-function leaderboardRuns(runs, allYears = false) {
-  if (allYears) {
-    const years = [...new Set(runs.map(run => run.year || String(run.end).slice(0, 4)))].sort();
-    const models = new Map();
-    for (const year of years) {
-      for (const run of leaderboardRuns(runs.filter(row => (row.year || String(row.end).slice(0, 4)) === year))) {
-        if (!models.has(run.model)) models.set(run.model, []);
-        models.get(run.model).push(run);
-      }
-    }
-    return [...models].map(([model, members]) => {
-      const metrics = {};
-      for (const key of new Set(members.flatMap(run => Object.keys(run.metrics)))) {
-        const values = members.map(run => run.metrics[key]).filter(value => typeof value === "number" && Number.isFinite(value));
-        metrics[key] = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-      }
-      return {model, members, metrics, run_id: `average:${model}`, trust: members.every(run => run.trust === members[0].trust) ? members[0].trust : "mixed"};
-    }).sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
-  }
-  const ordered = [...runs].sort((a, b) => String(b.end).localeCompare(String(a.end)) || String(b.created_utc).localeCompare(String(a.created_utc)));
-  if (!ordered.length) return [];
-  const latest = ordered[0], models = new Map();
-  for (const run of ordered) {
-    if (run.start !== latest.start || run.end !== latest.end || run.scenario !== latest.scenario) continue;
-    if (!models.has(run.model)) models.set(run.model, run);
-  }
+function leaderboardRuns(runs) {
+  const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(a.run_id)));
+  const models = new Map();
+  for (const run of ordered) if (!models.has(run.model)) models.set(run.model, run);
   return [...models.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
 }
 
@@ -126,10 +105,6 @@ if (typeof document !== "undefined") {
       ? {input: meta.model.cost_per_m_input, output: meta.model.cost_per_m_output, note: "Recorded run rates"} : PRICES[modelName(model)]);
   }
   function costForRun(run) {
-    if (run.members) {
-      const values = run.members.map(costForRun);
-      return values.every(value => value !== null) ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
-    }
     if (!priceOverrides.has(run.model) && Number.isFinite(run.metrics.estimated_cost_usd)) return run.metrics.estimated_cost_usd;
     return tokenCost(run.metrics, ratesFor(run.model));
   }
@@ -150,30 +125,9 @@ if (typeof document !== "undefined") {
     }
     $(target).replaceChildren(element);
   }
-  function options(id, values, initial) {
-    $(id).replaceChildren(new Option(initial, ""));
-    for (const value of [...new Set(values)].filter(Boolean).sort()) $(id).add(new Option(value, value));
-  }
-  function filter() {
-    renderBoard();
-    if (selected && !visible.some(run => run.run_id === selected)) {
-      selected = null; loading++; $("run-details").hidden = true; $("average-details").hidden = true;
-    } else if (selected?.startsWith("average:")) {
-      showAverage(visible.find(run => run.run_id === selected));
-    }
-  }
-  function changeFilters() {
-    filter();
-    if (!selected && /^#(run|model)=/.test(location.hash)) history.replaceState(null, "", location.pathname + location.search);
-  }
   function renderBoard() {
-    const allYears = !$("year").value;
-    visible = leaderboardRuns(runs.filter(run => ($("trust").value === "all" || run.trust === $("trust").value)
-      && (!$("year").value || run.year === $("year").value)
-      && (!$("scenario").value || run.scenario === $("scenario").value)), allYears);
-    $("board-window").textContent = !visible.length ? "" : allYears
-      ? "All years · Equal-weight averages of the latest yearly windows · Select a model for dates and individual runs"
-      : `${visible[0].scenario} · ${visible[0].start} → ${visible[0].end} · Latest run per model`;
+    visible = leaderboardRuns(runs);
+    $("board-window").textContent = "Latest completed result per model. Each row shows its evaluation period.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const av = sortKey === "model" ? modelName(a.model) : sortKey === "estimated_cost_usd" ? costForRun(a) : a.metrics[sortKey];
@@ -184,8 +138,8 @@ if (typeof document !== "undefined") {
     });
     $("run-count").textContent = `${visible.length} result${visible.length === 1 ? "" : "s"}`;
     $("status").textContent = visible.length ? "" : (runs.length
-      ? "No results match these filters. Try Community submitted, All results, or another year."
-      : "No published runs yet. Run a benchmark and open a pull request to add the first result.");
+      ? "No completed results yet."
+      : "No new results yet. Completed benchmark runs will appear here after verification.");
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank"));
     const columns = [["model", "Model"], ["total_return", "Return"], ["spy_total_return", "SPY"],
@@ -193,12 +147,12 @@ if (typeof document !== "undefined") {
       ["directional_accuracy", "Direction"], ["input_tokens", "Tokens in"], ["estimated_cost_usd", "Est. cost"]];
     for (const [key, title] of columns) {
       const th = node("th", undefined, key === "model" ? "" : "num");
-      const button = node("button", (allYears && key !== "model" ? "Avg " : "") + title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
+      const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
       button.onclick = () => {descending = sortKey === key ? !descending : key !== "model"; sortKey = key; renderBoard();};
       th.append(button); header.append(th);
     }
-    if (allYears) header.append(node("th", "Years"));
+    header.append(node("th", "Period"));
     header.append(node("th", "Evidence")); head.append(header); element.append(head, body);
     for (const run of visible) {
       const row = node("tr");
@@ -206,8 +160,8 @@ if (typeof document !== "undefined") {
       row.append(node("td", ranks.get(run.run_id)));
       const td = node("td"), button = node("button", modelName(run.model), "run-button");
       button.onclick = () => {
-        const hash = run.members ? `#model=${encodeURIComponent(run.model)}` : `#run=${encodeURIComponent(run.run_id)}`;
-        if (location.hash === hash) {if (run.members) showAverage(run); else selectRun(run.run_id);} else location.hash = hash;
+        const hash = `#run=${encodeURIComponent(run.run_id)}`;
+        if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
       };
       td.append(button); row.append(td);
       for (const [key] of columns.slice(1)) {
@@ -215,29 +169,14 @@ if (typeof document !== "undefined") {
         const formatted = raw == null ? "—" : key === "estimated_cost_usd" ? dollars(raw) : key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? Math.round(value).toLocaleString() : percent(value);
         row.append(node("td", formatted, `num ${key === "excess_return_vs_spy" ? (value >= 0 ? "positive" : "negative") : ""}`));
       }
-      if (allYears) row.append(node("td", run.members.map(member => member.year || member.end.slice(0, 4)).join(", ")));
+      row.append(node("td", `${run.start} → ${run.end}`));
       row.append(node("td", TRUST[run.trust] || "Unverified")); body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
     $("cost-overview").hidden = !visible.length;
-    $("cost-window").textContent = allYears ? "Average per run across the available yearly windows." : "Per run in the selected benchmark window.";
+    $("cost-window").textContent = "API-equivalent estimates for the latest result of each model.";
     bars("model-costs", visible.map(run => ({label: modelName(run.model), cost: costForRun(run)})), ["cost"], dollars);
     bars("model-tokens", visible.map(run => ({label: modelName(run.model), input: run.metrics.input_tokens, output: run.metrics.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
-  }
-  function showAverage(run) {
-    selected = run.run_id; loading++;
-    $("run-details").hidden = true; $("average-details").hidden = false;
-    $("average-title").textContent = modelName(run.model);
-    table("average-runs", ["Year", "Window", "Return", "SPY", "Excess", "Est. cost"], run.members.map(member => [
-      member.year || member.end.slice(0, 4), `${member.start} → ${member.end}`,
-      ...["total_return", "spy_total_return", "excess_return_vs_spy"].map(key => percent(member.metrics[key])),
-      dollars(costForRun(member)),
-    ]));
-    $("average-runs").querySelectorAll("tbody tr").forEach((row, i) => {
-      const member = run.members[i], link = node("a", member.year || member.end.slice(0, 4));
-      link.href = `#run=${encodeURIComponent(member.run_id)}`; row.firstChild.replaceChildren(link);
-    });
-    renderBoard();
   }
   function bars(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
@@ -264,9 +203,9 @@ if (typeof document !== "undefined") {
     const {run, meta, decisions} = costContext, rates = ratesFor(run.model, meta);
     const {agents, steps} = usageBreakdown(decisions, rates), cost = tokenCost(run.metrics, rates);
     $("cost-summary").textContent = `Estimated model cost ${dollars(cost)} · Per decision ${dollars(decisions.length && cost !== null ? cost / decisions.length : null)} · ${run.metrics.requests ?? "—"} model requests`;
-    $("price-note").textContent = `${rates?.note || "Enter both rates to calculate cost"}. Input $${rates?.input ?? "—"} / Output $${rates?.output ?? "—"} per million tokens. Estimates assume uncached input; cache tiers, long-context pricing, hosting, subscriptions, and paid tools are not included. Reference prices checked 2026-10-04.`;
+    $("price-note").textContent = `${rates?.note || "Enter both rates to calculate cost"}. Input $${rates?.input ?? "—"} / Output $${rates?.output ?? "—"} per million tokens. Estimates assume uncached input; cache tiers, long-context pricing, hosting, subscriptions, and paid tools are not included. Reference prices checked 2026-10-05.`;
     $("price-source").replaceChildren();
-    if (rates?.source) {const link = node("a", "Official pricing ↗"); link.href = rates.source; $("price-source").append(link);}
+    if (rates?.source) {const link = node("a", "OpenRouter pricing ↗"); link.href = rates.source; $("price-source").append(link);}
     chart("running-cost", steps.length && steps.every(step => step.cumulative !== null) ? steps : [], ["cumulative"], dollars);
     bars("agent-costs", agents, ["cost"], dollars);
     bars("decision-tokens", steps.map(step => ({label: step.date, input: step.input_tokens, output: step.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
@@ -326,7 +265,6 @@ if (typeof document !== "undefined") {
   }
   async function selectRun(id) {
     costContext = null;
-    $("average-details").hidden = true;
     const run = runs.find(row => row.run_id === id);
     if (!run) {$("run-details").hidden = true; $("status").textContent = "That run is not in this catalog."; return;}
     selected = id; const generation = ++loading;
@@ -384,11 +322,15 @@ if (typeof document !== "undefined") {
       if (!decisions.length) $("decisions").append(node("p", "No decisions recorded.", "caption"));
       table("trades", Object.keys(trades[0] || {date: "", note: ""}), trades.length ? trades.map(row => Object.values(row)) : [["—", "No trades"]]);
       $("settings").textContent = JSON.stringify(meta, null, 2);
-      $("coverage").textContent = `${meta.event_feed?.note || "Curated events are not a complete news history."} Feed through: ${meta.event_feed?.through || "not recorded"}. Provider/model identity is a claim unless this is a maintainer-controlled run.`;
+      $("coverage").textContent = `${meta.event_feed?.note || "Curated events are not a complete news history."} Feed through: ${meta.event_feed?.through || "not recorded"}. Signed results come from the trusted runner; older replay-checked results remain unsigned.`;
+      $("verification").textContent = run.verification_id ? `Verification ID: ${run.verification_id}` : "Unsigned result. Request a trusted rerun for signed leaderboard verification.";
+      $("submit-result").href = "https://github.com/kingabzpro/beatspy/issues/new?title=" + encodeURIComponent(`Benchmark verification: ${run.model}`)
+        + "&body=" + encodeURIComponent("Please verify this model on the trusted runner.\n\n```json\n" + JSON.stringify({model: run.model, benchmark: "2026-ytd"}, null, 2) + "\n```\n");
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {
         const a = node("a", name); a.href = base + name; a.setAttribute("download", name); $("downloads").append(a);
       }
+      if (run.verification_id) {const a = node("a", "Signed verification"); a.href = base + "verification.json"; $("downloads").append(a);}
       const snapshot = meta.data?.snapshot_id;
       if (/^[a-f0-9]{64}$/.test(snapshot || "") && run.trust !== "local") {
         for (const name of ["prices.csv", "MANIFEST.json"]) {const a = node("a", `Snapshot ${name}`); a.href = `data/snapshots/${snapshot}/${name}`; $("downloads").append(a);}
@@ -396,21 +338,9 @@ if (typeof document !== "undefined") {
     } catch (error) {if (generation === loading) {$("run-details").hidden = true; $("status").textContent = `Unable to load this run: ${error.message}`;}}
   }
   function hashSelection() {
-    if (location.hash.startsWith("#model=")) {
-      try {
-        const model = decodeURIComponent(location.hash.slice(7));
-        $("year").value = ""; $("scenario").value = ""; filter();
-        const run = visible.find(row => row.model === model);
-        if (run) showAverage(run);
-        else {selected = null; loading++; $("run-details").hidden = true; $("average-details").hidden = true; $("status").textContent = "That model has no results matching these filters.";}
-      } catch (error) {$("status").textContent = `Invalid model link: ${error.message}`;}
-      return;
-    }
     if (!location.hash.startsWith("#run=")) return;
     try {
       const id = decodeURIComponent(location.hash.slice(5));
-      const run = runs.find(row => row.run_id === id);
-      if (run) {$("trust").value = "all"; $("year").value = run.year; $("scenario").value = run.scenario; filter();}
       selectRun(id);
     } catch (error) {$("status").textContent = `Invalid run link: ${error.message}`;}
   }
@@ -419,14 +349,8 @@ if (typeof document !== "undefined") {
       const catalog = JSON.parse(await fetchText("data/index.json"));
       if (catalog.schema_version !== 1 || !Array.isArray(catalog.runs)) throw new Error("Invalid result catalog");
       runs = catalog.runs;
-      $("trust").value = catalog.default_trust || "maintainer";
-      options("year", runs.map(run => run.year), "All years"); options("scenario", runs.map(run => run.scenario), "All scenarios");
-      const defaultRuns = runs.filter(run => catalog.default_trust === "all" || run.trust === $("trust").value);
-      $("year").value = defaultRuns.map(run => run.year).filter(Boolean).sort().at(-1) || "";
-      ["trust", "scenario"].forEach(id => {$(id).onchange = changeFilters;});
-      $("year").onchange = () => {$("scenario").value = ""; changeFilters();};
-      window.addEventListener("hashchange", hashSelection); filter();
-      if (location.hash.startsWith("#run=") || location.hash.startsWith("#model=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);
+      window.addEventListener("hashchange", hashSelection); renderBoard();
+      if (location.hash.startsWith("#run=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);
     } catch (error) {$("run-count").textContent = "Unavailable"; $("status").textContent = `Results unavailable: ${error.message}. Try reloading the page.`;}
   }
   init();

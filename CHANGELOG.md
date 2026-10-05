@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0
+
+- 2026 year-to-date default: 2026 through the latest completed session, with 23 stocks across 11 sectors.
+- Latest result per model, no dashboard filters or yearly averages, and aligned branding.
+- The 2026-ytd benchmark uses weekly decisions capped at 36 per model, Finnhub where available, and no Olostep.
+- Optional TimeGPT forecasts and OpenRouter reference token prices; the active catalog has been reset for new runs.
+- Simple setup, run, results, and submit commands, plus one-command verification requests.
+- Trusted main-branch reruns, code/dependency integrity checks, replay, Ed25519 signatures,
+  unique verification IDs, and automated result PRs. Existing results remain unsigned.
+
 ## Unreleased
 
 - Separate static dashboard and Python benchmark CLI.

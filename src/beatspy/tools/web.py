@@ -47,7 +47,9 @@ def _fetch_json(
             response = client.get(url, params=params, headers=headers, timeout=timeout)
         else:
             response = client.post(url, json=body, headers=headers, timeout=timeout)
-        response.raise_for_status()
+        if response.is_error:
+            # Provider tokens can appear in query strings; never expose request URLs.
+            raise RuntimeError(f"provider returned HTTP {response.status_code}")
         data = response.json()
 
     if cache_file is not None:
@@ -61,13 +63,18 @@ def _fetch_json(
 
 def olostep_answers(api_key: str, task: str, cache_dir: Path | None = None) -> dict:
     """AI-synthesized web answer with sources. Results may include post-date info; callers must warn the model."""
-    return _fetch_json(
+    data = _fetch_json(
         f"{OLOSTEP_BASE}/answers",
         headers={"Authorization": f"Bearer {api_key}"},
-        body={"task": task},
+        body={"task": task, "json_format": {"answer": "string", "sources": ["source URL"]}},
         cache_dir=cache_dir,
         timeout=120.0,
     )
+    result = data.get("result")
+    if isinstance(result, dict) and "json_content" in result:
+        content = result["json_content"]
+        return json.loads(content) if isinstance(content, str) else content
+    return data
 
 
 # ---------------------------------------------------------------- Finnhub

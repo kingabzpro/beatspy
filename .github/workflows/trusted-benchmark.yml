@@ -1,0 +1,74 @@
+name: Trusted benchmark verification
+on:
+  workflow_dispatch:
+    inputs:
+      model:
+        description: Model to rerun using owner-controlled credentials
+        type: choice
+        required: true
+        options:
+          - gpt-6-luna
+          - mimo-v2.6-pro
+          - zai-org/GLM-5.3
+          - zai-org/GLM-5.3-Flash
+          - deepseek-ai/DeepSeek-V4.1-Flash
+          - moonshotai/Kimi-K3
+  issues:
+    types: [labeled]
+permissions:
+  contents: read
+concurrency:
+  group: trusted-benchmark
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: >-
+      github.repository == 'kingabzpro/beatspy' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.label.name == 'verify-benchmark' && github.event.sender.login == 'kingabzpro'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    environment: leaderboard-signing
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+      - run: uv sync --frozen --extra timegpt
+      - name: Check pinned verification key
+        run: test -f .github/verification-key.pem
+      - name: Rerun with trusted code and endpoints
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          XIAOMI_TOKEN_PLAN_SGP_API_KEY: ${{ secrets.XIAOMI_TOKEN_PLAN_SGP_API_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          NIXTLA_API_KEY: ${{ secrets.NIXTLA_API_KEY }}
+        run: uv run --no-sync python -m beatspy.bench.trusted run
+      - name: Sign replayed artifacts with the owner's key
+        env:
+          BEATSPY_SIGNING_KEY: ${{ secrets.BEATSPY_SIGNING_KEY }}
+        run: uv run --no-sync python -m beatspy.bench.trusted sign
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-benchmark-${{ github.run_id }}
+          path: dashboard/data
+      - name: Submit verified results for merge
+        env:
+          GH_TOKEN: ${{ secrets.BEATSPY_SUBMISSION_TOKEN || github.token }}
+        run: |
+          git config user.name 'BeatSPY verification'
+          git config user.email 'beatspy@users.noreply.github.com'
+          git checkout -b "verified-result-${GITHUB_RUN_ID}"
+          git add dashboard/data
+          git commit -m 'Add signed benchmark result'
+          gh auth setup-git
+          git push origin HEAD
+          gh pr create --base main --title 'Add verified benchmark result' --body 'Trusted main-branch rerun, score replay, code integrity check, and Ed25519 signature. The verification ID and workflow URL are included in verification.json.'

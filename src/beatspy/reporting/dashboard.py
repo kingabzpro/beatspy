@@ -49,6 +49,9 @@ def render_dashboard(results_root: Path, run_id: str | None = None, out_path: Pa
     destination.mkdir(parents=True, exist_ok=True)
     for name in ("index.html", "styles.css", "app.js"):
         shutil.copyfile(static_dir() / name, destination / name)
+    for name in ("favicon.ico", "site.webmanifest", "robots.txt", "sitemap.xml"):
+        shutil.copyfile(static_dir() / name, destination / name)
+    shutil.copytree(static_dir() / "assets", destination / "assets", dirs_exist_ok=True)
     from ..config import secret_values
 
     secrets = secret_values()
