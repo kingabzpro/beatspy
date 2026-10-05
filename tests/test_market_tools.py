@@ -91,7 +91,7 @@ class TestFundamentals:
             name="research",
             instructions="fundamentals",
             model="research",
-            tools=tools_for_role("research", web_enabled=False),
+            tools=tools_for_role("research", web_enabled=False, protocol_version=4),
         )
         result = run_scripted([("tool", "get_fundamentals", {"ticker": "AAPL"}), ("final", "{}")], agent, tctx)
 
@@ -102,14 +102,15 @@ class TestFundamentals:
 
 
 class TestWebSearch:
-    def test_passes_through_with_warning_and_date_scoped_cache(self, data_service, scenario, monkeypatch):
+    def test_returns_navigation_and_date_scoped_cache(self, data_service, scenario, monkeypatch):
         captured = {}
 
-        def fake_answers(api_key, task, cache_dir=None):
+        def fake_search(api_key, query, as_of, cache_dir=None):
             captured["cache_dir"] = str(cache_dir)
-            return {"result": "synthesized answer", "sources": ["https://example.com/a"]}
+            captured["as_of"] = as_of
+            return {"results": [{"url": "https://example.com/a"}], "credits_consumed": 1}
 
-        monkeypatch.setattr("beatspy.tools.market.web.olostep_answers", fake_answers)
+        monkeypatch.setattr("beatspy.tools.market.web.olostep_search", fake_search)
         tctx = news_tctx(data_service, scenario, olostep_api_key="k")
         agent = Agent(
             name="research", instructions="search", model="research", tools=tools_for_role("research", web_enabled=True)
@@ -119,8 +120,10 @@ class TestWebSearch:
         )
 
         payload = tool_outputs(result)[0]
-        assert payload["answer"] == "synthesized answer"
-        assert "2022-02-01" in payload["warning"]
+        assert payload["results"] == [{"url": "https://example.com/a"}]
+        assert "answer" not in payload
+        assert captured["as_of"] == "2022-02-01"
+        assert tctx.web_urls == {"https://example.com/a"}
         assert "2022-02-01" in captured["cache_dir"]  # cache key includes the decision date
 
 

@@ -36,6 +36,15 @@ class ToolContext:
     http_client: object = None
     horizon_days: int = 20
     next_decision_date: str | None = None
+    web_used: dict[str, int] = field(default_factory=dict)
+    web_urls: set[str] = field(default_factory=set)
+
+    def spend_web(self, tool: str, limit: int) -> str | None:
+        used = self.web_used.get(tool, 0)
+        if used >= limit:
+            return json.dumps({"error": f"{tool} limit reached ({limit} per decision). Stop calling this tool."})
+        self.web_used[tool] = used + 1
+        return None
 
     def spend(self, agent: str, tool: str, args: dict | None = None) -> str | None:
         """Charge one tool call to the agent's budget.

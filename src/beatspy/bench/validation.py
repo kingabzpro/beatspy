@@ -73,8 +73,8 @@ async def replay_run(run_dir: Path) -> dict:
     meta = read_json(run_dir / "run.json")
     if meta.get("synthetic") is not False:
         raise ValueError("synthetic or incomplete results cannot be submitted")
-    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4):
-        raise ValueError("only complete protocol 2, 3, or 4 runs support submission; rerun legacy results")
+    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5):
+        raise ValueError("only complete protocol 2, 3, 4, or 5 runs support submission; rerun legacy results")
     legacy = meta["protocol_version"] == 2
     if not SAFE_ID.fullmatch(meta["run_id"]) or meta["run_id"] != run_dir.name:
         raise ValueError("invalid or mismatched run id")

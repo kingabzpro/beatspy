@@ -73,6 +73,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--label", help="free-text label stored in the run record")
     p.add_argument("--submit", action="store_true", help="request trusted leaderboard verification after the run")
     p.add_argument("--refresh-data", action="store_true", help="re-download the frozen price snapshot")
+    p.add_argument(
+        "--web-research",
+        action="store_true",
+        help="experimental Olostep search/scrape; excluded from official leaderboard",
+    )
     p.add_argument("--jobs", type=positive_int, default=2, help="parallel independent runs (default: 2)")
     p.add_argument(
         "--concurrency", type=positive_int, default=6, help="active agent and external request limits (default: 6)"
@@ -302,6 +307,14 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.base_url:
         settings.model.base_url = args.base_url
     scenarios = [load_scenario(name) for name in (args.scenario or ["2026-ytd"])]
+    if args.web_research:
+        if not provider_api_key(settings, "olostep"):
+            raise ValueError("--web-research requires OLOSTEP_API_KEY (or BEATSPY_OLOSTEP_API_KEY)")
+        scenarios = [scenario.model_copy(update={"allow_web_search": True}) for scenario in scenarios]
+        print(
+            "Experimental Olostep research: at most two searches and three scrapes per decision. "
+            "Not eligible for the official leaderboard."
+        )
     if args.max_decisions is not None:
         from .schemas import Scenario
 

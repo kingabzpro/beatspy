@@ -4,13 +4,19 @@
 
 1. Clone the repo and run `uv sync` (Python 3.11+ required).
 2. Run `uv run beatspy setup` to select a model and optionally add Finnhub/TimeGPT keys. TimeGPT requires `uv sync --extra timegpt`.
-3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with weekly decisions capped at 36 per model. Olostep is disabled.
+3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with weekly decisions capped at 36 per model. Olostep is disabled for official results.
 4. View `uv run beatspy results` or `uv run beatspy report --open`.
 5. Run `uv run beatspy submit --send`. Authenticate GitHub CLI first with `gh auth login`.
 
 No run IDs, artifact copying, commits, or forks are needed to request verification.
 `beatspy run --submit` combines running and submission. `beatspy submit` only prepares
 a request file; `beatspy validate` replays the latest real run without sending anything.
+
+To compare direct Olostep search and scraping locally, set `OLOSTEP_API_KEY` and
+run `uv run beatspy run --web-research`. It is capped at two searches and three
+scrapes per decision. Pages with missing, future, or future-updated dates are
+withheld. Live publisher dates cannot authenticate historical content, so this
+experimental mode does not qualify for the official leaderboard.
 
 Submission creates a GitHub issue containing the model name and local run ID.
 The owner adds the `verify-benchmark` label to start an approved trusted rerun.
@@ -69,8 +75,8 @@ Snapshots remain immutable and must cover every ticker/session. Recent scenarios
 remain available for quick experiments; leaderboard requests use `2026-ytd`.
 
 The fixed stock universe has survivorship bias. Curated events and Finnhub history
-may be sparse. Current fundamentals carry recorded look-ahead
-risk; adjusted prices and model knowledge remain historical-test limitations.
+may be sparse. Current fundamentals and unarchived historical analyst ratings
+are withheld; adjusted prices and model knowledge remain historical-test limitations.
 
 ## Dashboard
 

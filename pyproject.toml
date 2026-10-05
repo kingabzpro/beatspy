@@ -1,6 +1,6 @@
 [project]
 name = "beatspy"
-version = "0.2.1"
+version = "0.2.2"
 description = "Give any AI model a team of trading agents. Can it beat SPY? A local-first agentic trading benchmark."
 readme = "README.md"
 requires-python = ">=3.11"

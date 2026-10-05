@@ -9,14 +9,17 @@ from beatspy.config import Settings, provider_api_key, secret_values
 from beatspy.tools import web
 
 
-def test_olostep_structured_answer_and_provider_errors(monkeypatch):
+def test_olostep_search_contract_and_provider_errors(monkeypatch):
     def respond(request):
-        assert json.loads(request.content)["json_format"]["answer"] == "string"
+        body = json.loads(request.content)
+        assert request.url.path == "/v1/scrapes"
+        assert body["parser"] == {"id": "@olostep/google-search"}
+        assert "before%3A2022-02-02" in body["url_to_scrape"]
         return httpx.Response(
             200,
             json={
                 "result": {
-                    "json_content": json.dumps({"answer": "Historical evidence", "sources": ["https://example.org"]})
+                    "json_content": json.dumps({"organic": [{"link": "https://example.org", "snippet": "future fact"}]})
                 }
             },
         )
@@ -24,7 +27,8 @@ def test_olostep_structured_answer_and_provider_errors(monkeypatch):
     with httpx.Client(transport=httpx.MockTransport(respond)) as client:
         token = web.CLIENT.set(client)
         try:
-            assert web.olostep_answers("test-key", "Historical research")["answer"] == "Historical evidence"
+            result = web.olostep_search("test-key", "Historical research", "2022-02-01")
+            assert result["results"] == [{"url": "https://example.org", "position": None}]
         finally:
             web.CLIENT.reset(token)
     with httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(403))) as client:

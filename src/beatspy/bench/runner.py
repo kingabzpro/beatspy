@@ -206,7 +206,7 @@ async def run_benchmark(
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 4,
+            "protocol_version": 5,
             "source_revision": source_revision(),
             "code_sha256": run_code_digest,
             "run_id": run_id,
@@ -234,6 +234,7 @@ async def run_benchmark(
             },
             "capabilities": {
                 "web_search_tools": web_enabled,
+                "web_research_provider": "olostep-search-scrape" if web_enabled else None,
                 "finnhub_tools": scenario.allow_finnhub and provider_api_key(settings, "finnhub") is not None,
                 "forecast_provider": scenario.forecast_provider or settings.tools.forecast_provider,
             },
