@@ -1,0 +1,3 @@
+# Publish only the static website; keep local runs, caches, source, and secrets out.
+/*
+!dashboard
