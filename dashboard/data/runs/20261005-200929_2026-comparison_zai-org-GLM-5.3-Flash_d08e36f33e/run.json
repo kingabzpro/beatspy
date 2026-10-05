@@ -1,0 +1,108 @@
+{
+  "artifact_hashes": {
+    "decisions.jsonl": "67300b8e05c1f9d0d29c2d23578ff8106ebc402b6fbb54fd45022d59823665fb",
+    "equity_curve.csv": "c61e23b0de7b10ae8075a7963eaec827607047a1a65d72f267015fd8c349dd90",
+    "events.jsonl": "824b769e4ada58d2f165473cb07fc6ea66cec55d21fc3466ceb1c8660b47d1be",
+    "metrics.json": "e65b925e22bd6c5d31180d3af8c4d704577e3d33f3067745929721ff7c393a2b",
+    "snapshot/MANIFEST.json": "69f7f85853c4dbed176e9cb1791367a2ea087837b77ba645bd1b00b5b50bbae7",
+    "snapshot/prices.csv": "bbd5c9e612279d9be6375a25e78be8db19bb52087183010238efb3543e83633c",
+    "trades.csv": "65a35e1d2a96beaaade064f90b0289034f76339c4f0609441df07f7ebddec5e3"
+  },
+  "beatspy_version": "0.2.6",
+  "bench": {
+    "fee_bps": 5.0,
+    "initial_capital": 100000.0,
+    "max_position_weight": 0.35,
+    "risk_free_annual": 0.0,
+    "slippage_bps": 5.0,
+    "tool_budget_per_agent": 3
+  },
+  "capabilities": {
+    "finnhub_tools": false,
+    "forecast_provider": "baseline",
+    "web_research_provider": null,
+    "web_search_tools": false
+  },
+  "code_sha256": "ed024fbf4bfe7f372e994ec4b9bf6aacfff93f678d066c330da55bf792fd0b6b",
+  "created_utc": "2026-10-05T20:09:29+00:00",
+  "data": {
+    "end": "2026-10-02",
+    "fetched_at_utc": "2026-10-04T13:41:41+00:00",
+    "prices_sha256": "bbd5c9e612279d9be6375a25e78be8db19bb52087183010238efb3543e83633c",
+    "rows": 3033,
+    "snapshot_id": "29c6cb831a75ad36c1d29541696b319d63e8b20eb911432f8a307b1f474f0e95",
+    "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
+    "start": "2025-06-02",
+    "tickers": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD",
+      "SPY"
+    ]
+  },
+  "disclaimer": "Historical market benchmark. Trades are simulated and scored against frozen market prices.",
+  "event_feed": {
+    "count": 2,
+    "note": "Sparse curated events, not a complete news history; coverage may lag the data cutoff.",
+    "through": "2026-09-16"
+  },
+  "label": null,
+  "model": {
+    "base_url": "https://abidali899--ep-glm-5-3-flash-server.us-west.modal.direct/v1",
+    "cost_per_m_input": 0.15,
+    "cost_per_m_output": 0.5,
+    "max_output_tokens": 4096,
+    "max_turns": 8,
+    "model": "zai-org/GLM-5.3-Flash",
+    "reasoning_effort": "low",
+    "temperature": 0.0
+  },
+  "protocol_version": 5,
+  "requested": {
+    "end": "2026-10-02",
+    "frequency": "weekly",
+    "start": "2026-07-06"
+  },
+  "run_id": "20261005-200929_2026-comparison_zai-org-GLM-5.3-Flash_d08e36f33e",
+  "scenario": {
+    "allow_finnhub": false,
+    "allow_web_search": false,
+    "benchmark": "SPY",
+    "cash": true,
+    "description": "12 decisions over July 6\u2013October 2, 2026, using the archived six-company basket, five-agent workflow, and local forecasts.",
+    "end": "2026-10-02",
+    "fee_bps": 5.0,
+    "forecast_provider": "baseline",
+    "frequency": "weekly",
+    "initial_capital": 100000.0,
+    "lookback_days": 400,
+    "max_decisions": 12,
+    "max_position_weight": 0.35,
+    "name": "2026-comparison",
+    "pipeline": "team",
+    "slippage_bps": 5.0,
+    "start": "2026-07-06",
+    "through_latest": false,
+    "title": "2026 archived-period comparison",
+    "tradable": [
+      "AAPL",
+      "MSFT",
+      "NVDA",
+      "META",
+      "JPM",
+      "XOM",
+      "TLT",
+      "GLD"
+    ],
+    "window_days": 90,
+    "year": null
+  },
+  "schema_version": 2,
+  "source_revision": "1efe4318721badca506855351e5a01530ac46131",
+  "synthetic": false
+}

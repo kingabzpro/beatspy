@@ -1,5 +1,10 @@
 # Fast benchmark comparison
 
+These full-year, single-call experiments are now archived. The current
+benchmark restores the earlier five-agent workflow with 12 decisions over
+July 6–October 2, 2026; see the [fixed-period comparison](12-decision-comparison.md).
+The results below are retained as historical experiments.
+
 The latest six runs use 12 decisions, one portfolio-manager call per decision,
 frozen Yahoo prices, and no Olostep, Finnhub, or TimeGPT calls. The manager receives
 past realized portfolio performance versus SPY, with a prompt focused on net relative

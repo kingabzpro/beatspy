@@ -127,6 +127,7 @@ async def run_benchmark(
         settings = settings.model_copy(deep=True)
         settings.model.max_turns = 1
         settings.model.max_output_tokens = settings.model.max_output_tokens or 4096
+    if single or comparison:
         if settings.model.reasoning_effort is None and "GLM-5" in settings.model.model.upper():
             settings.model.reasoning_effort = "low"
         if settings.model.reasoning_effort is None and settings.model.model.lower().startswith("mimo-v2.6"):

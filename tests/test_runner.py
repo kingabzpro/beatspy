@@ -144,7 +144,12 @@ def test_spy_attempt_cannot_create_trades_but_comparison_is_preserved(tmp_path, 
     assert all(any("SPY" in violation for violation in row["validated"]["violations"]) for row in rows)
 
 
-def test_comparison_restores_team_local_forecasts_and_full_twelve_date_replay(tmp_path, monkeypatch, settings):
+@pytest.mark.parametrize(
+    ("model", "effort"), [("gpt-6-luna", None), ("zai-org/GLM-5.3", "low"), ("mimo-v2.6-pro", "none")]
+)
+def test_comparison_restores_team_local_forecasts_and_full_twelve_date_replay(
+    tmp_path, monkeypatch, settings, model, effort
+):
     from beatspy.agents.pipeline import ROLES
     from beatspy.bench.validation import validate_run
     from beatspy.scenarios import load_scenario
@@ -155,6 +160,7 @@ def test_comparison_restores_team_local_forecasts_and_full_twelve_date_replay(tm
         lambda *a, **k: make_prices(scenario.universe, start="2025-06-02", end="2026-10-02"),
     )
     settings.tools.forecast_provider = "timegpt"
+    settings.model.model = model
     for key in ("FINNHUB_API_KEY", "OLOSTEP_API_KEY", "NIXTLA_API_KEY"):
         monkeypatch.setenv(key, "configured-but-must-not-be-used")
     executor = FakeExecutor()
@@ -173,6 +179,7 @@ def test_comparison_restores_team_local_forecasts_and_full_twelve_date_replay(tm
     assert meta["capabilities"]["forecast_provider"] == "baseline"
     assert not meta["capabilities"]["finnhub_tools"] and not meta["capabilities"]["web_search_tools"]
     assert meta["model"]["max_turns"] == 8 and meta["model"]["max_output_tokens"] == 4096
+    assert meta["model"]["reasoning_effort"] == effort
     assert meta["bench"]["tool_budget_per_agent"] == 3
     assert settings.model.max_output_tokens is None  # Caller settings remain independent.
     assert rows[0]["date"] == "2026-07-06" and rows[-1]["date"] == "2026-09-25"

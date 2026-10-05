@@ -9,6 +9,9 @@ and local statistical forecasts run in parallel; a critic reviews them before
 the portfolio manager decides. A feasible momentum reference is a candidate,
 not a required allocation. Python handles trading, risk rules, and scoring.
 
+See the [completed six-model comparison](docs/12-decision-comparison.md) for
+the 12-decision results, original four-decision scores, runtimes, and costs.
+
 ## Run a benchmark
 
 Install Python 3.11+ and [uv](https://docs.astral.sh/uv/), then:
