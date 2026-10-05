@@ -114,6 +114,12 @@ async def run_benchmark(
     run_code_digest = code_digest()
     data, manifest = prepared_data or await asyncio.to_thread(ensure_data, scenario, data_root, refresh_data)
     single = scenario.pipeline == "single"
+    comparison = scenario.name == "2026-comparison" and not single
+    if comparison:
+        settings = settings.model_copy(deep=True)
+        settings.model.max_turns = 8
+        settings.model.max_output_tokens = 4096
+        settings.bench.tool_budget_per_agent = 3
     if single:
         scenario = scenario.model_copy(
             update={"allow_finnhub": False, "allow_web_search": False, "forecast_provider": None}
@@ -128,8 +134,8 @@ async def run_benchmark(
     provider = BeatSpyModelProvider(
         settings.model.base_url,
         model_api_key(settings),
-        request_timeout=90.0 if single else 180.0,
-        max_retries=0 if single else 3,
+        request_timeout=90.0 if single or comparison else 180.0,
+        max_retries=0 if single or comparison else 3,
     )
     try:
         web_enabled = scenario.allow_web_search and provider_api_key(settings, "olostep") is not None

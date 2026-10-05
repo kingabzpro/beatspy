@@ -6,10 +6,10 @@ const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 10
 const dollars = value => typeof value === "number" && Number.isFinite(value) ? `$${value.toFixed(4)}` : "—";
 // OpenRouter standard uncached token rates checked 2026-10-05; estimates are not invoices.
 const PRICES = {
-  "Kimi-K3": {"input": 0.67, "output": 14.0, "source": "https://openrouter.ai/moonshotai/kimi-k3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "Kimi-K3": {"input": 1.39, "output": 14.0, "source": "https://openrouter.ai/moonshotai/kimi-k3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
   "gpt-6-luna": {"input": 0.1, "output": 0.5, "source": "https://openrouter.ai/openai/gpt-6-luna", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
   "mimo-v2.6-pro": {"input": 0.435, "output": 0.87, "source": "https://openrouter.ai/xiaomi/mimo-v2.6-pro", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
-  "GLM-5.3": {"input": 0.05, "output": 7.0, "source": "https://openrouter.ai/z-ai/glm-5.3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "GLM-5.3": {"input": 0.06, "output": 7.0, "source": "https://openrouter.ai/z-ai/glm-5.3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
   "GLM-5.3-Flash": {"input": 0.15, "output": 0.5, "source": "https://openrouter.ai/z-ai/glm-5.3-flash", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
   "DeepSeek-V4.1-Flash": {"input": 0.3, "output": 1.2, "source": "https://openrouter.ai/deepseek/deepseek-v4.1-flash", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
 };
@@ -127,7 +127,7 @@ if (typeof document !== "undefined") {
   }
   function renderBoard() {
     visible = leaderboardRuns(runs);
-    $("board-window").textContent = "Latest completed result per model. Each row shows its evaluation period.";
+      $("board-window").textContent = "Latest completed result per model. Each row shows its exact evaluation timeline.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const av = sortKey === "model" ? modelName(a.model) : sortKey === "estimated_cost_usd" ? costForRun(a) : a.metrics[sortKey];
@@ -316,7 +316,7 @@ if (typeof document !== "undefined") {
       $("coverage").textContent = `${meta.event_feed?.note || "Curated events are not a complete news history."} Feed through: ${meta.event_feed?.through || "not recorded"}. Signed results come from the trusted runner; older replay-checked results remain unsigned.`;
       $("verification").textContent = run.verification_id ? `Verification ID: ${run.verification_id}` : "Unsigned result. Request a trusted rerun for signed leaderboard verification.";
       $("submit-result").href = "https://github.com/kingabzpro/beatspy/issues/new?title=" + encodeURIComponent(`Benchmark verification: ${run.model}`)
-        + "&body=" + encodeURIComponent("Please verify this model on the trusted runner.\n\n```json\n" + JSON.stringify({model: run.model, benchmark: "2026-ytd"}, null, 2) + "\n```\n");
+        + "&body=" + encodeURIComponent("Please verify this model on the trusted runner.\n\n```json\n" + JSON.stringify({model: run.model, benchmark: "2026-comparison"}, null, 2) + "\n```\n");
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {
         const a = node("a", name); a.href = base + name; a.setAttribute("download", name); $("downloads").append(a);

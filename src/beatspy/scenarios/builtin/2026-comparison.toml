@@ -1,0 +1,13 @@
+title = "2026 archived-period comparison"
+description = "12 decisions over July 6–October 2, 2026, using the archived six-company basket, five-agent workflow, and local forecasts."
+start = "2026-07-06"
+end = "2026-10-02"
+frequency = "weekly"
+max_decisions = 12
+pipeline = "team"
+benchmark = "SPY"
+tradable = ["AAPL", "MSFT", "NVDA", "META", "JPM", "XOM", "TLT", "GLD"]
+lookback_days = 400
+forecast_provider = "baseline"
+allow_finnhub = false
+allow_web_search = false

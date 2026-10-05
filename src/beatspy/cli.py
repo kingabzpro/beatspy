@@ -65,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_scenarios)
 
     p = sub.add_parser("run", parents=[common], help="run a benchmark scenario")
-    p.add_argument("--scenario", action="append", help="repeat for multiple scenarios (default: 2026-ytd)")
+    p.add_argument("--scenario", action="append", help="repeat for multiple scenarios (default: 2026-comparison)")
     p.add_argument("--model", action="append", help="repeat for multiple models")
     p.add_argument("--base-url", help="override configured model base URL")
     p.add_argument("--freq", choices=["weekly", "monthly"], help="decision frequency override")
@@ -319,9 +319,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     settings = load_settings()
     if args.base_url:
         settings.model.base_url = args.base_url
-    scenarios = [load_scenario(name) for name in (args.scenario or ["2026-ytd"])]
+    scenarios = [load_scenario(name) for name in (args.scenario or ["2026-comparison"])]
     if args.team or args.web_research:
-        scenarios = [scenario.model_copy(update={"pipeline": "team", "allow_finnhub": True}) for scenario in scenarios]
+        scenarios = [scenario.model_copy(update={"pipeline": "team"}) for scenario in scenarios]
     if args.web_research:
         if not provider_api_key(settings, "olostep"):
             raise ValueError("--web-research requires OLOSTEP_API_KEY (or BEATSPY_OLOSTEP_API_KEY)")
@@ -339,6 +339,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         ]
     if all(scenario.pipeline == "single" for scenario in scenarios):
         print("Fast benchmark: frozen Yahoo prices, one model call per decision, no external research.")
+    else:
+        print("Five-agent benchmark: momentum reference, batched forecasts, critic, and portfolio manager.")
     outcomes = asyncio.run(
         run_batch(
             scenarios,
@@ -361,6 +363,11 @@ def cmd_run(args: argparse.Namespace) -> int:
             continue
         metrics = json.loads((outcome / "metrics.json").read_text(encoding="utf-8"))
         print(f"Run complete: {outcome}")
+        meta = json.loads((outcome / "run.json").read_text(encoding="utf-8"))
+        print(
+            f"  Timeline {meta['requested']['start']} through {meta['requested']['end']} "
+            f"| {metrics['decisions']} decisions"
+        )
         print(
             f"  Return {metrics['total_return']:.2%} | SPY {metrics['spy_total_return']:.2%} | "
             f"Excess {metrics['excess_return_vs_spy']:.2%}"
@@ -491,11 +498,11 @@ def request_submission(directory: Path, *, send=False) -> int:
     from .bench.validation import validate_run
 
     meta = validate_run(directory)
-    if meta["scenario"]["name"] != "2026-ytd":
-        raise ValueError("Leaderboard requests require 2026-ytd. Run: beatspy run")
+    if meta["scenario"]["name"] != "2026-comparison":
+        raise ValueError("Leaderboard requests require 2026-comparison. Run: beatspy run")
     request = {
         "model": meta["model"]["model"],
-        "benchmark": "2026-ytd",
+        "benchmark": "2026-comparison",
         "beatspy_version": __version__,
         "local_run_id": meta["run_id"],
     }

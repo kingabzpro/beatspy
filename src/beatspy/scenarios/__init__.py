@@ -48,6 +48,8 @@ def load_scenario(name: str) -> Scenario:
 
 
 def load_events(name: str) -> list[EventItem]:
+    if name == "2026-comparison":
+        return load_events("2026-recent")
     if name == "2026-ytd":
         # Reuse the bundled dated events; uncovered years remain explicitly sparse.
         builtin = resources.files("beatspy.scenarios") / "builtin"

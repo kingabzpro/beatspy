@@ -4,7 +4,7 @@
 
 1. Clone the repo and run `uv sync` (Python 3.11+ required).
 2. Run `uv run beatspy setup` to select a model. Fast runs only require its API key.
-3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with 12 decisions spread across the full period. Each uses one model call and cached Yahoo prices; no research API keys are needed.
+3. Run `uv run beatspy run`. The benchmark covers **July 6–October 2, 2026**, with 12 decisions spread across the same period as the archived four-decision test. Research, analysis, local forecasts, a critic, and a portfolio manager use cached Yahoo prices; no research API keys are needed.
 4. View `uv run beatspy results` or `uv run beatspy report --open`.
 5. Run `uv run beatspy submit --send`. Authenticate GitHub CLI first with `gh auth login`.
 
@@ -33,7 +33,7 @@ also offers a prefilled verification request button.
   of the `leaderboard-signing` GitHub environment. Never commit the private key.
 - Configure that environment to allow only protected `main` and require owner approval.
 - Add the model API secrets listed in `.github/benchmark-models.json`;
-  no financial research API keys are required for the trusted fast benchmark.
+  no financial research API keys are required for the trusted comparison benchmark.
 - Enable Actions to create PRs. Require the result-validation check and CODEOWNER
   review for protected code/workflows/public-key changes before merging.
 - Optionally set `BEATSPY_SUBMISSION_TOKEN` to a repository-scoped GitHub App/PAT
@@ -71,7 +71,7 @@ Live forecast checks require `BEATSPY_LIVE_TESTS=1` and provider credentials.
 Scenarios live in `src/beatspy/scenarios/builtin/`; tools must enforce their decision
 date and budget. Prices include warmup data, but scoring starts at the stated start.
 Snapshots remain immutable and must cover every ticker/session. Recent scenarios
-remain available for quick experiments; leaderboard requests use `2026-ytd`.
+remain available for quick experiments; leaderboard requests use `2026-comparison`.
 
 The fixed stock universe has survivorship bias. Curated events and Finnhub history
 may be sparse. Current fundamentals and unarchived historical analyst ratings

@@ -16,18 +16,18 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="BeatSPY">
   <meta property="og:title" content="BeatSPY · Can AI beat the market?">
-  <meta property="og:description" content="One model. Twelve portfolio decisions. Benchmark AI portfolios against SPY from 2026 through the latest completed market session.">
+  <meta property="og:description" content="Five trading agents. Twelve portfolio decisions. Compare AI models with SPY from July 6 through October 2, 2026.">
   <meta property="og:url" content="https://beatspy.vercel.app/">
   <meta property="og:image" content="https://beatspy.vercel.app/assets/social-preview.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="BeatSPY: Can AI beat the market? One model, twelve portfolio decisions, with the green ascending bar logo on a dark background.">
+  <meta property="og:image:alt" content="BeatSPY: Five trading agents, twelve portfolio decisions, July 6–October 2, 2026.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="BeatSPY · Can AI beat the market?">
-  <meta name="twitter:description" content="One model. Twelve portfolio decisions. Benchmark AI portfolios against SPY across 11 sectors, from 2026 through the latest completed market session.">
+  <meta name="twitter:description" content="Five trading agents. Twelve portfolio decisions. Frozen Yahoo prices from July 6 through October 2, 2026.">
   <meta name="twitter:image" content="https://beatspy.vercel.app/assets/social-preview.png">
-  <meta name="twitter:image:alt" content="BeatSPY: Can AI beat the market? One model, twelve portfolio decisions, with the green ascending bar logo on a dark background.">
+  <meta name="twitter:image:alt" content="BeatSPY: Five trading agents, twelve portfolio decisions, July 6–October 2, 2026.">
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
@@ -40,8 +40,8 @@
     <noscript><p class="caption">Enable JavaScript to explore the leaderboard and charts, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
     <section class="hero"><p class="eyebrow">OPEN BENCHMARK / EQUAL RULES / REAL DATA</p>
       <h1>Can AI beat<br><span>the market?</span></h1>
-      <p class="lede">Real model calls. Frozen Yahoo prices. Fast portfolio decisions.<br>Individual stocks, bond and gold hedges, and cash. SPY is comparison-only.</p>
-      <div class="hero-meta"><span>2026 → latest completed session · up to 12 decisions · 11 sectors</span><span>Deterministic scoring</span><span>Open results</span></div>
+      <p class="lede">Five trading agents. Frozen Yahoo prices. Twelve portfolio decisions.<br>Individual stocks, bond and gold hedges, and cash. SPY is comparison-only.</p>
+      <div class="hero-meta"><span>July 6–October 2, 2026 · 12 decisions · original six-company basket</span><span>Deterministic scoring</span><span>Open results</span></div>
     </section>
     <section id="leaderboard" aria-labelledby="board-title">
       <div class="section-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div><span id="run-count" class="pill">Loading</span></div>
@@ -60,7 +60,7 @@
       <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>
       <p id="run-meta" class="caption"></p><p id="verification" class="caption"></p><a id="submit-result" class="button" href="https://github.com/kingabzpro/beatspy/issues/new">Submit for verification ↗</a>
       <div id="metrics" class="metric-grid"></div>
-      <div class="chart-grid"><figure class="panel"><h3>Performance</h3><p class="caption">The stock core is a separate baseline. This strategy was developed on this historical period; future outperformance is untested.</p><div id="performance"></div></figure>
+      <div class="chart-grid"><figure class="panel"><h3>Performance</h3><p class="caption">Net simulated returns over the displayed timeline. This previously inspected period is a development comparison, not a fresh holdout.</p><div id="performance"></div></figure>
         <figure class="panel"><h3>Drawdown</h3><p class="caption">Decline from each portfolio’s running peak.</p><div id="drawdown"></div></figure></div>
       <figure class="panel"><h3>Allocations over time</h3><div id="allocations"></div></figure>
       <section class="panel" aria-labelledby="cost-title"><h3 id="cost-title">What this run costs</h3>

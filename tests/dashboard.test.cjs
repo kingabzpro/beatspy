@@ -79,6 +79,6 @@ test('cost uses input and output rates, reconciles agents and decisions, and nev
   assert.equal(usageBreakdown([{date:'2026-09-30',usage:{critic:{input_tokens:20}}}],rates).agents[0].cost, null);
   assert.equal(usageBreakdown(rows,undefined).steps[0].cost, null);
   assert.equal(tokenCost({input_tokens:1e6,output_tokens:1e6},PRICES['gpt-6-luna']), .6);
-  assert.equal(tokenCost({input_tokens:1e6,output_tokens:1e6},PRICES['GLM-5.3']), 7.05);
+  assert.equal(tokenCost({input_tokens:1e6,output_tokens:1e6},PRICES['GLM-5.3']), 7.06);
   assert.match(PRICES['GLM-5.3'].source, /^https:\/\/openrouter\.ai\//);
 });

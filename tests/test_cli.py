@@ -39,7 +39,7 @@ def test_demo_compare_and_report(tmp_path, monkeypatch, capsys):
 
     html = (results / "dashboard/index.html").read_text(encoding="utf-8")
     assert "Synthetic demo" in (results / "dashboard/app.js").read_text(encoding="utf-8")
-    assert "Real model calls. Frozen Yahoo prices. Fast portfolio decisions." in html
+    assert "Frozen Yahoo prices" in html
 
 
 def test_report_specific_run(tmp_path, monkeypatch, capsys):
@@ -129,6 +129,7 @@ def test_batch_failure_returns_nonzero_and_reports_completed_run(tmp_path, monke
 
     complete = tmp_path / "complete"
     complete.mkdir()
+    (complete / "run.json").write_text(json.dumps({"requested": {"start": "2026-07-06", "end": "2026-10-02"}}))
     (complete / "metrics.json").write_text(
         json.dumps(
             {
@@ -136,6 +137,7 @@ def test_batch_failure_returns_nonzero_and_reports_completed_run(tmp_path, monke
                 "spy_total_return": 0,
                 "excess_return_vs_spy": 0,
                 "requests": 5,
+                "decisions": 1,
                 "input_tokens": 100,
                 "output_tokens": 50,
             }

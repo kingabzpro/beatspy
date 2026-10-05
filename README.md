@@ -1,13 +1,13 @@
 # BeatSPY
 
-**One model. Twelve decisions. Can it beat SPY?**
+**Five trading agents. Twelve decisions. Can they beat SPY?**
 
 [Open dashboard →](https://beatspy.vercel.app) · [Contribution guide](CONTRIBUTING.md)
 
-The fast benchmark supplies frozen Yahoo price indicators directly to one portfolio
-manager call per decision, including its realized performance versus SPY and a
-fixed large-company stock-core candidate. The core is scored separately; models
-can choose other stocks and hedges based on dated evidence. Python handles trading, risk rules, and scoring.
+The benchmark uses the archived five-agent logic: research, technical analysis,
+and local statistical forecasts run in parallel; a critic reviews them before
+the portfolio manager decides. A feasible momentum reference is a candidate,
+not a required allocation. Python handles trading, risk rules, and scoring.
 
 ## Run a benchmark
 
@@ -23,23 +23,29 @@ uv run beatspy results
 uv run beatspy report --open
 ```
 
-The default benchmark is a continuous portfolio from **2026-01-01 through the
-latest completed NYSE session** available at the run's release. Weekly decisions
-are capped at **12 per model** and span the full year-to-date period. Decisions
+The default benchmark, `2026-comparison`, is a continuous portfolio from
+**July 6 through October 2, 2026**, the same scored period as the archived
+four-decision runs. **12 decisions per model** are spread across that fixed
+period using weekly candidate dates. Decisions
 use frozen adjusted prices, with extra warmup history excluded from scoring.
-23 large, established companies cover all 11 sectors. TLT and GLD are permitted hedges;
+The original basket is AAPL, MSFT, NVDA, META, JPM, and XOM. TLT and GLD are permitted hedges;
 SPY is comparison-only and cannot be bought by the model portfolio.
 This fixed surviving universe
 has survivorship bias; it is not historical index membership.
 
-The default uses cached Yahoo Finance adjusted prices and one model request per
-decision, with no Olostep, Finnhub, or TimeGPT calls. Output is limited to 4,096
-tokens; requests time out after 90 seconds without automatic retries. Failed
+The default uses cached Yahoo Finance adjusted prices, batched local forecasts,
+and no Olostep, Finnhub, or TimeGPT calls. Each decision runs all five agents;
+tool turns mean more than five model requests may be needed. Each agent has
+three tool calls per decision and eight turns at most. Output is limited to
+4,096 tokens; requests time out after 90 seconds without automatic retries. Failed
 decisions hold the previous portfolio and remain visible in the results.
 
-For the slower five-agent pipeline, use `--team --max-decisions 36`.
-Its optional Finnhub news and forecasting integrations remain available for local
-experiments. Models may already know historical outcomes; frozen inputs do not
+The old archive allowed SPY holdings because of an eligibility flaw; current
+runs keep SPY comparison-only. This is a corrected comparison, not a promise
+to reproduce the old return. The larger stock universe and full-year single-call
+experiment remain available with `--scenario 2026-ytd`.
+Optional news and forecasting integrations remain available in other scenarios.
+Models may already know historical outcomes; frozen inputs do not
 eliminate that limitation.
 
 For a local Olostep comparison, set `OLOSTEP_API_KEY` and run:
@@ -58,7 +64,7 @@ Finnhub monthly recommendation trends are analyst sentiment, not weekly forecast
 they are unavailable for past decisions without an authenticated archive.
 Its separate price-target endpoint may require a paid entitlement.
 
-Any OpenAI-compatible chat endpoint works in fast mode; the optional team mode requires tool calling. To avoid setup prompts:
+The five-agent workflow requires an OpenAI-compatible endpoint with tool calling. To avoid setup prompts:
 
 ```bash
 uv run beatspy setup --model your-model --base-url https://your-endpoint/v1 --api-key-env YOUR_MODEL_KEY
@@ -68,7 +74,7 @@ uv run beatspy setup --model your-model --base-url https://your-endpoint/v1 --ap
 `--scenario`, `--model`, `--jobs`, and `--concurrency` remain available for custom
 experiments. Historical scenarios and 2025/2026 recent windows remain accessible.
 The dashboard has no filters and shows only the latest execution per model, with
-each result's period displayed. The active leaderboard contains only new benchmark results.
+each result's period displayed. Earlier experiments remain in the archive.
 
 ## Submit in one command
 

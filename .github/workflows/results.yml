@@ -78,17 +78,23 @@ jobs:
                   payload = verify_result(directory, key.read_bytes(), release=(__version__, code_digest()))
                   from beatspy.bench.validation import read_json
                   meta = read_json(directory / 'run.json')
-                  if meta['scenario']['name'] != '2026-ytd' or meta['requested']['start'] != '2026-01-01':
-                      raise SystemExit('New leaderboard results must use the 2026 year-to-date benchmark.')
+                  if (meta['scenario']['name'] != '2026-comparison'
+                          or meta['requested']['start'] != '2026-07-06'
+                          or meta['requested']['end'] != '2026-10-02'):
+                      raise SystemExit('New leaderboard results must use July 6 through October 2, 2026.')
                   from beatspy.scenarios import load_scenario
-                  if (meta['protocol_version'] != 8
-                          or meta['scenario'].get('pipeline') != 'single'
-                          or meta['model'].get('max_turns') != 1
+                  if (meta['protocol_version'] != 5
+                          or meta['scenario'].get('pipeline') != 'team'
+                          or meta['model'].get('max_turns') != 8
                           or meta['model'].get('max_output_tokens') != 4096
-                          or meta['scenario']['tradable'] != load_scenario('2026-ytd').tradable
+                          or meta['scenario']['tradable'] != load_scenario('2026-comparison').tradable
                           or meta['scenario']['benchmark'] != 'SPY'
-                          or meta['scenario'].get('max_decisions') != load_scenario('2026-ytd').max_decisions
-                          or meta['scenario'].get('frequency') != load_scenario('2026-ytd').frequency
+                          or meta['scenario'].get('max_decisions') != load_scenario('2026-comparison').max_decisions
+                          or meta['scenario'].get('frequency') != load_scenario('2026-comparison').frequency
+                          or meta['bench'].get('tool_budget_per_agent') != 3
+                          or meta['capabilities'].get('forecast_provider') != 'baseline'
+                          or meta['capabilities'].get('finnhub_tools')
+                          or meta['scenario'].get('allow_finnhub')
                           or meta['capabilities'].get('web_search_tools')
                           or meta['scenario'].get('allow_web_search')):
                       raise SystemExit('New results must use the approved decision limit without web research.')

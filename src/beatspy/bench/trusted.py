@@ -38,8 +38,8 @@ def request_model(event: dict) -> str:
         if not match:
             raise ValueError("request must contain a JSON benchmark request")
         request = json.loads(match[1])
-        if request.get("benchmark") != "2026-ytd":
-            raise ValueError("only 2026-ytd requests are accepted")
+        if request.get("benchmark") != "2026-comparison":
+            raise ValueError("only 2026-comparison requests are accepted")
         return request["model"]
     return event["inputs"]["model"]
 
@@ -64,7 +64,7 @@ def main():
             )
         )
         before = code_digest()
-        run = asyncio.run(run_benchmark(load_scenario("2026-ytd"), settings))
+        run = asyncio.run(run_benchmark(load_scenario("2026-comparison"), settings))
         require_trusted_checkout()
         if code_digest() != before:
             raise ValueError("benchmark code changed during execution")

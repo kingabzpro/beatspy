@@ -20,7 +20,7 @@
   "zai-org/GLM-5.3": {
     "base_url": "https://abidali899--ep-glm-5-3-server.us-west.modal.direct/v1",
     "api_key_env": "LLM_API_KEY",
-    "cost_per_m_input": 0.05,
+    "cost_per_m_input": 0.06,
     "cost_per_m_output": 7.0,
     "pricing_source": "https://openrouter.ai/z-ai/glm-5.3",
     "pricing_checked": "2026-10-05",
@@ -46,7 +46,7 @@
   "moonshotai/Kimi-K3": {
     "base_url": "https://abidali899--ep-kimi-k3-server.us-west.modal.direct/v1",
     "api_key_env": "LLM_API_KEY",
-    "cost_per_m_input": 0.67,
+    "cost_per_m_input": 1.39,
     "cost_per_m_output": 14.0,
     "pricing_source": "https://openrouter.ai/moonshotai/kimi-k3",
     "pricing_checked": "2026-10-05",

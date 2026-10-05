@@ -112,7 +112,7 @@ def test_report_contains_provenance_and_leaderboard(tmp_path, monkeypatch, scena
 
     path = render_dashboard(tmp_path, run_id=run_dir.name)
     html = path.read_text(encoding="utf-8")
-    assert "Real model calls. Frozen Yahoo prices. Fast portfolio decisions." in html
+    assert "Frozen Yahoo prices" in html
     assert "Leaderboard" in html
     assert "scenario.name" not in html  # no unrendered placeholders
 
@@ -142,6 +142,44 @@ def test_spy_attempt_cannot_create_trades_but_comparison_is_preserved(tmp_path, 
     rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
     assert all("SPY" not in row["validated"]["weights"] for row in rows)
     assert all(any("SPY" in violation for violation in row["validated"]["violations"]) for row in rows)
+
+
+def test_comparison_restores_team_local_forecasts_and_full_twelve_date_replay(tmp_path, monkeypatch, settings):
+    from beatspy.agents.pipeline import ROLES
+    from beatspy.bench.validation import validate_run
+    from beatspy.scenarios import load_scenario
+
+    scenario = load_scenario("2026-comparison")
+    monkeypatch.setattr(
+        "beatspy.data.freeze.download_ohlc",
+        lambda *a, **k: make_prices(scenario.universe, start="2025-06-02", end="2026-10-02"),
+    )
+    settings.tools.forecast_provider = "timegpt"
+    for key in ("FINNHUB_API_KEY", "OLOSTEP_API_KEY", "NIXTLA_API_KEY"):
+        monkeypatch.setenv(key, "configured-but-must-not-be-used")
+    executor = FakeExecutor()
+    directory = asyncio.run(
+        run_benchmark(
+            scenario, settings, executor=executor, out_root=tmp_path / "results", data_root=tmp_path / "cache"
+        )
+    )
+    meta = validate_run(directory)
+    metrics = json.loads((directory / "metrics.json").read_text())
+    rows = [json.loads(s) for s in (directory / "decisions.jsonl").read_text().splitlines()]
+    assert metrics["decisions"] == 12 and metrics["requests"] == 60
+    assert all(set(row["agent_runs"]) == set(ROLES) for row in rows)
+    assert meta["requested"] == {"start": "2026-07-06", "end": "2026-10-02", "frequency": "weekly"}
+    assert meta["protocol_version"] == 5 and meta["scenario"]["pipeline"] == "team"
+    assert meta["capabilities"]["forecast_provider"] == "baseline"
+    assert not meta["capabilities"]["finnhub_tools"] and not meta["capabilities"]["web_search_tools"]
+    assert meta["model"]["max_turns"] == 8 and meta["model"]["max_output_tokens"] == 4096
+    assert meta["bench"]["tool_budget_per_agent"] == 3
+    assert settings.model.max_output_tokens is None  # Caller settings remain independent.
+    assert rows[0]["date"] == "2026-07-06" and rows[-1]["date"] == "2026-09-25"
+    assert rows[0]["market_brief"]["reference_allocation"]["method"].startswith("12-minus-1-month")
+    assert all("performance_feedback" not in row["market_brief"] for row in rows)
+    assert pd.read_csv(directory / "equity_curve.csv").date.max() == "2026-10-02"
+    assert "SPY" not in set(pd.read_csv(directory / "trades.csv").ticker)
 
 
 def test_fast_run_calls_only_manager_disables_research_and_replays(tmp_path, monkeypatch, scenario, settings):

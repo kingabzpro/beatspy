@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.6
+
+- Default to the archived five-agent momentum workflow with 12 decisions over July 6–October 2, 2026.
+- Reuse the original six-company basket, local batch forecasts, and dated event feed; SPY stays comparison-only.
+- Bound agent output, tool calls, timeouts, and retries; keep the full-year single-call experiment as an optional scenario.
+- Show the fixed timeline in benchmark output, documentation, and the dashboard.
+
 ## 0.2.1
 
 - Protocol 4 separates tradable assets from benchmark data and blocks non-tradable orders.
