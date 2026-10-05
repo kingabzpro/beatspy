@@ -30,15 +30,31 @@ SPY is comparison-only and cannot be bought by the model portfolio.
 This fixed surviving universe
 has survivorship bias; it is not historical index membership.
 
-Finnhub financials/news activate when their key is available. Olostep is disabled
+Finnhub dated company news activates when its key is available. Olostep is disabled
 for the default benchmark. TimeGPT forecasting is optional: install with
 `uv sync --extra timegpt`, configure `NIXTLA_API_KEY`, and select `timegpt` during setup
 or set `BEATSPY_FORECAST_PROVIDER=timegpt`. Use `FINNHUB_API_KEY`, the `BEATSPY_` equivalents,
 or enter them during setup. Secrets stay in environment variables or
 `~/.beatspy/secrets.env`. The dashboard contains no credentials.
-Live fundamentals can include later information; the runner records
-that risk. Date-constrained news is not a complete historical archive, and models
+Current fundamentals and unarchived historical analyst ratings are withheld.
+Date-constrained news is not a complete historical archive, and models
 may already know historical outcomes.
+
+For a local Olostep comparison, set `OLOSTEP_API_KEY` and run:
+
+```bash
+uv run beatspy run --web-research
+```
+
+This experimental mode uses Olostep's [Google parser](https://docs.olostep.com/features/structured-content/parsers)
+and [page scrapes](https://docs.olostep.com/api-reference/scrapes/create), with no generated web answers.
+Each decision allows two searches and three scrapes, with cached responses.
+Search snippets are withheld; page text requires a publication date and must not
+be published or updated after the decision date. Publisher metadata is not an
+authenticated historical archive, so these runs are excluded from the official leaderboard.
+Finnhub monthly recommendation trends are analyst sentiment, not weekly forecasts;
+they are unavailable for past decisions without an authenticated archive.
+Its separate price-target endpoint may require a paid entitlement.
 
 Any OpenAI-compatible endpoint with tool calling works. To avoid setup prompts:
 

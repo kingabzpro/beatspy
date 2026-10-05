@@ -38,11 +38,18 @@ version, code/dependency digest, and execution provenance. A separate base-branc
 validator checks signatures and replay before accepting new leaderboard records.
 The default continuous benchmark spans 2026 through the latest completed market session
 and includes 23 large companies across 11 sectors, with TLT/GLD hedges and cash.
-Protocol 4 uses the explicit tradable list in prompts, allocation validation,
+Protocols 4 and 5 use the explicit tradable list in prompts, allocation validation,
 execution, and replay. SPY is comparison-only for this benchmark. Weekly decisions are capped at 36, retaining
 both ends of the year-to-date schedule and daily equity scoring through
 the cutoff. The same cap is recorded in the scenario and enforced during replay.
-Finnhub is enabled where available; Olostep is disabled. Trusted runs use TimeGPT
+Finnhub is enabled where available; Olostep is disabled for official results.
+Protocol 5 adds optional direct Olostep search and scraping (`--web-research`),
+bounded to two searches and three scrapes per decision. Undated, future-published,
+or future-updated page content is withheld before reaching the model. Search
+results are navigation only. Accepted text and source metadata are logged in
+`events.jsonl`. Live metadata cannot authenticate past content; these experiments
+remain outside the official leaderboard. Current fundamentals and unarchived
+historical analyst ratings are excluded from protocol 5 agents. Trusted runs use TimeGPT
 when its key is available. The dashboard shows one latest execution per model, with
 no filters. Old runs have been removed from the active catalog.
 

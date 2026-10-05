@@ -133,7 +133,7 @@ def test_spy_attempt_cannot_create_trades_but_comparison_is_preserved(tmp_path, 
         )
     )
     meta = validate_run(directory)
-    assert meta["protocol_version"] == 4
+    assert meta["protocol_version"] == 5
     trades = pd.read_csv(directory / "trades.csv")
     assert set(trades.ticker) == {"MSFT"}
     equity = pd.read_csv(directory / "equity_curve.csv")

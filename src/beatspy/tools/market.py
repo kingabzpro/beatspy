@@ -272,28 +272,105 @@ def verify_price(ctx: RunContextWrapper[ToolContext], ticker: str, on_date: str)
 
 @function_tool
 async def search_web(ctx: RunContextWrapper[ToolContext], query: str) -> str:
-    """Web search via Olostep (only available when enabled for this scenario). Returns an answer with sources."""
+    """Search via Olostep's Google parser. Max two searches per decision. Returns URLs, not verified facts; use scrape_webpage for dated evidence."""
     err = _guard(ctx, "search_web", query=query)
     if err:
         return err
     tctx = ctx.context
     if not tctx.olostep_api_key:
         return _out({"error": "web search is disabled for this benchmark run"})
+    err = tctx.spend_web("search_web", 2)
+    if err:
+        return err
     try:
         # Cache key includes the decision date: the same query at a later
         # decision date must not serve an earlier date's frozen answer.
         cache_dir = _cache_dir(tctx) / "web" / _as_of(tctx)
-        task = f"Research using only sources published on or before {_as_of(tctx)}. Cite source URLs. {query}"
-        data = await _external(tctx, web.olostep_answers, tctx.olostep_api_key, task, cache_dir=cache_dir)
+        data = await _external(tctx, web.olostep_search, tctx.olostep_api_key, query, _as_of(tctx), cache_dir=cache_dir)
     except Exception as exc:
         return _out({"error": f"web search failed: {exc}"})
-    tctx.record_violation("future_data_risk", "Live web research cannot authenticate historical publication dates")
+    tctx.web_urls.update(row["url"] for row in data["results"])
+    payload = {
+        "query": query,
+        "as_of": _as_of(tctx),
+        **data,
+        "note": "Navigation only. Scrape a page before citing facts.",
+    }
+    tctx.events.append({"type": "web_evidence", "date": _as_of(tctx), "tool": "search_web", "result": payload})
+    return _out(payload)
+
+
+@function_tool
+async def scrape_webpage(ctx: RunContextWrapper[ToolContext], url: str) -> str:
+    """Scrape an Olostep search-result URL. Max three per decision. Withholds content unless publication/update dates pass the historical cutoff."""
+    err = _guard(ctx, "scrape_webpage", url=url)
+    if err:
+        return err
+    tctx = ctx.context
+    if not tctx.olostep_api_key:
+        return _out({"error": "web scraping is disabled for this benchmark run"})
+    if url not in tctx.web_urls or not web.public_web_url(url):
+        return _out({"error": "use a public HTTPS URL returned by search_web in this decision"})
+    err = tctx.spend_web("scrape_webpage", 3)
+    if err:
+        return err
+    try:
+        data = await _external(
+            tctx, web.olostep_scrape, tctx.olostep_api_key, url, cache_dir=_cache_dir(tctx) / "web" / _as_of(tctx)
+        )
+        payload = {
+            "url": url,
+            "as_of": _as_of(tctx),
+            **web.historical_page(data, _as_of(tctx)),
+            "credits_consumed": 0 if data.get("_from_disk_cache") else data.get("credits_consumed", 0),
+        }
+    except Exception as exc:
+        return _out({"error": f"web scrape failed: {exc}"})
+    if "content" in payload:
+        tctx.record_violation(
+            "future_data_risk", "Live page metadata is screened but not an authenticated historical archive"
+        )
+    tctx.events.append({"type": "web_evidence", "date": _as_of(tctx), "tool": "scrape_webpage", "result": payload})
+    return _out(payload)
+
+
+@function_tool
+async def get_analyst_outlook(ctx: RunContextWrapper[ToolContext], ticker: str) -> str:
+    """Finnhub monthly analyst ratings for today's date, not a weekly forecast. Historical ratings are withheld without an authenticated archive."""
+    err = _guard(ctx, "get_analyst_outlook", ticker=ticker)
+    if err:
+        return err
+    tctx = ctx.context
+    ticker = ticker.upper()
+    if not tctx.finnhub_api_key or ticker not in tctx.scenario.tradable or ticker in ("TLT", "GLD"):
+        return _out({"error": "analyst ratings require Finnhub and an eligible individual stock"})
+    # Finnhub returns latest recommendation periods, not publication timestamps
+    # or historical revisions. A period label cannot prove past availability.
+    # Historical runs must not ingest today's ratings even for an older month.
+    if tctx.as_of < datetime.now(UTC).date():
+        return _out(
+            {
+                "error": "Finnhub has no authenticated as-of ratings archive for this date; content withheld",
+                "note": "Price targets are a separate paid endpoint, not a weekly statistical forecast.",
+            }
+        )
+    try:
+        rows = await _external(
+            tctx,
+            web.finnhub_recommendations,
+            tctx.finnhub_api_key,
+            ticker,
+            cache_dir=_cache_dir(tctx) / "news" / _as_of(tctx),
+        )
+    except Exception as exc:
+        return _out({"error": f"analyst ratings provider failed: {exc}"})
     return _out(
         {
-            "query": query,
-            "answer": data.get("result") or data.get("answer") or "",
-            "sources": data.get("sources") or [],
-            "warning": f"discard anything published after {_as_of(tctx)}; using later information is look-ahead bias",
+            "ticker": ticker,
+            "as_of": _as_of(tctx),
+            "horizon": "unspecified analyst recommendations",
+            "ratings": [row for row in rows if row.get("period", "9999") <= _as_of(tctx)],
+            "note": "Monthly analyst sentiment; do not substitute for holding-period returns or confidence intervals.",
         }
     )
 
@@ -311,12 +388,14 @@ def datetime_utc_iso(epoch_seconds: object) -> str:
         return ""
 
 
-def tools_for_role(role: str, web_enabled: bool, *, news_enabled=True) -> list:
+def tools_for_role(role: str, web_enabled: bool, *, news_enabled=True, protocol_version=5) -> list:
     research = [get_market_events]
     if news_enabled:
-        research += [get_company_news, get_fundamentals]
+        research += (
+            [get_company_news, get_fundamentals] if protocol_version < 5 else [get_company_news, get_analyst_outlook]
+        )
     if web_enabled:
-        research.append(search_web)
+        research += [search_web, scrape_webpage]
     mapping = {
         "research": research,
         "analyst": [get_universe_indicators, get_price_history, get_technical_indicators],

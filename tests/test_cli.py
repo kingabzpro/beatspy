@@ -110,8 +110,16 @@ def test_run_defaults_and_repeated_arguments():
     assert args.model == ["a", "b"] and args.scenario == ["2025-recent"]
     assert args.jobs == 2 and args.concurrency == 6
     assert parser.parse_args(["run", "--max-decisions", "60"]).max_decisions == 60
+    assert not parser.parse_args(["run"]).web_research
+    assert parser.parse_args(["run", "--web-research"]).web_research
     with __import__("pytest").raises(SystemExit):
         parser.parse_args(["run", "--jobs", "0"])
+
+
+def test_web_research_requires_a_provider_key(monkeypatch, capsys):
+    monkeypatch.setattr("beatspy.cli.provider_api_key", lambda *a: None)
+    assert main(["run", "--web-research"]) == 1
+    assert "OLOSTEP_API_KEY" in capsys.readouterr().err
 
 
 def test_batch_failure_returns_nonzero_and_reports_completed_run(tmp_path, monkeypatch, capsys):

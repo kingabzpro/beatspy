@@ -157,7 +157,7 @@ class DecisionPipeline:
         web_tools: bool = False,
         agent_limit: asyncio.Semaphore | None = None,
         legacy_parsing: bool = False,
-        protocol_version: int = 4,
+        protocol_version: int = 5,
     ):
         set_tracing_disabled(True)
         self.settings = settings
@@ -176,7 +176,7 @@ class DecisionPipeline:
                 name=role,
                 instructions=prompts.INSTRUCTIONS[role],
                 model=model_name,
-                tools=tools_for_role(role, web_enabled=web_tools),
+                tools=tools_for_role(role, web_enabled=web_tools, protocol_version=protocol_version),
             )
 
     async def _run(self, role, input_text, tctx):
@@ -191,8 +191,14 @@ class DecisionPipeline:
         recent_decision: str | None,
     ) -> DecisionRecord:
         self.agents["research"].tools = tools_for_role(
-            "research", web_enabled=bool(tctx.olostep_api_key), news_enabled=bool(tctx.finnhub_api_key)
+            "research",
+            web_enabled=bool(tctx.olostep_api_key),
+            news_enabled=bool(tctx.finnhub_api_key),
+            protocol_version=self.protocol_version,
         )
+        self.agents["research"].instructions = prompts.INSTRUCTIONS["research"]
+        if self.protocol_version >= 5 and tctx.olostep_api_key:
+            self.agents["research"].instructions += prompts.WEB_RESEARCH_INSTRUCTIONS
         reference = momentum_weight_fn(tctx.scenario, tctx.data)(tctx.as_of, None)["weights"]
         reference = {
             ticker: min(weight, tctx.scenario.max_position_weight)
