@@ -147,7 +147,7 @@ CRITIC_JSON = json.dumps(
 
 PM_JSON = json.dumps(
     {
-        "allocations": [{"ticker": "SPY", "weight": 0.30}, {"ticker": "TLT", "weight": 0.20}],
+        "allocations": [{"ticker": "MSFT", "weight": 0.30}, {"ticker": "TLT", "weight": 0.20}],
         "cash_weight": 0.50,
         "expected_direction": "up",
         "expected_return_pct": 1.0,

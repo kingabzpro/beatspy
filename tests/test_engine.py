@@ -184,3 +184,31 @@ class TestPortfolioState:
         state = PortfolioState(cash=500.0, positions={"SPY": 10.0})
         assert state.equity(day, data_service) == pytest.approx(500.0 + 10.0 * spy_close)
         assert state.weights(day, data_service)["SPY"] == pytest.approx(10.0 * spy_close / (500 + 10 * spy_close))
+
+
+def test_forbidden_benchmark_order_is_rejected_before_execution(data_service, scenario):
+    state = PortfolioState(cash=100_000)
+    with pytest.raises(ValueError, match="non-tradable"):
+        execute_target(
+            state,
+            {"SPY": 0.3, "MSFT": 0.3},
+            date(2022, 1, 31),
+            date(2022, 2, 1),
+            data_service,
+            scenario.total_fee_rate,
+            allowed_tickers=scenario.tradable,
+        )
+    assert state.positions == {} and state.cash == 100_000
+
+
+def test_backtest_rejects_benchmark_allocation_that_bypasses_pipeline(data_service, scenario):
+    with pytest.raises(ValueError, match="non-tradable"):
+        asyncio.run(
+            run_backtest(
+                data_service,
+                [date(2022, 1, 3)],
+                lambda day, state: {"weights": {"SPY": 0.3}},
+                scenario,
+                allowed_tickers=scenario.tradable,
+            )
+        )

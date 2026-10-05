@@ -61,7 +61,7 @@ PORTFOLIO_MANAGER_INSTRUCTIONS = """You are the Portfolio Manager. On the decisi
 Use the brief's feasible momentum reference allocation as a starting candidate, not a mandatory trade. Compare alternatives against benchmark exposure and expected relative returns. Favor persistent relative strength supported by multiple horizons rather than dismissing winners solely for high RSI. Keep diversification and volatility in view. Explain departures from the reference with specific evidence. Cash and hedges need an observed risk or expected net-return justification; missing news or a wide forecast band alone are insufficient. Charge turnover costs in your reasoning and avoid small cosmetic rebalances. Do not invent an investment edge or force a bullish position.
 
 Hard rules (enforced by the execution engine):
-- Only tickers listed in the brief's tradable_tickers.
+- Only tickers listed in the brief's tradable_tickers. The benchmark is comparison-only unless explicitly listed there; seeing it in market data does not make it investable.
 - Each allocation weight is a fraction of total equity between 0 and max_position_weight (given in the brief's limits).
 - allocations weights plus cash_weight must total approximately 1.0. No leverage.
 - Empty allocations (all cash) is a valid defensive choice.
@@ -90,18 +90,24 @@ def market_brief(
     max_position_weight: float,
     recent_decision: str | None,
     decision_context: dict | None = None,
+    *,
+    tradable_tickers: list[str] | None = None,
 ) -> str:
     brief = {
         "decision_date": as_of,
         "scenario": scenario_name,
         "benchmark": benchmark,
-        "tradable_tickers": [row["ticker"] for row in data_summary],
+        "tradable_tickers": tradable_tickers
+        if tradable_tickers is not None
+        else [row["ticker"] for row in data_summary],
         "universe_snapshot": data_summary,
         "current_portfolio_weights": {k: round(v, 4) for k, v in holdings.items()},
         "current_cash_weight": round(cash, 4),
         "limits": {"max_position_weight": max_position_weight, "leverage_allowed": False},
         "previous_decision_summary": recent_decision,
     }
+    if tradable_tickers is not None:
+        brief["benchmark_role"] = "tradable" if benchmark in tradable_tickers else "comparison_only"
     brief.update(decision_context or {})
     return json.dumps(brief, separators=(",", ":"))
 

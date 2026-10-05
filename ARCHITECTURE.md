@@ -37,7 +37,9 @@ The pinned public key validates a unique verification ID, artifact bytes, benchm
 version, code/dependency digest, and execution provenance. A separate base-branch
 validator checks signatures and replay before accepting new leaderboard records.
 The default continuous benchmark spans 2026 through the latest completed market session
-and includes 23 stocks across 11 sectors. Weekly decisions are capped at 36, retaining
+and includes 23 large companies across 11 sectors, with TLT/GLD hedges and cash.
+Protocol 4 uses the explicit tradable list in prompts, allocation validation,
+execution, and replay. SPY is comparison-only for this benchmark. Weekly decisions are capped at 36, retaining
 both ends of the year-to-date schedule and daily equity scoring through
 the cutoff. The same cap is recorded in the scenario and enforced during replay.
 Finnhub is enabled where available; Olostep is disabled. Trusted runs use TimeGPT

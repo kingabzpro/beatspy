@@ -68,14 +68,10 @@ def test_dashboard_interactions_and_safe_rendering(site, width):
         page.locator("#output-price").fill("8")
         assert page.locator("#running-cost svg").count() == 1
         assert page.locator("#agent-costs .bar-row").count() == 5
-        assert page.locator("#decision-tokens .bar-row").count() > 0
         assert "Custom rates" in page.locator("#price-note").inner_text()
         page.get_by_role("button", name="Est. cost", exact=False).click()
         page.get_by_role("button", name="Est. cost", exact=False).click()
         assert page.locator("#leaderboard-table tbody tr").first.get_by_role("button").inner_text() == "demo-beta"
-        total = page.locator("#cost-summary").inner_text().split(" · ")[0].split("$")[1]
-        page.get_by_text("Exact usage and cost calculations", exact=True).click()
-        assert page.locator("#cost-decisions tbody tr").last.locator("td").last.inner_text() == f"${total}"
         page.locator("#input-price").fill("0")
         page.locator("#output-price").fill("0")
         assert "Estimated model cost $0.0000" in page.locator("#cost-summary").inner_text()
@@ -97,9 +93,7 @@ def test_dashboard_interactions_and_safe_rendering(site, width):
         assert page.locator("#run-title img").count() == 0
         page.reload()
         page.locator("#run-details:not([hidden])").wait_for()
-        assert page.locator("#decisions details").count() > 0
-        page.locator("#decisions summary").first.click()
-        assert page.locator("#decisions details").first.get_attribute("open") is not None
+        assert page.locator("#decisions, #trades, #decision-tokens, #cost-decisions").count() == 0
         page.keyboard.press("Tab")
         assert not errors
         # The horizontal table may scroll inside its wrapper; the page must fit mobile.
@@ -203,6 +197,7 @@ def test_brand_assets_metadata_and_keyboard_navigation(site):
         assert manifest["short_name"] == "BeatSPY"
         for icon in manifest["icons"]:
             assert page.request.get(f"{url}/{icon['src']}").ok
+        assert page.locator("#decisions, #trades, #decision-tokens, #cost-decisions").count() == 0
         page.keyboard.press("Tab")
         assert page.locator(".skip-link").evaluate("element => element === document.activeElement")
         page.keyboard.press("Enter")

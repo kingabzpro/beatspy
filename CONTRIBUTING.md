@@ -76,7 +76,8 @@ risk; adjusted prices and model knowledge remain historical-test limitations.
 
 The static frontend in `dashboard/` reads `data/index.json`. It displays the latest
 execution per model, never selects the best score, and lists each evaluation period.
-Details include decisions, trades, cost estimates, provenance, and verification IDs.
+Details include performance, allocations, cost estimates, provenance, and verification IDs.
+Decision and trade evidence remains downloadable for replay; detailed tables are omitted from the interface.
 Cost estimates use OpenRouter's standard uncached input/output token prices, checked
 2026-10-05. They exclude provider cache discounts, subscriptions, and external tool fees.
 Custom rates can be entered in the dashboard. Run estimates are not provider invoices.

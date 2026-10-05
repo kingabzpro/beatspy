@@ -25,7 +25,8 @@ The default benchmark is a continuous portfolio from **2026-01-01 through the
 latest completed NYSE session** available at the run's release. Weekly decisions
 are capped at **36 per model** and span the full year-to-date period. Decisions
 use frozen adjusted prices, with extra warmup history excluded from scoring.
-23 stocks cover all 11 sectors; TLT, GLD, and SPY add bonds, gold, and the baseline.
+23 large, established companies cover all 11 sectors. TLT and GLD are permitted hedges;
+SPY is comparison-only and cannot be bought by the model portfolio.
 This fixed surviving universe
 has survivorship bias; it is not historical index membership.
 
@@ -85,3 +86,27 @@ uv build
 Browser tests require `uv run playwright install chromium`. Ordinary tests use
 scripted agents; live forecast checks are opt-in. Chronos and TimeGPT remain
 optional extras. [Architecture](ARCHITECTURE.md) · [Apache-2.0](LICENSE)
+
+## Benchmark stock mix
+
+The fixed universe balances sector coverage with large, established companies.
+It is not a live ranking or a historical reconstruction of index membership.
+
+| Sector | Companies |
+| --- | --- |
+| Technology | Apple (AAPL), Microsoft (MSFT), Nvidia (NVDA) |
+| Communication services | Alphabet (GOOGL), Meta (META) |
+| Consumer discretionary | Amazon (AMZN), Home Depot (HD) |
+| Consumer staples | Walmart (WMT), Procter & Gamble (PG) |
+| Financials | JPMorgan Chase (JPM), Visa (V) |
+| Healthcare | Eli Lilly (LLY), Johnson & Johnson (JNJ) |
+| Energy | ExxonMobil (XOM), Chevron (CVX) |
+| Industrials | Caterpillar (CAT), GE Aerospace (GE) |
+| Utilities | NextEra Energy (NEE), Southern Company (SO) |
+| Materials | Linde (LIN), Sherwin-Williams (SHW) |
+| Real estate | Prologis (PLD), American Tower (AMT) |
+
+TLT and GLD are hedges; cash is allowed. SPY remains in frozen prices, research,
+forecasts, and baseline charts solely for comparison. Protocol 4 separates the
+market-data universe from the investable list, drops forbidden allocations with
+recorded violations, and rejects forbidden orders at execution and offline replay.

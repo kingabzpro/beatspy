@@ -157,11 +157,13 @@ class DecisionPipeline:
         web_tools: bool = False,
         agent_limit: asyncio.Semaphore | None = None,
         legacy_parsing: bool = False,
+        protocol_version: int = 4,
     ):
         set_tracing_disabled(True)
         self.settings = settings
         self.scenario = scenario
         self.legacy_parsing = legacy_parsing
+        self.protocol_version = protocol_version
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
             run_config=run_config_for(provider, settings.model.temperature, settings.model.reasoning_effort),
@@ -192,7 +194,11 @@ class DecisionPipeline:
             "research", web_enabled=bool(tctx.olostep_api_key), news_enabled=bool(tctx.finnhub_api_key)
         )
         reference = momentum_weight_fn(tctx.scenario, tctx.data)(tctx.as_of, None)["weights"]
-        reference = {ticker: min(weight, tctx.scenario.max_position_weight) for ticker, weight in reference.items()}
+        reference = {
+            ticker: min(weight, tctx.scenario.max_position_weight)
+            for ticker, weight in reference.items()
+            if self.protocol_version < 4 or ticker in self.scenario.tradable
+        }
         brief = prompts.market_brief(
             tctx.data.universe_summary(tctx.scenario.universe, tctx.as_of),
             tctx.as_of.isoformat(),
@@ -216,6 +222,7 @@ class DecisionPipeline:
                     "cash": round(1 - sum(reference.values()), 4),
                 },
             },
+            tradable_tickers=self.scenario.tradable if self.protocol_version >= 4 else None,
         )
         record = DecisionRecord(date=tctx.as_of, market_brief=json.loads(brief))
 
@@ -253,7 +260,10 @@ class DecisionPipeline:
                 record.parse_errors.append("portfolio_manager: no JSON object found in output")
         record.raw_decision = raw if isinstance(raw, dict) else None
         record.validated = validate_decision(
-            raw, self.scenario.universe, self.scenario.max_position_weight, legacy=self.legacy_parsing
+            raw,
+            self.scenario.tradable if self.protocol_version >= 4 else self.scenario.universe,
+            self.scenario.max_position_weight,
+            legacy=self.legacy_parsing,
         )
         if record.validated.invalid:
             record.parse_errors.append("portfolio_manager: decision invalid; holding previous portfolio")

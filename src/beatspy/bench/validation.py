@@ -73,8 +73,8 @@ async def replay_run(run_dir: Path) -> dict:
     meta = read_json(run_dir / "run.json")
     if meta.get("synthetic") is not False:
         raise ValueError("synthetic or incomplete results cannot be submitted")
-    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3):
-        raise ValueError("only complete protocol 2 or 3 runs support submission; rerun legacy results")
+    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4):
+        raise ValueError("only complete protocol 2, 3, or 4 runs support submission; rerun legacy results")
     legacy = meta["protocol_version"] == 2
     if not SAFE_ID.fullmatch(meta["run_id"]) or meta["run_id"] != run_dir.name:
         raise ValueError("invalid or mismatched run id")
@@ -147,7 +147,14 @@ async def replay_run(run_dir: Path) -> dict:
             values["role"] = agent.name
             return AgentOutcome(**values)
 
-    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=ReplayExecutor(), legacy_parsing=legacy)
+    pipeline = DecisionPipeline(
+        settings,
+        scenario,
+        provider=None,
+        executor=ReplayExecutor(),
+        legacy_parsing=legacy,
+        protocol_version=meta["protocol_version"],
+    )
     records = []
     recent_summary = None
 
@@ -204,7 +211,14 @@ async def replay_run(run_dir: Path) -> dict:
         recent_summary = f"{day.isoformat()}: allocated {weights_text}; {record.rationale[:200]}"
         return {"weights": target}
 
-    result = await run_backtest(data, decision_dates, weights, scenario, legacy=legacy)
+    result = await run_backtest(
+        data,
+        decision_dates,
+        weights,
+        scenario,
+        legacy=legacy,
+        allowed_tickers=scenario.tradable if meta["protocol_version"] >= 4 else None,
+    )
     violations = [event for event in events if event.get("type") == "violation"]
     expected_metrics, expected_equity = await score_run(
         data, scenario, settings, result, decision_dates, records, violations, legacy=legacy

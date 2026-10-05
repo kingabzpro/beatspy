@@ -40,7 +40,7 @@
     <noscript><p class="caption">Enable JavaScript to explore the leaderboard and charts, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
     <section class="hero"><p class="eyebrow">OPEN BENCHMARK / EQUAL RULES / REAL DATA</p>
       <h1>Can AI beat<br><span>the market?</span></h1>
-      <p class="lede">Real model calls. Five trading agents. Frozen market data.<br>Compare portfolios against SPY using the same rules.</p>
+      <p class="lede">Real model calls. Five trading agents. Frozen market data.<br>Individual stocks, bond and gold hedges, and cash. SPY is comparison-only.</p>
       <div class="hero-meta"><span>2026 → latest completed session · up to 36 decisions · 11 sectors</span><span>Deterministic scoring</span><span>Open results</span></div>
     </section>
     <section id="leaderboard" aria-labelledby="board-title">
@@ -74,10 +74,7 @@
         <figure class="panel"><h3>Running cost by decision</h3><p class="caption">Cumulative model spend at each simulated trading decision, not wall-clock runtime.</p><div id="running-cost"></div></figure>
         <figure class="panel"><h3>Cost by agent</h3><p class="caption">Which part of the five-agent pipeline consumes the budget?</p><div id="agent-costs"></div></figure>
       </div>
-      <section class="panel"><h3>Tokens by decision</h3><div id="decision-tokens"></div><details class="cost-records"><summary>Exact usage and cost calculations</summary><div id="cost-decisions" class="table-wrap"></div></details></section>
       <section class="panel"><h3>Agent telemetry</h3><div id="telemetry" class="table-wrap"></div></section>
-      <section class="panel"><h3>Decisions</h3><div id="decisions"></div></section>
-      <section class="panel"><h3>Trades</h3><div id="trades" class="table-wrap"></div></section>
       <section class="panel"><h3>Settings &amp; provenance</h3><p id="coverage" class="caption"></p><details><summary>Full run record</summary><pre id="settings"></pre></details><div id="downloads" class="downloads"></div></section>
     </section>
     <section id="contribute" class="contribute"><div><p class="eyebrow">MAKE THE BENCHMARK BETTER</p><h2>Run it. Share the evidence.</h2><p>Run locally, then request verification in one command. The trusted runner reruns the model, checks the code and scores, and signs the accepted result.</p></div>

@@ -92,7 +92,9 @@ def test_version_flag(capsys):
     with __import__("pytest").raises(SystemExit) as exc:
         main(["--version"])
     assert exc.value.code == 0
-    assert "0.2.0" in capsys.readouterr().out
+    from beatspy import __version__
+
+    assert __version__ in capsys.readouterr().out
 
 
 def test_no_command_shows_help(capsys):

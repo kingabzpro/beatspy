@@ -107,11 +107,13 @@ def test_ytd_resolves_latest_session_and_covers_sectors():
     scenario = resolve_scenario(load_scenario("2026-ytd"), datetime(2026, 10, 4, tzinfo=UTC))
     assert scenario.start == "2026-01-01" and scenario.end == "2026-10-02"
     assert len(scenario.tradable) == 25
+    assert "SPY" not in scenario.tradable and {"TLT", "GLD"} <= set(scenario.tradable)
+    assert {"META", "WMT", "V", "LLY", "GE", "SO", "LIN"} <= set(scenario.tradable)
     assert scenario.allow_finnhub and not scenario.allow_web_search
     assert scenario.max_decisions == 36
     assert scenario.frequency == "weekly"
     assert not scenario.through_latest
-    assert {"AMT", "APD", "DUK", "JNJ", "CAT", "PG", "JPM", "XOM", "GOOGL", "AMZN", "MSFT"} <= set(scenario.tradable)
+    assert {"AMT", "LIN", "SO", "JNJ", "CAT", "PG", "JPM", "XOM", "GOOGL", "AMZN", "MSFT"} <= set(scenario.tradable)
 
 
 def test_ytd_schedule_only_scores_2026_and_respects_limit():

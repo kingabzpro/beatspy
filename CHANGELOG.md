@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Protocol 4 separates tradable assets from benchmark data and blocks non-tradable orders.
+- SPY is comparison-only; the stock mix uses 23 large companies across 11 sectors, plus TLT/GLD hedges.
+- Remove trades, decisions, and per-decision token detail from the website.
+- Retire results generated under the rule that accidentally allowed SPY allocations.
+
 ## 0.2.0
 
 - 2026 year-to-date default: 2026 through the latest completed session, with 23 stocks across 11 sectors.

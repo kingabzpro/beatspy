@@ -190,7 +190,9 @@ async def run_benchmark(
             return {"weights": target_weights}
 
         log.info("Running %d decisions for %s on %s", len(decision_dates), scenario.name, settings.model.model)
-        result: BacktestResult = await run_backtest(data, decision_dates, weight_fn, scenario)
+        result: BacktestResult = await run_backtest(
+            data, decision_dates, weight_fn, scenario, allowed_tickers=scenario.tradable
+        )
 
         from .scoring import score_run
 
@@ -204,7 +206,7 @@ async def run_benchmark(
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 3,
+            "protocol_version": 4,
             "source_revision": source_revision(),
             "code_sha256": run_code_digest,
             "run_id": run_id,

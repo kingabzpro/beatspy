@@ -19,7 +19,7 @@ def test_full_decision(pipeline, data_service, scenario):
 
     assert set(record.outcomes) == {"research", "analyst", "forecaster", "critic", "portfolio_manager"}
     assert record.parse_errors == []
-    assert record.validated.weights == {"SPY": pytest.approx(0.30), "TLT": pytest.approx(0.20)}
+    assert record.validated.weights == {"MSFT": pytest.approx(0.30), "TLT": pytest.approx(0.20)}
     assert record.validated.cash == pytest.approx(0.50)
     assert record.predicted_direction == "up"
     assert record.artifacts["research"]["summary"].startswith("Fed")
@@ -31,7 +31,7 @@ def test_full_decision(pipeline, data_service, scenario):
 def test_invalid_pm_output_holds_portfolio(pipeline, data_service, scenario):
     pipeline.executor.outputs["portfolio_manager"] = "I cannot decide right now, sorry."
     tctx = make_tctx(data_service, scenario)
-    record = asyncio_run(pipeline.decide(tctx, {"SPY": 0.5}, 0.5, None))
+    record = asyncio_run(pipeline.decide(tctx, {"MSFT": 0.5}, 0.5, None))
     assert record.validated.invalid
     assert record.validated.weights == {}
     assert any("invalid" in e for e in record.parse_errors)
@@ -39,12 +39,12 @@ def test_invalid_pm_output_holds_portfolio(pipeline, data_service, scenario):
 
 def test_overweight_is_clamped_with_violation(settings, data_service, scenario):
     outputs = {
-        "portfolio_manager": '{"allocations": [{"ticker": "SPY", "weight": 0.9}], "cash_weight": 0.1, "expected_direction": "up", "rationale": "yolo"}'
+        "portfolio_manager": '{"allocations": [{"ticker": "MSFT", "weight": 0.9}], "cash_weight": 0.1, "expected_direction": "up", "rationale": "yolo"}'
     }
     pipeline = DecisionPipeline(settings, scenario, provider=None, executor=FakeExecutor(outputs))
     tctx = make_tctx(data_service, scenario)
     record = asyncio_run(pipeline.decide(tctx, {}, 1.0, None))
-    assert record.validated.weights["SPY"] == pytest.approx(scenario.max_position_weight)
+    assert record.validated.weights["MSFT"] == pytest.approx(scenario.max_position_weight)
     assert any("clamped" in v for v in record.validated.violations)
 
 
@@ -54,7 +54,7 @@ def test_malformed_research_degrades_gracefully(pipeline, data_service, scenario
     record = asyncio_run(pipeline.decide(tctx, {}, 1.0, None))
     assert any("research" in e for e in record.parse_errors)
     # the PM still received the remaining artifacts and produced its usual decision
-    assert record.validated.weights == {"SPY": pytest.approx(0.30), "TLT": pytest.approx(0.20)}
+    assert record.validated.weights == {"MSFT": pytest.approx(0.30), "TLT": pytest.approx(0.20)}
 
 
 def test_tool_context_receives_agent_budget(pipeline, data_service, scenario):
@@ -89,3 +89,31 @@ def test_compaction_preserves_complete_structured_reports():
 
     report = {"forecasts": [{"ticker": str(i), "method_notes": "x" * 1000} for i in range(9)]}
     assert json.loads(_compact(report)) == report
+
+
+def test_benchmark_is_visible_but_not_investable(settings, data_service, scenario):
+    import json
+
+    output = json.dumps(
+        {"allocations": [{"ticker": "SPY", "weight": 0.3}, {"ticker": "MSFT", "weight": 0.3}], "cash_weight": 0.4}
+    )
+    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=FakeExecutor({"portfolio_manager": output}))
+    record = asyncio_run(pipeline.decide(make_tctx(data_service, scenario), {}, 1.0, None))
+    assert "SPY" in {row["ticker"] for row in record.market_brief["universe_snapshot"]}
+    assert "SPY" not in record.market_brief["tradable_tickers"]
+    assert record.market_brief["benchmark_role"] == "comparison_only"
+    assert "SPY" not in record.market_brief["reference_allocation"]["weights"]
+    assert record.validated.weights == {"MSFT": 0.3}
+    assert record.validated.cash == pytest.approx(0.7)
+    assert any("SPY" in violation for violation in record.validated.violations)
+
+
+def test_protocol_3_keeps_original_benchmark_allocation_for_replay(settings, data_service, scenario):
+    output = '{"allocations":[{"ticker":"SPY","weight":0.3}],"cash_weight":0.7}'
+    pipeline = DecisionPipeline(
+        settings, scenario, provider=None, executor=FakeExecutor({"portfolio_manager": output}), protocol_version=3
+    )
+    record = asyncio_run(pipeline.decide(make_tctx(data_service, scenario), {}, 1.0, None))
+    assert record.validated.weights == {"SPY": 0.3}
+    assert "SPY" in record.market_brief["tradable_tickers"]
+    assert "benchmark_role" not in record.market_brief

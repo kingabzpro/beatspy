@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 import json
 
+import pandas as pd
+
 from beatspy.bench.runner import run_benchmark
 from conftest import FakeExecutor, make_prices
 
@@ -92,7 +94,7 @@ def test_nested_fragments_never_liquidate_existing_holdings(tmp_path, monkeypatc
     decisions = [json.loads(line) for line in (run_dir / "decisions.jsonl").read_text().splitlines()]
     holdings = [row["market_brief"]["current_portfolio_weights"] for row in decisions[1:]]
     assert metrics["invalid_outputs"] == 2
-    assert all(weights.get("SPY", 0) > 0 and weights.get("TLT", 0) > 0 for weights in holdings)
+    assert all(weights.get("MSFT", 0) > 0 and weights.get("TLT", 0) > 0 for weights in holdings)
     import csv
 
     with (run_dir / "trades.csv").open(newline="") as stream:
@@ -112,3 +114,30 @@ def test_report_contains_provenance_and_leaderboard(tmp_path, monkeypatch, scena
     assert "Real model calls. Five trading agents. Frozen market data." in html
     assert "Leaderboard" in html
     assert "scenario.name" not in html  # no unrendered placeholders
+
+
+def test_spy_attempt_cannot_create_trades_but_comparison_is_preserved(tmp_path, monkeypatch, scenario, settings):
+    from beatspy.bench.validation import validate_run
+
+    monkeypatch.setattr("beatspy.data.freeze.download_ohlc", lambda *a, **k: make_prices(scenario.universe))
+    output = json.dumps(
+        {"allocations": [{"ticker": "SPY", "weight": 0.3}, {"ticker": "MSFT", "weight": 0.3}], "cash_weight": 0.4}
+    )
+    directory = asyncio.run(
+        run_benchmark(
+            scenario,
+            settings,
+            executor=FakeExecutor({"portfolio_manager": output}),
+            out_root=tmp_path / "results",
+            data_root=tmp_path / "cache",
+        )
+    )
+    meta = validate_run(directory)
+    assert meta["protocol_version"] == 4
+    trades = pd.read_csv(directory / "trades.csv")
+    assert set(trades.ticker) == {"MSFT"}
+    equity = pd.read_csv(directory / "equity_curve.csv")
+    assert "spy_buy_hold" in equity.columns and equity.spy_buy_hold.nunique() > 1
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+    assert all("SPY" not in row["validated"]["weights"] for row in rows)
+    assert all(any("SPY" in violation for violation in row["validated"]["violations"]) for row in rows)

@@ -8,7 +8,7 @@ benchmark = "SPY"
 # Established stocks across all 11 sectors.
 # Technology, communication, discretionary, staples, financials, healthcare,
 # energy, industrials, utilities, materials, and real estate; bonds and gold.
-tradable = ["AAPL", "MSFT", "NVDA", "GOOGL", "VZ", "AMZN", "HD", "PG", "KO", "JPM", "BAC", "JNJ", "PFE", "XOM", "CVX", "CAT", "HON", "NEE", "DUK", "APD", "SHW", "AMT", "PLD", "TLT", "GLD"]
+tradable = ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "HD", "WMT", "PG", "JPM", "V", "LLY", "JNJ", "XOM", "CVX", "CAT", "GE", "NEE", "SO", "LIN", "SHW", "PLD", "AMT", "TLT", "GLD"]
 lookback_days = 400
 allow_finnhub = true
 allow_web_search = false

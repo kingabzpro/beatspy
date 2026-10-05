@@ -208,8 +208,6 @@ if (typeof document !== "undefined") {
     if (rates?.source) {const link = node("a", "OpenRouter pricing ↗"); link.href = rates.source; $("price-source").append(link);}
     chart("running-cost", steps.length && steps.every(step => step.cumulative !== null) ? steps : [], ["cumulative"], dollars);
     bars("agent-costs", agents, ["cost"], dollars);
-    bars("decision-tokens", steps.map(step => ({label: step.date, input: step.input_tokens, output: step.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
-    table("cost-decisions", ["Decision", "Input tokens", "Output tokens", "Requests", "Est. USD", "Running USD"], steps.map(step => [step.date, ...[step.input_tokens, step.output_tokens, step.requests].map(value => Number.isFinite(value) ? value.toLocaleString() : "—"), dollars(step.cost), dollars(step.cumulative)]));
   }
   function chart(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
@@ -272,9 +270,9 @@ if (typeof document !== "undefined") {
     try {
       if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$/.test(run.run_id) || run.dir !== `runs/${run.run_id}`) throw new Error("Invalid artifact path");
       const base = `data/${run.dir}/`;
-      const texts = await Promise.all(["run.json", "equity_curve.csv", "decisions.jsonl", "trades.csv"].map(name => fetchText(base + name)));
+      const texts = await Promise.all(["run.json", "equity_curve.csv", "decisions.jsonl"].map(name => fetchText(base + name)));
       if (generation !== loading) return;
-      const meta = JSON.parse(texts[0]), equity = parseCSV(texts[1]), decisions = texts[2].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line)), trades = parseCSV(texts[3]);
+      const meta = JSON.parse(texts[0]), equity = parseCSV(texts[1]), decisions = texts[2].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
       $("run-details").hidden = false;
       $("run-title").textContent = modelName(run.model);
       $("run-trust").textContent = TRUST[run.trust] || "Unverified";
@@ -313,14 +311,6 @@ if (typeof document !== "undefined") {
       $("input-price").oninput = updatePrices; $("output-price").oninput = updatePrices;
       $("reset-prices").onclick = () => {priceOverrides.delete(run.model); const original = ratesFor(run.model, meta); $("input-price").value = original?.input ?? ""; $("output-price").value = original?.output ?? ""; renderCosts(); renderBoard();};
       renderCosts();
-      $("decisions").replaceChildren();
-      for (const row of decisions) {
-        const detail = node("details", undefined, "decision");
-        detail.append(node("summary", `${row.date} · ${row.predicted_direction || "flat"} · ${row.parse_errors?.length ? "Output issues recorded" : "Parsed"}`), node("p", row.rationale || "No rationale recorded."), node("pre", JSON.stringify(row, null, 2)));
-        $("decisions").append(detail);
-      }
-      if (!decisions.length) $("decisions").append(node("p", "No decisions recorded.", "caption"));
-      table("trades", Object.keys(trades[0] || {date: "", note: ""}), trades.length ? trades.map(row => Object.values(row)) : [["—", "No trades"]]);
       $("settings").textContent = JSON.stringify(meta, null, 2);
       $("coverage").textContent = `${meta.event_feed?.note || "Curated events are not a complete news history."} Feed through: ${meta.event_feed?.through || "not recorded"}. Signed results come from the trusted runner; older replay-checked results remain unsigned.`;
       $("verification").textContent = run.verification_id ? `Verification ID: ${run.verification_id}` : "Unsigned result. Request a trusted rerun for signed leaderboard verification.";

@@ -32,7 +32,7 @@ def rehash(run, filename):
 
 def test_complete_run_replays_and_stops_at_cutoff(run):
     meta = validate_run(run)
-    assert meta["protocol_version"] == 3
+    assert meta["protocol_version"] == 4
     equity = pd.read_csv(run / "equity_curve.csv")
     trades = pd.read_csv(run / "trades.csv")
     assert equity.date.max() == meta["requested"]["end"]

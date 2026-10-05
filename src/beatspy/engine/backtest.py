@@ -85,8 +85,12 @@ def execute_target(
     exec_date: date,
     data: DataService,
     fee_rate: float,
+    *,
+    allowed_tickers: list[str] | None = None,
 ) -> StepResult:
     """Rebalance `state` to target weights, filling at exec_date's open."""
+    if allowed_tickers is not None and (set(target_weights) | set(state.positions)) - set(allowed_tickers):
+        raise ValueError("portfolio contains a non-tradable ticker")
     equity = state.equity(decision_date, data)
     if equity <= 0:
         return StepResult()
@@ -161,6 +165,7 @@ async def run_backtest(
     scenario: Scenario,
     *,
     legacy=False,
+    allowed_tickers: list[str] | None = None,
 ) -> BacktestResult:
     """Drive a portfolio through decision dates with a weight function.
 
@@ -189,7 +194,9 @@ async def run_backtest(
     for day in days:
         if not legacy and day in pending:
             decision_day, weights = pending.pop(day)
-            step = execute_target(state, weights, decision_day, day, data, scenario.total_fee_rate)
+            step = execute_target(
+                state, weights, decision_day, day, data, scenario.total_fee_rate, allowed_tickers=allowed_tickers
+            )
             trades.extend(step.trades)
             turnover.append((decision_day, step.turnover))
         if idx < len(decision_dates) and day == decision_dates[idx]:
@@ -205,7 +212,9 @@ async def run_backtest(
             idx += 1
         if day in pending:
             decision_day, weights = pending.pop(day)
-            step = execute_target(state, weights, decision_day, day, data, scenario.total_fee_rate)
+            step = execute_target(
+                state, weights, decision_day, day, data, scenario.total_fee_rate, allowed_tickers=allowed_tickers
+            )
             trades.extend(step.trades)
             turnover.append((decision_day, step.turnover))
         equity[day] = state.equity(day, data)
