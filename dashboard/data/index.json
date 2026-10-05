@@ -128,6 +128,48 @@
       "synthetic": false,
       "trust": "replayed",
       "year": "2026"
+    },
+    {
+      "created_utc": "2026-10-05T17:24:03+00:00",
+      "data_cutoff": "2026-10-02",
+      "dir": "runs/20261005-172403_2026-ytd_zai-org-GLM-5.3_459943c39e",
+      "end": "2026-10-02",
+      "group": "98efe561d532e303",
+      "label": "0.2.1 protocol 4 stock selection",
+      "metrics": {
+        "annual_volatility": 0.113669,
+        "avg_turnover": 0.111276,
+        "baselines": {
+          "equal_weight": 0.098535,
+          "momentum_12_1": 0.071576,
+          "sixty_forty": 0.076494
+        },
+        "cagr": 0.111276,
+        "decisions": 36,
+        "directional_accuracy": 0.5556,
+        "estimated_cost_usd": 18.2636,
+        "excess_return_vs_spy": -0.053477,
+        "input_tokens": 3028193,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.059816,
+        "outperformance_hit_rate": 0.4722,
+        "output_tokens": 2587453,
+        "requests": 358,
+        "risk_violations": 0,
+        "sharpe": 0.9849,
+        "spy_total_return": 0.135371,
+        "tool_calls": 663,
+        "total_return": 0.081894,
+        "trades": 412
+      },
+      "model": "zai-org/GLM-5.3",
+      "run_id": "20261005-172403_2026-ytd_zai-org-GLM-5.3_459943c39e",
+      "scenario": "2026-ytd",
+      "snapshot_id": "48f743fa7dd7baeae33f7bf092612a69c00a451d4721bd888eb97046510a6582",
+      "start": "2026-01-01",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
     }
   ],
   "schema_version": 1
