@@ -170,6 +170,48 @@
       "synthetic": false,
       "trust": "replayed",
       "year": "2026"
+    },
+    {
+      "created_utc": "2026-10-05T17:46:32+00:00",
+      "data_cutoff": "2026-10-02",
+      "dir": "runs/20261005-174632_2026-ytd_mimo-v2.6-pro_bedb387345",
+      "end": "2026-10-02",
+      "group": "98efe561d532e303",
+      "label": "0.2.1 protocol 4 stock selection",
+      "metrics": {
+        "annual_volatility": 0.125827,
+        "avg_turnover": 0.131635,
+        "baselines": {
+          "equal_weight": 0.098535,
+          "momentum_12_1": 0.071576,
+          "sixty_forty": 0.076494
+        },
+        "cagr": 0.088826,
+        "decisions": 36,
+        "directional_accuracy": 0.5556,
+        "estimated_cost_usd": 1.9957,
+        "excess_return_vs_spy": -0.069825,
+        "input_tokens": 3038052,
+        "invalid_outputs": 1,
+        "max_drawdown": -0.067796,
+        "outperformance_hit_rate": 0.5278,
+        "output_tokens": 774857,
+        "requests": 328,
+        "risk_violations": 1,
+        "sharpe": 0.739,
+        "spy_total_return": 0.135371,
+        "tool_calls": 426,
+        "total_return": 0.065546,
+        "trades": 320
+      },
+      "model": "mimo-v2.6-pro",
+      "run_id": "20261005-174632_2026-ytd_mimo-v2.6-pro_bedb387345",
+      "scenario": "2026-ytd",
+      "snapshot_id": "48f743fa7dd7baeae33f7bf092612a69c00a451d4721bd888eb97046510a6582",
+      "start": "2026-01-01",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
     }
   ],
   "schema_version": 1
