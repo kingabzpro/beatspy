@@ -19,7 +19,7 @@ from typing import Protocol
 from agents import Agent, RunConfig, Runner, set_tracing_disabled
 from agents.items import ToolCallItem
 
-from ..engine.backtest import momentum_weight_fn
+from ..engine.backtest import large_company_core_fn, momentum_weight_fn
 from ..models.provider import BeatSpyModelProvider, run_config_for
 from ..schemas import extract_json, parse_artifact, validate_decision
 from ..tools.context import ToolContext
@@ -164,19 +164,25 @@ class DecisionPipeline:
         self.scenario = scenario
         self.legacy_parsing = legacy_parsing
         self.protocol_version = protocol_version
+        self.single = protocol_version >= 6
+        self.feedback_history = []
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
-            run_config=run_config_for(provider, settings.model.temperature, settings.model.reasoning_effort),
-            max_turns=settings.model.max_turns,
+            run_config=run_config_for(
+                provider, settings.model.temperature, settings.model.reasoning_effort, settings.model.max_output_tokens
+            ),
+            max_turns=1 if self.single else settings.model.max_turns,
         )
         self.agents: dict[str, Agent] = {}
-        for role in ROLES:
+        for role in ["portfolio_manager"] if self.single else ROLES:
             model_name = settings.model.model
             self.agents[role] = Agent(
                 name=role,
-                instructions=prompts.INSTRUCTIONS[role],
+                instructions=prompts.SINGLE_MANAGER_INSTRUCTIONS if self.single else prompts.INSTRUCTIONS[role],
                 model=model_name,
-                tools=tools_for_role(role, web_enabled=web_tools, protocol_version=protocol_version),
+                tools=[]
+                if self.single
+                else tools_for_role(role, web_enabled=web_tools, protocol_version=protocol_version),
             )
 
     async def _run(self, role, input_text, tctx):
@@ -189,17 +195,24 @@ class DecisionPipeline:
         holdings: dict[str, float],
         cash: float,
         recent_decision: str | None,
+        portfolio_equity: float | None = None,
     ) -> DecisionRecord:
-        self.agents["research"].tools = tools_for_role(
-            "research",
-            web_enabled=bool(tctx.olostep_api_key),
-            news_enabled=bool(tctx.finnhub_api_key),
-            protocol_version=self.protocol_version,
-        )
-        self.agents["research"].instructions = prompts.INSTRUCTIONS["research"]
-        if self.protocol_version >= 5 and tctx.olostep_api_key:
+        if not self.single:
+            self.agents["research"].tools = tools_for_role(
+                "research",
+                web_enabled=bool(tctx.olostep_api_key),
+                news_enabled=bool(tctx.finnhub_api_key),
+                protocol_version=self.protocol_version,
+            )
+            self.agents["research"].instructions = prompts.INSTRUCTIONS["research"]
+        if not self.single and self.protocol_version >= 5 and tctx.olostep_api_key:
             self.agents["research"].instructions += prompts.WEB_RESEARCH_INSTRUCTIONS
-        reference = momentum_weight_fn(tctx.scenario, tctx.data)(tctx.as_of, None)["weights"]
+        reference_fn = (
+            large_company_core_fn(tctx.scenario)
+            if self.protocol_version >= 8
+            else momentum_weight_fn(tctx.scenario, tctx.data)
+        )
+        reference = reference_fn(tctx.as_of, None)["weights"]
         reference = {
             ticker: min(weight, tctx.scenario.max_position_weight)
             for ticker, weight in reference.items()
@@ -223,14 +236,27 @@ class DecisionPipeline:
                 "news_available": bool(tctx.finnhub_api_key),
                 "web_search_available": bool(tctx.olostep_api_key),
                 "reference_allocation": {
-                    "method": "12-minus-1-month momentum; top three, clipped to position limits",
+                    "method": (
+                        "Fixed equal-weight large-company stock core; concentrated in technology and related sectors"
+                        if self.protocol_version >= 8
+                        else "12-minus-1-month momentum; top three, clipped to position limits"
+                    ),
                     "weights": reference,
                     "cash": round(1 - sum(reference.values()), 4),
                 },
+                **(
+                    {"performance_feedback": self._feedback(tctx, portfolio_equity)}
+                    if self.protocol_version >= 7
+                    else {}
+                ),
             },
             tradable_tickers=self.scenario.tradable if self.protocol_version >= 4 else None,
         )
         record = DecisionRecord(date=tctx.as_of, market_brief=json.loads(brief))
+
+        if self.single:
+            pm = await self._run("portfolio_manager", brief, tctx)
+            return self._finish(record, pm)
 
         tasks = [asyncio.create_task(self._run(role, getattr(prompts, f"{role}_input")(brief), tctx)) for role in TRIO]
         try:
@@ -255,6 +281,9 @@ class DecisionPipeline:
             record.parse_errors.append(f"critic: {critique_err}")
 
         pm = await self._run("portfolio_manager", prompts.pm_input(brief, artifacts, critique_obj), tctx)
+        return self._finish(record, pm)
+
+    def _finish(self, record, pm):
         record.outcomes["portfolio_manager"] = pm
 
         raw = None
@@ -274,6 +303,28 @@ class DecisionPipeline:
         if record.validated.invalid:
             record.parse_errors.append("portfolio_manager: decision invalid; holding previous portfolio")
         return record
+
+    def _feedback(self, tctx, equity):
+        """Only marked-to-market values through the current decision date enter feedback."""
+        if equity is None or equity <= 0:
+            raise ValueError("performance feedback requires current portfolio equity")
+        benchmark = tctx.data.last_close(tctx.scenario.benchmark, tctx.as_of)[1]
+        current = (tctx.as_of.isoformat(), equity, benchmark)
+        feedback = {"as_of": current[0], "note": "Past realized returns; not a prediction."}
+        for label, previous in (
+            ("since_start", self.feedback_history[0] if self.feedback_history else current),
+            ("previous_window", self.feedback_history[-1] if self.feedback_history else current),
+        ):
+            portfolio_return = (equity / previous[1] - 1) * 100
+            benchmark_return = (benchmark / previous[2] - 1) * 100
+            feedback[label] = {
+                "start": previous[0],
+                "portfolio_return_pct": round(portfolio_return, 3),
+                "benchmark_return_pct": round(benchmark_return, 3),
+                "excess_return_pct": round(portfolio_return - benchmark_return, 3),
+            }
+        self.feedback_history.append(current)
+        return feedback
 
     def _parse_artifacts(self, record: DecisionRecord) -> dict[str, object]:
         artifacts: dict[str, object] = {}

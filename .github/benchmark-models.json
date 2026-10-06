@@ -14,7 +14,8 @@
     "cost_per_m_input": 0.435,
     "cost_per_m_output": 0.87,
     "pricing_source": "https://openrouter.ai/xiaomi/mimo-v2.6-pro",
-    "pricing_checked": "2026-10-05"
+    "pricing_checked": "2026-10-05",
+    "reasoning_effort": "none"
   },
   "zai-org/GLM-5.3": {
     "base_url": "https://abidali899--ep-glm-5-3-server.us-west.modal.direct/v1",
@@ -22,7 +23,8 @@
     "cost_per_m_input": 0.05,
     "cost_per_m_output": 7.0,
     "pricing_source": "https://openrouter.ai/z-ai/glm-5.3",
-    "pricing_checked": "2026-10-05"
+    "pricing_checked": "2026-10-05",
+    "reasoning_effort": "low"
   },
   "zai-org/GLM-5.3-Flash": {
     "base_url": "https://abidali899--ep-glm-5-3-flash-server.us-west.modal.direct/v1",
@@ -30,7 +32,8 @@
     "cost_per_m_input": 0.15,
     "cost_per_m_output": 0.5,
     "pricing_source": "https://openrouter.ai/z-ai/glm-5.3-flash",
-    "pricing_checked": "2026-10-05"
+    "pricing_checked": "2026-10-05",
+    "reasoning_effort": "low"
   },
   "deepseek-ai/DeepSeek-V4.1-Flash": {
     "base_url": "https://abidali899--ep-deepseek-v4-1-flash-server.us-west.modal.direct/v1",

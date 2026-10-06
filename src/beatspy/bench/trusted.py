@@ -11,7 +11,7 @@ from pathlib import Path
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
-from ..config import ModelConfig, Settings, ToolsConfig, provider_api_key
+from ..config import ModelConfig, Settings
 from ..reporting.catalog import build_catalog, submit_run
 from ..scenarios import load_scenario
 from .runner import run_benchmark, source_revision
@@ -62,9 +62,6 @@ def main():
                 cost_per_m_input=preset.get("cost_per_m_input"),
                 cost_per_m_output=preset.get("cost_per_m_output"),
             )
-        )
-        settings.tools = ToolsConfig(
-            forecast_provider="timegpt" if provider_api_key(settings, "timegpt") else "baseline"
         )
         before = code_digest()
         run = asyncio.run(run_benchmark(load_scenario("2026-ytd"), settings))

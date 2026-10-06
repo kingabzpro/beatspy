@@ -1,5 +1,21 @@
 # Architecture
 
+## Fast default
+
+Protocol 8 uses 12 dates spread across the full 2026 evaluation period and one
+portfolio manager call per date, without tools. Frozen Yahoo indicators, holdings,
+transaction costs, a fixed six-company stock core reference, and realized performance versus SPY are supplied directly.
+Feedback is calculated only through each decision date and replayed from portfolio accounting. Each request
+has a 4,096-token default cap, a 90-second timeout, and no automatic retries.
+Daily scoring and offline replay still cover the full period. The five-agent
+protocol below remains available with `--team` for local experiments.
+
+The core is AAPL, MSFT, NVDA, GOOGL, META, and AMZN, equally weighted within the
+position limits. It is also scored separately as a non-model baseline. Its sector
+concentration is explicit; models can depart based on dated price evidence.
+
+## Components
+
 BeatSPY has two independent parts: a Python benchmark package in `src/beatspy`, and
 static HTML/CSS/JavaScript in `dashboard`. The website reads reviewed artifact files;
 it does not run models, store credentials, or require an application server.
@@ -39,18 +55,17 @@ validator checks signatures and replay before accepting new leaderboard records.
 The default continuous benchmark spans 2026 through the latest completed market session
 and includes 23 large companies across 11 sectors, with TLT/GLD hedges and cash.
 Protocols 4 and 5 use the explicit tradable list in prompts, allocation validation,
-execution, and replay. SPY is comparison-only for this benchmark. Weekly decisions are capped at 36, retaining
+execution, and replay. SPY is comparison-only for this benchmark. Default single-call decisions are capped at 12, retaining
 both ends of the year-to-date schedule and daily equity scoring through
 the cutoff. The same cap is recorded in the scenario and enforced during replay.
-Finnhub is enabled where available; Olostep is disabled for official results.
+External research is disabled for official fast results.
 Protocol 5 adds optional direct Olostep search and scraping (`--web-research`),
 bounded to two searches and three scrapes per decision. Undated, future-published,
 or future-updated page content is withheld before reaching the model. Search
 results are navigation only. Accepted text and source metadata are logged in
 `events.jsonl`. Live metadata cannot authenticate past content; these experiments
 remain outside the official leaderboard. Current fundamentals and unarchived
-historical analyst ratings are excluded from protocol 5 agents. Trusted runs use TimeGPT
-when its key is available. The dashboard shows one latest execution per model, with
+historical analyst ratings are excluded from protocol 5 agents. Trusted fast runs use prices only. The dashboard shows one latest execution per model, with
 no filters. Old runs have been removed from the active catalog.
 
 The static dashboard uses safe text rendering and native SVG charts. A local report is a

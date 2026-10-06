@@ -43,12 +43,26 @@ class BeatSpyModelProvider(ModelProvider):
 
 
 def run_config_for(
-    provider: BeatSpyModelProvider, temperature: float, reasoning_effort: str | None = None
+    provider: BeatSpyModelProvider,
+    temperature: float,
+    reasoning_effort: str | None = None,
+    max_output_tokens: int | None = None,
 ) -> RunConfig:
+    # New OpenAI models require max_completion_tokens; compatible servers use max_tokens.
+    openai_limit = bool(provider and provider.client.base_url.host == "api.openai.com" and max_output_tokens)
+    mimo_no_thinking = bool(
+        provider and provider.client.base_url.host.endswith("xiaomimimo.com") and reasoning_effort == "none"
+    )
+    extra_body = {"max_completion_tokens": max_output_tokens} if openai_limit else None
+    if mimo_no_thinking:
+        extra_body = {"thinking": {"type": "disabled"}}
     return RunConfig(
         model_provider=provider,
         model_settings=ModelSettings(
-            temperature=temperature, reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort else None
+            temperature=temperature,
+            reasoning=Reasoning(effort=reasoning_effort) if reasoning_effort and not mimo_no_thinking else None,
+            max_tokens=None if openai_limit else max_output_tokens,
+            extra_body=extra_body,
         ),
         tracing_disabled=True,
     )
@@ -94,10 +108,11 @@ async def probe_tools(provider: BeatSpyModelProvider, model_name: str, reasoning
 
 
 async def probe_capabilities(
-    provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None
+    provider: BeatSpyModelProvider, model_name: str, reasoning_effort=None, *, require_tools=False
 ) -> dict[str, tuple[bool, str]]:
     """Run all probes in one event loop (the HTTP client is loop-bound)."""
-    return {
-        "chat": await probe_chat(provider, model_name, reasoning_effort),
-        "tools": await probe_tools(provider, model_name, reasoning_effort),
-    }
+    probes = {"chat": await probe_chat(provider, model_name, reasoning_effort)}
+    if require_tools:
+        probes["tools"] = await probe_tools(provider, model_name, reasoning_effort)
+    await provider.client.close()
+    return probes

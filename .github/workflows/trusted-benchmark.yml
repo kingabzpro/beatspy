@@ -41,7 +41,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           python-version: '3.12'
-      - run: uv sync --frozen --extra timegpt
+      - run: uv sync --frozen
       - name: Check pinned verification key
         run: test -f .github/verification-key.pem
       - name: Rerun with trusted code and endpoints
@@ -49,8 +49,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           XIAOMI_TOKEN_PLAN_SGP_API_KEY: ${{ secrets.XIAOMI_TOKEN_PLAN_SGP_API_KEY }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
-          NIXTLA_API_KEY: ${{ secrets.NIXTLA_API_KEY }}
         run: uv run --no-sync python -m beatspy.bench.trusted run
       - name: Sign replayed artifacts with the owner's key
         env:

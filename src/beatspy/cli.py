@@ -54,9 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--model", help="configure without prompts using existing environment keys")
     p.add_argument("--base-url", help="OpenAI-compatible endpoint")
     p.add_argument("--api-key-env", help="existing environment variable containing the model key")
+    p.add_argument("--team", action="store_true", help="configure optional research integrations")
     p.set_defaults(func=cmd_setup)
 
     p = sub.add_parser("doctor", parents=[common], help="check config, model, and data health")
+    p.add_argument("--team", action="store_true", help="also check tool calling and research integrations")
     p.set_defaults(func=cmd_doctor)
 
     p = sub.add_parser("scenarios", parents=[common], help="list available benchmark scenarios")
@@ -68,6 +70,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--base-url", help="override configured model base URL")
     p.add_argument("--freq", choices=["weekly", "monthly"], help="decision frequency override")
     p.add_argument("--max-decisions", type=positive_int, help="limit decisions, evenly spread across the full period")
+    p.add_argument("--team", action="store_true", help="slower five-agent research pipeline (local experiment)")
     p.add_argument("--start", help="override start date YYYY-MM-DD")
     p.add_argument("--end", help="override end date YYYY-MM-DD")
     p.add_argument("--label", help="free-text label stored in the run record")
@@ -171,14 +174,17 @@ def cmd_setup(args: argparse.Namespace) -> int:
         return 1
     api_key = _secret_input("Model API key (leave empty for local servers): ").strip()
 
-    print("\nOptional integrations; press Enter to skip any of them.")
-    finnhub = _secret_input("Finnhub API key (news, fundamentals): ").strip()
-    timegpt = _secret_input("TimeGPT API key (forecasting): ").strip()
-    default_forecast = "timegpt" if timegpt or provider_api_key(current_settings, "timegpt") else "baseline"
-    forecast = (
-        input(f"Forecast provider [baseline/naive/chronos/timegpt, default {default_forecast}]: ").strip()
-        or default_forecast
-    )
+    finnhub = timegpt = ""
+    forecast = current_settings.tools.forecast_provider
+    if args.team:
+        print("\nOptional integrations; press Enter to skip any of them.")
+        finnhub = _secret_input("Finnhub API key (news): ").strip()
+        timegpt = _secret_input("TimeGPT API key (forecasting): ").strip()
+        default_forecast = "timegpt" if timegpt or provider_api_key(current_settings, "timegpt") else "baseline"
+        forecast = (
+            input(f"Forecast provider [baseline/naive/chronos/timegpt, default {default_forecast}]: ").strip()
+            or default_forecast
+        )
 
     settings = Settings(
         model=ModelConfig(base_url=base_url, model=model),
@@ -204,7 +210,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     print("\nProbing model capabilities...")
     # probes fail fast: no retries, short timeout, so a dead endpoint answers quickly
     provider = BeatSpyModelProvider(base_url, api_key or model_api_key(settings), request_timeout=15.0, max_retries=0)
-    probes = asyncio.run(probe_capabilities(provider, model, settings.model.reasoning_effort))
+    probes = asyncio.run(probe_capabilities(provider, model, settings.model.reasoning_effort, require_tools=args.team))
     for name, (ok, detail) in probes.items():
         print(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
 
@@ -233,7 +239,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     provider = BeatSpyModelProvider(
         settings.model.base_url, model_api_key(settings), request_timeout=15.0, max_retries=0
     )
-    probes = asyncio.run(probe_capabilities(provider, settings.model.model, settings.model.reasoning_effort))
+    probes = asyncio.run(
+        probe_capabilities(provider, settings.model.model, settings.model.reasoning_effort, require_tools=args.team)
+    )
     for name, (ok, detail) in probes.items():
         checks.append((f"model {name}", "PASS" if ok else "FAIL", detail))
 
@@ -248,6 +256,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             ", ".join(snapshots) if snapshots else "no snapshots yet; the first run downloads prices via yfinance",
         )
     )
+
+    if not args.team:
+        checks.append(("pipeline", "PASS", "fast: Yahoo prices and one model call; research keys not required"))
+        _print_checks(checks)
+        return 0 if all(status != "FAIL" for _, status, _ in checks) else 1
 
     forecast = settings.tools.forecast_provider
     if forecast == "chronos":
@@ -307,6 +320,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     if args.base_url:
         settings.model.base_url = args.base_url
     scenarios = [load_scenario(name) for name in (args.scenario or ["2026-ytd"])]
+    if args.team or args.web_research:
+        scenarios = [scenario.model_copy(update={"pipeline": "team", "allow_finnhub": True}) for scenario in scenarios]
     if args.web_research:
         if not provider_api_key(settings, "olostep"):
             raise ValueError("--web-research requires OLOSTEP_API_KEY (or BEATSPY_OLOSTEP_API_KEY)")
@@ -322,6 +337,8 @@ def cmd_run(args: argparse.Namespace) -> int:
             Scenario.model_validate({**scenario.model_dump(), "max_decisions": args.max_decisions})
             for scenario in scenarios
         ]
+    if all(scenario.pipeline == "single" for scenario in scenarios):
+        print("Fast benchmark: frozen Yahoo prices, one model call per decision, no external research.")
     outcomes = asyncio.run(
         run_batch(
             scenarios,

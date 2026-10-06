@@ -3,8 +3,8 @@
 ## Run and submit
 
 1. Clone the repo and run `uv sync` (Python 3.11+ required).
-2. Run `uv run beatspy setup` to select a model and optionally add Finnhub/TimeGPT keys. TimeGPT requires `uv sync --extra timegpt`.
-3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with weekly decisions capped at 36 per model. Olostep is disabled for official results.
+2. Run `uv run beatspy setup` to select a model. Fast runs only require its API key.
+3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with 12 decisions spread across the full period. Each uses one model call and cached Yahoo prices; no research API keys are needed.
 4. View `uv run beatspy results` or `uv run beatspy report --open`.
 5. Run `uv run beatspy submit --send`. Authenticate GitHub CLI first with `gh auth login`.
 
@@ -32,9 +32,8 @@ also offers a prefilled verification request button.
 - Put the matching existing **private** PEM key in the `BEATSPY_SIGNING_KEY` secret
   of the `leaderboard-signing` GitHub environment. Never commit the private key.
 - Configure that environment to allow only protected `main` and require owner approval.
-- Add the model API secrets listed in `.github/benchmark-models.json`, plus
-  `FINNHUB_API_KEY` and `NIXTLA_API_KEY` when those integrations should be enabled.
-  The trusted workflow selects TimeGPT when its key is present, otherwise the built-in forecast.
+- Add the model API secrets listed in `.github/benchmark-models.json`;
+  no financial research API keys are required for the trusted fast benchmark.
 - Enable Actions to create PRs. Require the result-validation check and CODEOWNER
   review for protected code/workflows/public-key changes before merging.
 - Optionally set `BEATSPY_SUBMISSION_TOKEN` to a repository-scoped GitHub App/PAT

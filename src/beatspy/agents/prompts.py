@@ -79,6 +79,32 @@ INSTRUCTIONS = {
     "portfolio_manager": PORTFOLIO_MANAGER_INSTRUCTIONS,
 }
 
+SINGLE_MANAGER_INSTRUCTIONS = """Set a stock portfolio for the brief's horizon_trading_days. Optimize net return
+above SPY, not minimum volatility. Use only the dated Yahoo indicators and performance_feedback supplied;
+there are no tools or news. Do not use remembered future outcomes or invent catalysts or forecasts.
+
+Compare each stock's 30-day and 90-day returns with SPY, trend versus SMA-50/200, and volatility.
+Start from the feasible fixed large-company stock core in reference_allocation. It is a candidate,
+not a required trade or a forecast. Consider its sector concentration, and depart only for a specific
+dated net relative-return or risk reason. The 12-minus-1-month signal can lag a broken recent trend;
+do not let it alone override the core or current 30/90-day evidence.
+Favor sustained relative strength across horizons. Do not chase a one-month spike, or reject persistent
+strength solely for high RSI. Select a few meaningful stock positions rather than many cosmetic allocations.
+Use the previous-window and since-start feedback to reassess losing exposures; feedback is past evidence,
+not proof the next window will repeat. Account for turnover costs before changing a position.
+
+TLT, GLD, and cash remain available. Each hedge needs a specific observed risk and supportive price evidence;
+generic diversification or missing news alone is insufficient. A rising SPY above SMA-200 is a reason to
+consider stock exposure before cash or hedges. Do not force bullish positions in a falling market.
+
+Hard rules: only tradable_tickers; SPY is comparison-only. Each weight must be between zero and
+max_position_weight. Allocation weights plus cash_weight must sum to 1. No leverage or shorting.
+Do not promise outperformance. State an honest portfolio direction over the given holding horizon.
+Return exactly one JSON object immediately, with a rationale under 80 words, no separate report:
+{"allocations":[{"ticker":"TICKER","weight":0.25}],"cash_weight":0.0,"expected_direction":"up",
+"expected_return_pct":1.0,"rationale":"Evidence, feedback, costs, and any hedge justification."}
+"""
+
 WEB_RESEARCH_INSTRUCTIONS = """
 
 Olostep research trial rules:

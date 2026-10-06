@@ -28,6 +28,52 @@ def test_full_decision(pipeline, data_service, scenario):
     assert totals["requests"] == 5
 
 
+def test_single_call_has_no_tools_and_keeps_spy_guard(settings, data_service, scenario):
+    executor = FakeExecutor(
+        {
+            "portfolio_manager": '{"allocations":[{"ticker":"SPY","weight":0.3},'
+            '{"ticker":"MSFT","weight":0.3}],"cash_weight":0.4}'
+        }
+    )
+    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=executor, protocol_version=6)
+    record = asyncio_run(pipeline.decide(make_tctx(data_service, scenario), {}, 1.0, None))
+    assert executor.calls == ["portfolio_manager"]
+    assert pipeline.agents["portfolio_manager"].tools == []
+    assert set(record.outcomes) == {"portfolio_manager"}
+    assert record.artifacts == {}
+    assert record.validated.weights == {"MSFT": 0.3}
+    assert any("SPY" in violation for violation in record.validated.violations)
+
+
+def test_feedback_uses_current_and_previous_values_only(settings, data_service, scenario):
+    from datetime import timedelta
+
+    pipeline = DecisionPipeline(settings, scenario, provider=None, executor=FakeExecutor(), protocol_version=7)
+    tctx = make_tctx(data_service, scenario)
+    first = asyncio_run(pipeline.decide(tctx, {}, 1, None, portfolio_equity=100000))
+    tctx.as_of += timedelta(days=7)
+    second = asyncio_run(pipeline.decide(tctx, {}, 1, None, portfolio_equity=102000))
+    feedback = second.market_brief["performance_feedback"]
+    assert first.market_brief["performance_feedback"]["since_start"]["portfolio_return_pct"] == 0
+    assert feedback["previous_window"]["portfolio_return_pct"] == 2
+    assert feedback["previous_window"]["start"] == first.date.isoformat()
+    start_price = data_service.last_close(scenario.benchmark, first.date)[1]
+    current_price = data_service.last_close(scenario.benchmark, second.date)[1]
+    assert feedback["previous_window"]["benchmark_return_pct"] == round((current_price / start_price - 1) * 100, 3)
+
+
+def test_large_company_core_is_fixed_and_cannot_include_spy():
+    from beatspy.engine.backtest import large_company_core_fn
+    from beatspy.scenarios import load_scenario
+
+    scenario = load_scenario("2026-ytd")
+    weights = large_company_core_fn(scenario)(None, None)["weights"]
+    assert set(weights) == {"AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN"}
+    assert all(weight == pytest.approx(1 / 6) for weight in weights.values())
+    assert sum(weights.values()) == pytest.approx(1)
+    assert max(weights.values()) <= scenario.max_position_weight
+
+
 def test_invalid_pm_output_holds_portfolio(pipeline, data_service, scenario):
     pipeline.executor.outputs["portfolio_manager"] = "I cannot decide right now, sorry."
     tctx = make_tctx(data_service, scenario)
