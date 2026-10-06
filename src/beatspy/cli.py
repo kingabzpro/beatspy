@@ -395,9 +395,11 @@ def cmd_compare(args: argparse.Namespace) -> int:
         return 1
 
     runs.sort(key=lambda r: r["created_utc"], reverse=True)
+    # Keep the six-month versions distinct: dedupe on model *and* scenario, so
+    # V1/V2/V3 are never collapsed into a single row.
     latest = {}
     for run in runs:
-        latest.setdefault(run["model"], run)
+        latest.setdefault((run["model"], run["scenario"]), run)
     runs = sorted(latest.values(), key=lambda r: -r["metrics"].get("excess_return_vs_spy", 0.0))
     if args.json:
         print(json.dumps([{k: v for k, v in r.items() if k not in ("meta",)} for r in runs], indent=2, default=str))
@@ -426,8 +428,8 @@ def cmd_compare(args: argparse.Namespace) -> int:
     )
     print(frame.to_string(index=False))
     print(
-        "\nLatest run per model, sorted by excess; each row shows its evaluation period. "
-        "Full settings and earlier runs are available with --json."
+        "\nLatest run per model and benchmark version, sorted by excess; each row shows its "
+        "evaluation period. Full settings and earlier runs are available with --json."
     )
     return 0
 
@@ -499,7 +501,11 @@ def request_submission(directory: Path, *, send=False) -> int:
 
     meta = validate_run(directory)
     if meta["scenario"]["name"] != "2026-comparison":
-        raise ValueError("Leaderboard requests require 2026-comparison. Run: beatspy run")
+        raise ValueError(
+            f"Leaderboard requests require the 2026-comparison benchmark, not "
+            f"{meta['scenario']['name']!r}. The six-month version family is a published "
+            "comparison and is not leaderboard-eligible. Run: beatspy run"
+        )
     request = {
         "model": meta["model"]["model"],
         "benchmark": "2026-comparison",

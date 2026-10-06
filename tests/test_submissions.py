@@ -30,6 +30,34 @@ def rehash(run, filename):
     atomic_json(run / "run.json", meta)
 
 
+def test_six_month_versions_are_not_leaderboard_eligible(tmp_path, monkeypatch, settings):
+    """The six-month family is a published comparison, not a leaderboard entry."""
+    from beatspy.cli import request_submission
+    from beatspy.scenarios import load_scenario
+
+    monkeypatch.setenv("BEATSPY_HOME", str(tmp_path / "home"))
+    scenario = load_scenario("2026-6m-monthly")
+    monkeypatch.setattr(
+        "beatspy.data.freeze.download_ohlc",
+        lambda *a, **k: make_prices(scenario.universe, start="2025-03-01", end="2026-10-02", seed=19),
+    )
+    directory = asyncio.run(
+        run_benchmark(
+            scenario, settings, executor=FakeExecutor(), out_root=tmp_path / "results", data_root=tmp_path / "cache"
+        )
+    )
+    # The run itself is valid and replayable; only the submission path rejects it.
+    validate_run(directory)
+    with pytest.raises(ValueError, match="not leaderboard-eligible"):
+        request_submission(directory)
+    assert not (directory / "submission.md").exists()
+    # The trusted runner keeps its own narrow allow-list.
+    from beatspy.bench.trusted import request_model
+
+    with pytest.raises(ValueError, match="only 2026-comparison"):
+        request_model({"issue": {"body": '```json\n{"model": "m", "benchmark": "2026-6m-weekly"}\n```'}})
+
+
 def test_complete_run_replays_and_stops_at_cutoff(run):
     meta = validate_run(run)
     assert meta["protocol_version"] == 5

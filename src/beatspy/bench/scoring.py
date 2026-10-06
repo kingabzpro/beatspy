@@ -56,12 +56,30 @@ async def score_run(
         ("momentum_12_1", momentum_weight_fn(scenario, data)),
     ]:
         baselines[name] = (await run_backtest(data, decision_dates, fn, scenario, legacy=legacy)).equity
-    if protocol_version >= 8:
+    # Protocol 8 historically implied the fixed stock core; protocol 9 lets the
+    # scenario declare it, so archived runs keep scoring the baseline they always did.
+    if protocol_version >= 8 or scenario.reference_kind == "core":
         baselines["large_company_core"] = (
             await run_backtest(
                 data, decision_dates, large_company_core_fn(scenario), scenario, allowed_tickers=scenario.tradable
             )
         ).equity
+    # Non-tradable assets scored alongside SPY: buy-and-hold from the same start
+    # value through the same frozen prices. This makes a hedge sleeve's own market
+    # return a first-class, replayable number instead of a claim in a report.
+    asset_curves: dict[str, pd.Series] = {}
+    for ticker in scenario.score_assets:
+        values: dict[date, float] = {}
+        base = None
+        for day in result.equity.index:
+            close = data.close_on(ticker, day)
+            if close is None:
+                continue
+            if base is None:
+                base = close
+            values[day] = scenario.initial_capital * close / base
+        if values:
+            asset_curves[ticker] = pd.Series(values).sort_index()
 
     daily_returns = result.equity.pct_change().dropna()
     p_windows = window_returns(result.equity, decision_dates)
@@ -94,7 +112,8 @@ async def score_run(
         output_tokens=output_tokens,
         requests=requests,
         estimated_cost_usd=estimate_cost(settings, input_tokens, output_tokens),
-        baselines={name: round(total_return(eq), 6) for name, eq in baselines.items()},
+        baselines={name: round(total_return(eq), 6) for name, eq in baselines.items()}
+        | {ticker: round(total_return(eq), 6) for ticker, eq in asset_curves.items()},
     )
 
     equity_df = pd.DataFrame(
@@ -106,6 +125,8 @@ async def score_run(
             "momentum_12_1": baselines["momentum_12_1"],
         }
     )
-    if protocol_version >= 8:
+    if protocol_version >= 8 or scenario.reference_kind == "core":
         equity_df["large_company_core"] = baselines["large_company_core"]
+    for ticker, curve in asset_curves.items():
+        equity_df[ticker] = curve
     return metrics, equity_df

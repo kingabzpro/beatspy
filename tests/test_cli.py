@@ -11,6 +11,43 @@ def test_scenarios_command_lists_builtins(capsys):
     assert "2022-bear" in out
     assert "2020-covid" in out
     assert "2023-recovery" in out
+    # The six-month version family must be discoverable from the CLI.
+    for name in ("2026-6m-buyhold", "2026-6m-monthly", "2026-6m-weekly"):
+        assert name in out
+
+
+def test_compare_keeps_six_month_versions_distinct(tmp_path, monkeypatch, capsys):
+    """Three cadences for one model must produce three rows, not one."""
+    import json
+
+    monkeypatch.chdir(tmp_path)
+    results = tmp_path / "results"
+    scenarios = ["2026-6m-buyhold", "2026-6m-monthly", "2026-6m-weekly"]
+    for i, scenario in enumerate(scenarios):
+        directory = results / f"run{i}"
+        directory.mkdir(parents=True)
+        total = [0.083, -0.042, 0.037][i]
+        (directory / "run.json").write_text(
+            json.dumps(
+                {
+                    "run_id": f"run{i}",
+                    "model": {"model": "test-model"},
+                    "scenario": {"name": scenario},
+                    "requested": {"start": "2026-04-06", "end": "2026-10-02", "frequency": "weekly"},
+                    "synthetic": False,
+                    "created_utc": f"2026-10-06T00:0{i}:00+00:00",
+                }
+            ),
+            encoding="utf-8",
+        )
+        (directory / "metrics.json").write_text(
+            json.dumps({"total_return": total, "spy_total_return": 0.174, "excess_return_vs_spy": total - 0.174}),
+            encoding="utf-8",
+        )
+
+    assert main(["results", "--json"]) == 0
+    rows = json.loads(capsys.readouterr().out)
+    assert sorted(row["scenario"] for row in rows) == sorted(scenarios)
 
 
 def test_demo_compare_and_report(tmp_path, monkeypatch, capsys):

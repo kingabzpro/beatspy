@@ -72,13 +72,26 @@ class DataService:
         return later[0] if later else None
 
     def decision_dates(
-        self, start: date, end: date, freq: str = "monthly", *, legacy=False, max_decisions: int | None = None
+        self,
+        start: date,
+        end: date,
+        freq: str = "monthly",
+        *,
+        legacy=False,
+        max_decisions: int | None = None,
+        first_only: bool = False,
     ) -> list[date]:
         """First trading day on/after start, then weekly Fridays or month-ends."""
         days = [d for d in self.calendar if start <= d <= end]
         if not days:
             return []
         out = [days[0]]
+        if first_only:
+            # A single decision at the start, then hold. Still requires a next
+            # session inside the window so the order can actually fill.
+            if self.next_trading_day(out[0]) is None or self.next_trading_day(out[0]) > end:
+                return []
+            return out
         if freq == "weekly":
             out += [d for d in days[1:] if d.weekday() == 4 and d > out[-1]]
         else:  # monthly: include the first month's last trading day

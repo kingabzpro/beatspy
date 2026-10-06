@@ -164,7 +164,11 @@ class DecisionPipeline:
         self.scenario = scenario
         self.legacy_parsing = legacy_parsing
         self.protocol_version = protocol_version
-        self.single = protocol_version >= 6
+        # Protocols 6-8 historically meant "single call", so they keep that
+        # numeric meaning for archived-run replay. Protocol 9 defers to the
+        # scenario's declared pipeline, which lets the multi-agent six-month
+        # family share a protocol number with single-call scenarios.
+        self.single = scenario.pipeline == "single" if protocol_version >= 9 else protocol_version >= 6
         self.feedback_history = []
         self.agent_limit = agent_limit or asyncio.Semaphore(6)
         self.executor = executor or SdkExecutor(
@@ -208,11 +212,15 @@ class DecisionPipeline:
         if not self.single and self.protocol_version >= 5 and tctx.olostep_api_key:
             self.agents["research"].instructions += prompts.WEB_RESEARCH_INSTRUCTIONS
         reference_fn = (
-            large_company_core_fn(tctx.scenario)
-            if self.protocol_version >= 8
-            else momentum_weight_fn(tctx.scenario, tctx.data)
+            None
+            if self.scenario.reference_kind == "none"
+            else (
+                large_company_core_fn(tctx.scenario)
+                if self.scenario.reference_kind == "core"
+                else momentum_weight_fn(tctx.scenario, tctx.data)
+            )
         )
-        reference = reference_fn(tctx.as_of, None)["weights"]
+        reference = {} if reference_fn is None else reference_fn(tctx.as_of, None)["weights"]
         reference = {
             ticker: min(weight, tctx.scenario.max_position_weight)
             for ticker, weight in reference.items()
@@ -235,18 +243,47 @@ class DecisionPipeline:
                 "transaction_cost_bps_each_way": tctx.scenario.fee_bps + tctx.scenario.slippage_bps,
                 "news_available": bool(tctx.finnhub_api_key),
                 "web_search_available": bool(tctx.olostep_api_key),
-                "reference_allocation": {
-                    "method": (
-                        "Fixed equal-weight large-company stock core; concentrated in technology and related sectors"
-                        if self.protocol_version >= 8
-                        else "12-minus-1-month momentum; top three, clipped to position limits"
-                    ),
-                    "weights": reference,
-                    "cash": round(1 - sum(reference.values()), 4),
-                },
+                # The six-month family (protocol 9) needs sleeve, floor, and
+                # holding-period context. Earlier protocols keep their exact
+                # historical brief bytes so archived runs still replay.
+                **(
+                    {
+                        "min_names": tctx.scenario.require_min_names,
+                        "universe_groups": tctx.scenario.universe_groups,
+                        "holding_period": (
+                            "buy and hold to the evaluation cutoff; no further decisions"
+                            if tctx.scenario.first_only
+                            else "rebalanced at each decision date"
+                        ),
+                    }
+                    if self.protocol_version >= 9
+                    else {}
+                ),
+                **(
+                    {
+                        "reference_allocation": {
+                            "method": (
+                                "Fixed equal-weight large-company stock core; concentrated in technology "
+                                "and related sectors"
+                                if self.scenario.reference_kind == "core"
+                                else "12-minus-1-month momentum; top three, clipped to position limits"
+                            ),
+                            "weights": reference,
+                            "cash": round(1 - sum(reference.values()), 4),
+                        }
+                    }
+                    if reference_fn is not None
+                    else {
+                        "reference_allocation": None,
+                        "reference_note": (
+                            "No reference allocation is supplied for this benchmark. Originate the "
+                            "portfolio yourself from the frozen evidence."
+                        ),
+                    }
+                ),
                 **(
                     {"performance_feedback": self._feedback(tctx, portfolio_equity)}
-                    if self.protocol_version >= 7
+                    if self.scenario.perf_feedback and self.protocol_version >= 7
                     else {}
                 ),
             },
@@ -299,6 +336,7 @@ class DecisionPipeline:
             self.scenario.tradable if self.protocol_version >= 4 else self.scenario.universe,
             self.scenario.max_position_weight,
             legacy=self.legacy_parsing,
+            min_names=self.scenario.require_min_names,
         )
         if record.validated.invalid:
             record.parse_errors.append("portfolio_manager: decision invalid; holding previous portfolio")

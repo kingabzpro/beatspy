@@ -114,6 +114,9 @@ async def run_benchmark(
     run_code_digest = code_digest()
     data, manifest = prepared_data or await asyncio.to_thread(ensure_data, scenario, data_root, refresh_data)
     single = scenario.pipeline == "single"
+    # An explicit scenario protocol wins; otherwise keep the legacy derivation so
+    # archived runs replay byte-identically.
+    protocol = scenario.protocol_version or (8 if single else 5)
     comparison = scenario.name == "2026-comparison" and not single
     if comparison:
         settings = settings.model_copy(deep=True)
@@ -156,13 +159,17 @@ async def run_benchmark(
             executor=executor,
             web_tools=web_enabled,
             agent_limit=agent_limit,
-            protocol_version=8 if single else 5,
+            protocol_version=protocol,
         )
 
         start_day = date.fromisoformat(start or scenario.start)
         end_day = date.fromisoformat(end or scenario.end)
         decision_dates = data.decision_dates(
-            start_day, end_day, freq or scenario.frequency, max_decisions=scenario.max_decisions
+            start_day,
+            end_day,
+            freq or scenario.frequency,
+            max_decisions=scenario.max_decisions,
+            first_only=scenario.first_only,
         )
         if not decision_dates:
             raise RuntimeError("No decision dates in the requested range; check scenario start/end.")
@@ -201,7 +208,7 @@ async def run_benchmark(
                 invested,
                 1.0 - sum(invested.values()),
                 recent_summary,
-                portfolio_equity=state.equity(day, data) if single else None,
+                portfolio_equity=state.equity(day, data) if (single or scenario.perf_feedback) else None,
             )
             decisions.append(record)
             # An unparseable decision means "hold", never "liquidate": a model
@@ -239,16 +246,17 @@ async def run_benchmark(
             decision_dates,
             decisions,
             harness_violations,
-            protocol_version=8 if single else 5,
+            protocol_version=protocol,
         )
-
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
         run_id = f"{stamp}_{_slug(scenario.name)}_{_slug(settings.model.model)}_{uuid4().hex[:10]}"
         out_dir = (out_root or results_dir()) / run_id
 
         run_meta = {
             "schema_version": 2,
-            "protocol_version": 8 if single else 5,
+            "protocol_version": protocol,
+            "reference_kind": scenario.reference_kind,
+            "performance_feedback": scenario.perf_feedback,
             "source_revision": source_revision(),
             "code_sha256": run_code_digest,
             "run_id": run_id,

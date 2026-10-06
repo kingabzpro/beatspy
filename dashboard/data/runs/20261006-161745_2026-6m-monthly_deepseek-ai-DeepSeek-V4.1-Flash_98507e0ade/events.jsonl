@@ -1,0 +1,28 @@
+{"type": "decision", "date": "2026-04-06", "weights": {"JNJ": 0.13, "COST": 0.11, "XOM": 0.11, "WMT": 0.1, "LIN": 0.09, "NEE": 0.09, "CVX": 0.08, "JPM": 0.07, "GLD": 0.07, "TLT": 0.05, "AAPL": 0.05}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-04-06"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-04-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-04-06"}
+{"type": "decision", "date": "2026-04-30", "weights": {"GOOGL": 0.1, "AVGO": 0.09, "NVDA": 0.09, "CAT": 0.07, "AMZN": 0.07, "AAPL": 0.07, "JPM": 0.07, "WMT": 0.07, "NEE": 0.06, "PLD": 0.06, "COST": 0.05, "JNJ": 0.05, "GLD": 0.05, "TLT": 0.05}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-04-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-04-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-04-30"}
+{"type": "decision", "date": "2026-05-29", "weights": {"GOOGL": 0.11, "AVGO": 0.1, "NVDA": 0.09, "AMZN": 0.08, "AAPL": 0.07, "CAT": 0.07, "JPM": 0.06, "UNH": 0.05, "JNJ": 0.05, "PLD": 0.05, "GLD": 0.05, "TLT": 0.05}, "cash": 0.17, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-05-29"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-05-29"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-05-29"}
+{"type": "decision", "date": "2026-06-30", "weights": {"GOOGL": 0.1, "NVDA": 0.07, "AAPL": 0.06, "AVGO": 0.05, "JPM": 0.08, "JNJ": 0.08, "UNH": 0.07, "LLY": 0.07, "CAT": 0.06, "GE": 0.05, "BRK-B": 0.06, "LIN": 0.05, "TLT": 0.06, "PLD": 0.04}, "cash": 0.1, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-06-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-06-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-06-30"}
+{"type": "decision", "date": "2026-07-31", "weights": {"JPM": 0.11, "V": 0.08, "BRK-B": 0.08, "AMZN": 0.08, "JNJ": 0.07, "XOM": 0.06, "CVX": 0.05, "GE": 0.05, "PLD": 0.05, "AAPL": 0.05, "GOOGL": 0.05, "LLY": 0.05, "UNH": 0.04, "AVGO": 0.04, "NVDA": 0.04, "GLD": 0.05}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-31"}
+{"type": "decision", "date": "2026-08-31", "weights": {"V": 0.1, "JNJ": 0.1, "XOM": 0.09, "JPM": 0.09, "CVX": 0.06, "AAPL": 0.07, "NVDA": 0.06, "MSFT": 0.05, "LLY": 0.05, "GLD": 0.06, "BRK-B": 0.05, "GOOGL": 0.04, "PLD": 0.03, "UPS": 0.03}, "cash": 0.12, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-31"}
+{"type": "decision", "date": "2026-09-30", "weights": {"AAPL": 0.11, "NVDA": 0.07, "MSFT": 0.06, "XOM": 0.08, "CVX": 0.05, "USO": 0.04, "JNJ": 0.07, "LLY": 0.05, "BRK-B": 0.06, "JPM": 0.05, "GOOGL": 0.04, "V": 0.04, "PG": 0.04}, "cash": 0.24, "predicted_direction": "flat", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-30"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-30"}

@@ -68,20 +68,40 @@ function modelName(model) {
   return String(model).split("/").at(-1);
 }
 
+// The six-month family is one benchmark published as three decision cadences.
+// Each version is its own entry, so a version is never hidden behind another
+// run of the same model.
+const VERSIONS = {
+  "2026-6m-buyhold": {label: "V1 · Buy once", cadence: "1 decision, then hold"},
+  "2026-6m-monthly": {label: "V2 · Monthly", cadence: "monthly rebalance"},
+  "2026-6m-weekly": {label: "V3 · Weekly", cadence: "weekly trade + hedges"},
+};
+function versionOf(run) {
+  return VERSIONS[run.scenario] || null;
+}
+function versionLabel(run) {
+  const version = versionOf(run);
+  return version ? version.label : run.scenario;
+}
+
 function allocationRow(row) {
   const held = row.validated?.invalid ? row.market_brief : null;
   return {date: row.date, ...(held?.current_portfolio_weights || row.validated?.weights || row.decision?.allocations?.reduce((obj, a) => ({...obj, [a.ticker]: a.weight}), {}) || {}),
     CASH: held?.current_cash_weight ?? row.validated?.cash ?? row.decision?.cash_weight ?? 0};
 }
 
+// One row per model per benchmark version, so the three cadences stay visible.
 function leaderboardRuns(runs) {
   const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(a.run_id)));
-  const models = new Map();
-  for (const run of ordered) if (!models.has(run.model)) models.set(run.model, run);
-  return [...models.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
+  const entries = new Map();
+  for (const run of ordered) {
+    const key = `${run.model}\u0000${run.scenario}`;
+    if (!entries.has(key)) entries.set(key, run);
+  }
+  return [...entries.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
 }
 
-if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES};
+if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES, VERSIONS, versionOf, versionLabel};
 
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
@@ -127,11 +147,14 @@ if (typeof document !== "undefined") {
   }
   function renderBoard() {
     visible = leaderboardRuns(runs);
-      $("board-window").textContent = "Latest completed result per model. Each row shows its exact evaluation timeline.";
+    const sixMonth = visible.filter(run => versionOf(run)).length;
+    $("board-window").textContent = sixMonth
+      ? "Latest completed result per model per benchmark version. The six-month family is published as three decision cadences over one fixed window."
+      : "Latest completed result per model. Each row shows its exact evaluation timeline.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
-      const av = sortKey === "model" ? modelName(a.model) : sortKey === "estimated_cost_usd" ? costForRun(a) : a.metrics[sortKey];
-      const bv = sortKey === "model" ? modelName(b.model) : sortKey === "estimated_cost_usd" ? costForRun(b) : b.metrics[sortKey];
+      const av = sortKey === "model" ? modelName(a.model) : sortKey === "scenario" ? versionLabel(a) : sortKey === "estimated_cost_usd" ? costForRun(a) : a.metrics[sortKey];
+      const bv = sortKey === "model" ? modelName(b.model) : sortKey === "scenario" ? versionLabel(b) : sortKey === "estimated_cost_usd" ? costForRun(b) : b.metrics[sortKey];
       if (sortKey === "estimated_cost_usd" && (av === null || bv === null)) return av === null ? (bv === null ? 0 : 1) : -1;
       const result = typeof av === "string" ? av.localeCompare(bv) : Number(av) - Number(bv);
       return descending ? -result : result;
@@ -142,14 +165,14 @@ if (typeof document !== "undefined") {
       : "No new results yet. Completed benchmark runs will appear here after verification.");
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank"));
-    const columns = [["model", "Model"], ["total_return", "Return"], ["spy_total_return", "SPY"],
+    const columns = [["model", "Model"], ["scenario", "Version"], ["total_return", "Return"], ["spy_total_return", "SPY"],
       ["excess_return_vs_spy", "Excess"], ["sharpe", "Sharpe"], ["max_drawdown", "Max DD"],
       ["directional_accuracy", "Direction"], ["input_tokens", "Tokens in"], ["estimated_cost_usd", "Est. cost"]];
     for (const [key, title] of columns) {
-      const th = node("th", undefined, key === "model" ? "" : "num");
+      const th = node("th", undefined, key === "model" || key === "scenario" ? "" : "num");
       const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
-      button.onclick = () => {descending = sortKey === key ? !descending : key !== "model"; sortKey = key; renderBoard();};
+      button.onclick = () => {descending = sortKey === key ? !descending : !(key === "model" || key === "scenario"); sortKey = key; renderBoard();};
       th.append(button); header.append(th);
     }
     header.append(node("th", "Period"));
@@ -164,7 +187,11 @@ if (typeof document !== "undefined") {
         if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
       };
       td.append(button); row.append(td);
-      for (const [key] of columns.slice(1)) {
+      const version = versionOf(run);
+      const versionCell = node("td", versionLabel(run));
+      if (version) versionCell.title = version.cadence;
+      row.append(versionCell);
+      for (const [key] of columns.slice(2)) {
         const raw = key === "estimated_cost_usd" ? costForRun(run) : run.metrics[key], value = Number(raw);
         const formatted = raw == null ? "—" : key === "estimated_cost_usd" ? dollars(raw) : key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? Math.round(value).toLocaleString() : percent(value);
         row.append(node("td", formatted, `num ${key === "excess_return_vs_spy" ? (value >= 0 ? "positive" : "negative") : ""}`));
@@ -174,9 +201,9 @@ if (typeof document !== "undefined") {
     }
     $("leaderboard-table").replaceChildren(element);
     $("cost-overview").hidden = !visible.length;
-    $("cost-window").textContent = "API-equivalent estimates for the latest result of each model.";
-    bars("model-costs", visible.map(run => ({label: modelName(run.model), cost: costForRun(run)})), ["cost"], dollars);
-    bars("model-tokens", visible.map(run => ({label: modelName(run.model), input: run.metrics.input_tokens, output: run.metrics.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
+    $("cost-window").textContent = "API-equivalent estimates for the latest result of each model and version.";
+    bars("model-costs", visible.map(run => ({label: `${modelName(run.model)} · ${versionLabel(run)}`, cost: costForRun(run)})), ["cost"], dollars);
+    bars("model-tokens", visible.map(run => ({label: `${modelName(run.model)} · ${versionLabel(run)}`, input: run.metrics.input_tokens, output: run.metrics.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
   }
   function bars(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
@@ -277,7 +304,8 @@ if (typeof document !== "undefined") {
       $("run-details").hidden = false;
       $("run-title").textContent = modelName(run.model);
       $("run-trust").textContent = TRUST[run.trust] || "Unverified";
-      $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
+      const version = versionOf(run);
+      $("run-meta").textContent = `${version ? `${version.label} (${version.cadence}) · ` : ""}${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
       $("metrics").replaceChildren();
       for (const [key, title] of [["total_return", "Portfolio return"], ["spy_total_return", "SPY buy & hold"], ["excess_return_vs_spy", "Excess vs SPY"], ["max_drawdown", "Maximum drawdown"]]) {
         const tile = node("div", undefined, "metric"); tile.append(node("p", title), node("strong", percent(run.metrics[key]), Number(run.metrics[key]) >= 0 ? "positive" : "negative")); $("metrics").append(tile);
@@ -315,7 +343,10 @@ if (typeof document !== "undefined") {
       $("settings").textContent = JSON.stringify(meta, null, 2);
       $("coverage").textContent = `${meta.event_feed?.note || "Curated events are not a complete news history."} Feed through: ${meta.event_feed?.through || "not recorded"}. Signed results come from the trusted runner; older replay-checked results remain unsigned.`;
       $("verification").textContent = run.verification_id ? `Verification ID: ${run.verification_id}` : "Unsigned result. Request a trusted rerun for signed leaderboard verification.";
-      $("submit-result").href = "https://github.com/kingabzpro/beatspy/issues/new?title=" + encodeURIComponent(`Benchmark verification: ${run.model}`)
+      // Only the leaderboard benchmark can be submitted for a trusted rerun;
+      // the six-month family is published comparison evidence.
+      $("submit-result").hidden = Boolean(version);
+      if (!version) $("submit-result").href = "https://github.com/kingabzpro/beatspy/issues/new?title=" + encodeURIComponent(`Benchmark verification: ${run.model}`)
         + "&body=" + encodeURIComponent("Please verify this model on the trusted runner.\n\n```json\n" + JSON.stringify({model: run.model, benchmark: "2026-comparison"}, null, 2) + "\n```\n");
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {

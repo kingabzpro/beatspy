@@ -1,0 +1,96 @@
+{"type": "decision", "date": "2026-04-06", "weights": {"XOM": 0.12, "CVX": 0.08, "JNJ": 0.1, "COST": 0.1, "WMT": 0.08, "LIN": 0.07, "NEE": 0.07, "JPM": 0.08, "GOOGL": 0.08, "AAPL": 0.07, "GLD": 0.05, "TLT": 0.05}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-04-06"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-04-06"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-04-06"}
+{"type": "decision", "date": "2026-04-10", "weights": {"GOOGL": 0.1, "AVGO": 0.08, "NVDA": 0.07, "JPM": 0.08, "JNJ": 0.09, "WMT": 0.08, "COST": 0.07, "LIN": 0.07, "NEE": 0.05, "XOM": 0.06, "CVX": 0.05, "GLD": 0.05, "TLT": 0.05}, "cash": 0.1, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-04-10"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-04-10"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-04-10"}
+{"type": "decision", "date": "2026-04-17", "weights": {"GOOGL": 0.13, "NVDA": 0.1, "AVGO": 0.09, "AAPL": 0.08, "AMZN": 0.07, "JPM": 0.08, "WMT": 0.08, "CAT": 0.06, "PLD": 0.05, "COST": 0.05, "NEE": 0.04, "GLD": 0.05, "TLT": 0.04, "XOM": 0.03}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-04-17"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-04-17"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-04-17"}
+{"type": "decision", "date": "2026-04-24", "weights": {"GOOGL": 0.14, "NVDA": 0.11, "AVGO": 0.1, "AMZN": 0.09, "AAPL": 0.09, "CAT": 0.07, "JPM": 0.08, "WMT": 0.08, "NEE": 0.05, "LIN": 0.05, "PLD": 0.05, "GLD": 0.05, "TLT": 0.04}, "cash": 0.0, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-04-24"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-04-24"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-04-24"}
+{"type": "decision", "date": "2026-05-01", "weights": {"GOOGL": 0.13, "NVDA": 0.11, "AVGO": 0.1, "AAPL": 0.1, "AMZN": 0.09, "CAT": 0.07, "JPM": 0.08, "WMT": 0.08, "NEE": 0.05, "LIN": 0.05, "PLD": 0.05, "COST": 0.04, "USO": 0.03}, "cash": 0.02, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-05-01"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-05-01"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-05-01"}
+{"type": "decision", "date": "2026-05-08", "weights": {"NVDA": 0.13, "AVGO": 0.11, "AAPL": 0.11, "AMZN": 0.1, "GOOGL": 0.1, "CAT": 0.07, "WMT": 0.08, "PLD": 0.06, "NEE": 0.05, "LIN": 0.05, "COST": 0.04, "JPM": 0.04, "USO": 0.03, "GLD": 0.03}, "cash": 0.0, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-05-08"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-05-08"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-05-08"}
+{"type": "decision", "date": "2026-05-15", "weights": {"NVDA": 0.13, "AVGO": 0.1, "GOOGL": 0.1, "AAPL": 0.09, "AMZN": 0.09, "CAT": 0.07, "UNH": 0.05, "XOM": 0.05, "WMT": 0.06, "COST": 0.04, "LIN": 0.04, "BRK-B": 0.05, "USO": 0.03, "GLD": 0.03}, "cash": 0.07, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-05-15"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-05-15"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-05-15"}
+{"type": "decision", "date": "2026-05-22", "weights": {"GOOGL": 0.11, "NVDA": 0.11, "AVGO": 0.09, "AAPL": 0.07, "AMZN": 0.08, "CAT": 0.06, "UNH": 0.05, "JNJ": 0.05, "XOM": 0.05, "BRK-B": 0.05, "LIN": 0.04, "PLD": 0.04, "USO": 0.03, "GLD": 0.03}, "cash": 0.14, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-05-22"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-05-22"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-05-22"}
+{"type": "decision", "date": "2026-05-29", "weights": {"GOOGL": 0.11, "AVGO": 0.1, "NVDA": 0.1, "AMZN": 0.09, "AAPL": 0.07, "CAT": 0.06, "UNH": 0.05, "JNJ": 0.05, "XOM": 0.045, "BRK-B": 0.045, "PLD": 0.04, "LIN": 0.035, "GLD": 0.03, "TLT": 0.03}, "cash": 0.145, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-05-29"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-05-29"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-05-29"}
+{"type": "decision", "date": "2026-06-05", "weights": {"AAPL": 0.1, "GOOGL": 0.09, "NVDA": 0.08, "AVGO": 0.06, "AMZN": 0.06, "UNH": 0.07, "LLY": 0.05, "JNJ": 0.05, "CAT": 0.05, "LIN": 0.04, "PLD": 0.04, "BRK-B": 0.05, "XOM": 0.04, "GLD": 0.03, "TLT": 0.03}, "cash": 0.16, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-06-05"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-06-05"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-06-05"}
+{"type": "decision", "date": "2026-06-12", "weights": {"JPM": 0.1, "LLY": 0.09, "JNJ": 0.08, "UNH": 0.07, "CAT": 0.06, "LIN": 0.06, "PLD": 0.06, "GOOGL": 0.07, "AAPL": 0.07, "NVDA": 0.05, "BRK-B": 0.05, "TLT": 0.05, "GLD": 0.04}, "cash": 0.15, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-06-12"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-06-12"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-06-12"}
+{"type": "decision", "date": "2026-06-26", "weights": {"JPM": 0.1, "LLY": 0.09, "JNJ": 0.08, "UNH": 0.07, "CAT": 0.06, "GE": 0.05, "LIN": 0.06, "BRK-B": 0.05, "V": 0.04, "PLD": 0.05, "GOOGL": 0.05, "AAPL": 0.04, "NVDA": 0.04, "TLT": 0.05, "GLD": 0.03}, "cash": 0.14, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-06-26"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-06-26"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-06-26"}
+{"type": "decision", "date": "2026-07-10", "weights": {"JPM": 0.11, "AAPL": 0.09, "LLY": 0.09, "UNH": 0.08, "JNJ": 0.07, "GE": 0.07, "LIN": 0.06, "BRK-B": 0.06, "GOOGL": 0.05, "NVDA": 0.04, "V": 0.04, "PLD": 0.04, "TLT": 0.05, "GLD": 0.03}, "cash": 0.12, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-10"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-10"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-10"}
+{"type": "decision", "date": "2026-07-17", "weights": {"AAPL": 0.1, "JPM": 0.11, "V": 0.05, "UNH": 0.08, "LLY": 0.09, "JNJ": 0.07, "BRK-B": 0.06, "PLD": 0.04, "GE": 0.06, "LIN": 0.05, "NVDA": 0.04, "GOOGL": 0.04, "TLT": 0.05, "GLD": 0.03}, "cash": 0.13, "predicted_direction": "flat", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-17"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-17"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-17"}
+{"type": "decision", "date": "2026-07-24", "weights": {"AAPL": 0.11, "JPM": 0.11, "LLY": 0.09, "JNJ": 0.08, "UNH": 0.07, "V": 0.06, "BRK-B": 0.06, "PLD": 0.05, "GE": 0.05, "NVDA": 0.05, "GOOGL": 0.04, "XOM": 0.04, "NEE": 0.03, "GLD": 0.03, "TLT": 0.03}, "cash": 0.1, "predicted_direction": "up", "violations": [], "parse_errors": ["research: no JSON object found in output"]}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-24"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-24"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-24"}
+{"type": "decision", "date": "2026-07-31", "weights": {"AAPL": 0.1, "MSFT": 0.05, "GOOGL": 0.05, "NVDA": 0.05, "AMZN": 0.05, "JPM": 0.11, "V": 0.06, "BRK-B": 0.06, "LLY": 0.09, "JNJ": 0.08, "UNH": 0.07, "XOM": 0.05, "GE": 0.05, "PLD": 0.05, "GLD": 0.03, "TLT": 0.02}, "cash": 0.03, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-07-31"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-07-31"}
+{"type": "decision", "date": "2026-08-07", "weights": {"AAPL": 0.09, "MSFT": 0.05, "NVDA": 0.07, "GOOGL": 0.05, "AMZN": 0.06, "AVGO": 0.04, "JPM": 0.1, "V": 0.06, "BRK-B": 0.06, "LLY": 0.08, "JNJ": 0.07, "UNH": 0.05, "XOM": 0.05, "GE": 0.05, "GLD": 0.05, "TLT": 0.02}, "cash": 0.05, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-07"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-07"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-07"}
+{"type": "decision", "date": "2026-08-14", "weights": {"JPM": 0.1, "AAPL": 0.08, "LLY": 0.08, "JNJ": 0.07, "NVDA": 0.07, "V": 0.06, "BRK-B": 0.06, "AMZN": 0.06, "XOM": 0.05, "GE": 0.05, "GOOGL": 0.05, "MSFT": 0.05, "GLD": 0.05, "UNH": 0.05, "AVGO": 0.04, "TLT": 0.02}, "cash": 0.06, "predicted_direction": "flat", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-14"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-14"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-14"}
+{"type": "decision", "date": "2026-08-21", "weights": {"V": 0.08, "LLY": 0.09, "JNJ": 0.07, "XOM": 0.06, "CVX": 0.04, "JPM": 0.09, "BRK-B": 0.07, "NVDA": 0.07, "MSFT": 0.05, "AAPL": 0.06, "GOOGL": 0.05, "AMZN": 0.05, "GLD": 0.05, "TLT": 0.02}, "cash": 0.15, "predicted_direction": "flat", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-21"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-21"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-21"}
+{"type": "decision", "date": "2026-08-28", "weights": {"MSFT": 0.09, "NVDA": 0.08, "AMZN": 0.07, "AAPL": 0.06, "GOOGL": 0.05, "JPM": 0.09, "V": 0.07, "JNJ": 0.08, "LLY": 0.06, "XOM": 0.06, "CVX": 0.05, "BRK-B": 0.06, "GLD": 0.07, "USO": 0.03, "TLT": 0.02}, "cash": 0.06, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-08-28"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-08-28"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-08-28"}
+{"type": "decision", "date": "2026-09-04", "weights": {"AAPL": 0.07, "MSFT": 0.08, "NVDA": 0.09, "GOOGL": 0.04, "AMZN": 0.06, "JPM": 0.09, "V": 0.07, "BRK-B": 0.06, "JNJ": 0.09, "LLY": 0.05, "XOM": 0.06, "CVX": 0.06, "GLD": 0.07, "USO": 0.03, "TLT": 0.02}, "cash": 0.06, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-04"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-04"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-04"}
+{"type": "decision", "date": "2026-09-11", "weights": {"AAPL": 0.08, "MSFT": 0.08, "NVDA": 0.08, "GOOGL": 0.04, "AMZN": 0.05, "JPM": 0.08, "V": 0.07, "BRK-B": 0.07, "JNJ": 0.08, "XOM": 0.07, "CVX": 0.07, "LLY": 0.03, "GLD": 0.06, "USO": 0.03, "TLT": 0.02}, "cash": 0.09, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-11"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-11"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-11"}
+{"type": "decision", "date": "2026-09-18", "weights": {"AAPL": 0.09, "MSFT": 0.07, "NVDA": 0.08, "GOOGL": 0.05, "AMZN": 0.04, "JPM": 0.07, "V": 0.06, "BRK-B": 0.08, "JNJ": 0.08, "LLY": 0.03, "XOM": 0.07, "CVX": 0.06, "USO": 0.03, "GLD": 0.04, "TLT": 0.02}, "cash": 0.13, "predicted_direction": "flat", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-18"}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-18"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-18"}
+{"type": "decision", "date": "2026-09-25", "weights": {"AAPL": 0.1, "MSFT": 0.08, "NVDA": 0.08, "GOOGL": 0.05, "AMZN": 0.04, "BRK-B": 0.08, "JNJ": 0.08, "LLY": 0.04, "JPM": 0.06, "V": 0.05, "XOM": 0.07, "CVX": 0.06, "USO": 0.05, "GLD": 0.03, "TLT": 0.02}, "cash": 0.11, "predicted_direction": "up", "violations": [], "parse_errors": []}
+{"type": "tool_call", "agent": "research", "tool": "get_market_events", "args": {"days_back": 60}, "date": "2026-09-25"}
+{"type": "tool_call", "agent": "forecaster", "tool": "forecast_universe", "args": {}, "date": "2026-09-25"}
+{"type": "tool_call", "agent": "analyst", "tool": "get_universe_indicators", "args": {}, "date": "2026-09-25"}

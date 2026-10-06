@@ -55,6 +55,16 @@ def summary(meta, metrics, directory, trust="replayed"):
     }
     if (effort := meta.get("model", {}).get("reasoning_effort")) is not None:
         result["reasoning_effort"] = effort
+    # Six-month family context: lets the dashboard group versions without
+    # inferring them from the scenario name.
+    if scenario.get("require_min_names", 1) > 1:
+        result["min_names"] = scenario["require_min_names"]
+    if scenario.get("first_only"):
+        result["first_only"] = True
+    if groups := scenario.get("universe_groups"):
+        result["universe_groups"] = {name: len(tickers) for name, tickers in groups.items()}
+    if assets := scenario.get("score_assets"):
+        result["score_assets"] = assets
     return result
 
 

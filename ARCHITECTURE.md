@@ -1,5 +1,26 @@
 # Architecture
 
+## Six-month version family
+
+Protocol 9 adds a reproducible **version family**: three scenarios that share one
+window, one snapshot, one universe, and one accounting engine, and differ only in
+decision cadence. `2026-6m-buyhold` makes a single decision then holds (with no
+reference allocation and no performance feedback, so the model originates its own
+portfolio); `2026-6m-monthly` rebalances at month-ends; `2026-6m-weekly` trades
+weekly and may hold gold, oil, and bond hedges. Because the universe and scoring
+rule are held constant, a return difference between versions is attributable to
+the number and timing of decisions and their costs, not to a different test.
+
+Protocol 9 replaces three name-keyed behaviours with scenario-declared fields:
+`reference_kind` (`momentum`/`core`/`none`), `perf_feedback`, and
+`require_min_names` (a diversification floor recorded as a violation, never a
+rejected portfolio). It also defers single-call mode to the scenario's declared
+`pipeline`; protocols 6–8 keep their historical numeric meaning so archived runs
+replay byte-identically. `score_assets` scores non-tradable buy-and-hold assets
+beside SPY, so a hedge sleeve's own market return is a replayable number rather
+than a claim in a report. Hedges are capped and crypto is excluded: a
+non-NYSE-calendar asset would break the single-calendar snapshot invariant.
+
 ## Fast default
 
 The default `2026-comparison` uses protocol 5 and 12 dates spread across
@@ -76,5 +97,7 @@ historical analyst ratings are excluded from protocol 5 agents. Trusted comparis
 no filters. Old runs have been removed from the active catalog.
 
 The static dashboard uses safe text rendering and native SVG charts. A local report is a
-copy of that same frontend with a local catalog. See [CONTRIBUTING](CONTRIBUTING.md) for
+copy of that same frontend with a local catalog. The leaderboard keys on model **and
+scenario version**, so the three six-month cadences appear as separate rows and no version
+is hidden behind another run of the same model. See [CONTRIBUTING](CONTRIBUTING.md) for
 trust controls, limitations, development, and Vercel deployment.

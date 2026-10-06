@@ -153,12 +153,18 @@ class ValidatedDecision:
     raw: dict | None = None
 
 
-def validate_decision(obj: Any, tradable: list[str], max_weight: float, *, legacy=False) -> ValidatedDecision:
+def validate_decision(
+    obj: Any, tradable: list[str], max_weight: float, *, legacy=False, min_names: int = 1
+) -> ValidatedDecision:
     """Clamp a raw portfolio decision to tradable tickers and risk limits.
 
     Deterministic: unknown tickers are dropped, negative weights dropped,
     per-ticker weight clamped to max_weight, and exposure capped at 1.0 with
     the remainder in cash. Every correction is recorded as a violation.
+
+    ``min_names`` is a diversification floor: a decision funding fewer distinct
+    names is measured as a violation rather than rejected, keeping the harness
+    rule ("measure, never crash") consistent with every other risk breach.
     """
     if not isinstance(obj, dict):
         return ValidatedDecision(invalid=True, violations=["decision was not a JSON object"])
@@ -197,6 +203,10 @@ def validate_decision(obj: Any, tradable: list[str], max_weight: float, *, legac
         if weights[ticker] > max_weight + 1e-9:
             violations.append(f"clamped {ticker} from {weights[ticker]:.1%} to {max_weight:.1%}")
             weights[ticker] = max_weight
+
+    funded = [ticker for ticker, weight in weights.items() if weight > 1e-9]
+    if min_names > 1 and len(funded) < min_names:
+        violations.append(f"only {len(funded)} funded names; diversification floor is {min_names}")
 
     final_cash = max(0.0, 1.0 - sum(weights.values()))
     return ValidatedDecision(weights=weights, cash=final_cash, violations=violations, raw=obj)
@@ -256,7 +266,21 @@ class Scenario(BaseModel):
     year: int | None = Field(default=None, ge=2000, le=2100)
     window_days: int = Field(default=90, ge=2, le=366)
     frequency: str = "monthly"  # weekly | monthly
+    first_only: bool = False  # single decision at the start, then hold
     pipeline: Literal["team", "single"] = "team"
+    # Explicit protocol. None keeps the legacy derivation (single -> 8, team -> 5),
+    # so archived runs replay unchanged; 9 opts into the configurable family below.
+    protocol_version: int | None = Field(default=None, ge=2, le=9)
+    # Which reference allocation the portfolio manager receives.
+    reference_kind: Literal["momentum", "core", "none"] = "momentum"
+    perf_feedback: bool = True
+    # Labelled sleeves (e.g. {"stocks": [...], "hedges": [...]}) used for prompt
+    # guidance and validation. Every listed ticker must belong to the universe.
+    universe_groups: dict[str, list[str]] = Field(default_factory=dict)
+    # Minimum distinct funded names a fully invested portfolio must spread across.
+    require_min_names: int = Field(default=1, ge=1, le=100)
+    # Non-tradable buy-and-hold assets scored alongside the benchmark.
+    score_assets: list[str] = Field(default_factory=list)
     max_decisions: int | None = Field(default=None, ge=2, le=10_000, strict=True)
     benchmark: str = "SPY"
     tradable: list[str] = Field(default_factory=list)
@@ -297,6 +321,22 @@ class Scenario(BaseModel):
             raise ValueError("capital and costs must be finite")
         if not 0 < self.max_position_weight <= 1:
             raise ValueError("max_position_weight must be in (0, 1]")
+        if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_-]{0,31}", self.benchmark):
+            raise ValueError("invalid benchmark ticker")
+        known = set(self.universe)
+        for group, tickers in self.universe_groups.items():
+            if not re.fullmatch(r"[a-z][a-z0-9_]{0,31}", group):
+                raise ValueError(f"invalid universe group name {group!r}")
+            unknown = sorted({t.upper() for t in tickers} - known)
+            if unknown:
+                raise ValueError(f"universe group {group!r} lists tickers outside the universe: {unknown}")
+        unknown_assets = sorted({t.upper() for t in self.score_assets} - known)
+        if unknown_assets:
+            raise ValueError(f"score_assets lists tickers outside the universe: {unknown_assets}")
+        if "stocks" in self.universe_groups and len(self.universe_groups["stocks"]) < self.require_min_names:
+            raise ValueError("require_min_names exceeds the number of listed stocks")
+        if self.require_min_names > len(self.universe):
+            raise ValueError("require_min_names exceeds the tradable universe")
         return self
 
     @property

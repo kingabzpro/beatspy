@@ -1,7 +1,7 @@
 const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
-const {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES} = require('../dashboard/app.js');
+const {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES, VERSIONS, versionOf, versionLabel} = require('../dashboard/app.js');
 
 test('CSV supports CRLF, quotes, escaped quotes, and embedded newlines', () => {
   assert.deepEqual(parseCSV('date,note\r\n2026-10-02,"a, b"\r\n2026-10-01,"a ""quote""\nand newline"\r\n'), [
@@ -11,7 +11,7 @@ test('CSV supports CRLF, quotes, escaped quotes, and embedded newlines', () => {
   assert.throws(() => parseCSV('date,price\n"broken'), /Malformed CSV/);
   assert.throws(() => parseCSV('date,price\n1,2,3'), /column count/);
 });
-test('one leaderboard merges reasoning modes, selects latest results independently for each model', () => {
+test('one leaderboard merges reasoning modes, selects latest results independently for each model and version', () => {
   const rows = [
     {model:'a', start:'2026-07-05',end:'2026-10-02',scenario:'2026-recent',created_utc:'1',group:'a',metrics:{excess_return_vs_spy:.09}},
     {model:'b', start:'2025-10-03',end:'2025-12-31',scenario:'2025-recent',created_utc:'3',metrics:{excess_return_vs_spy:.9}},
@@ -22,6 +22,34 @@ test('one leaderboard merges reasoning modes, selects latest results independent
   assert.equal(modelName('zai-org/GLM-5.3'), 'GLM-5.3');
   assert.equal(modelName('gpt-6-luna'), 'gpt-6-luna');
   assert.equal(percent(.1234), '12.34%');
+});
+
+test('the three six-month versions stay separate entries for one model', () => {
+  // Every version is published evidence; none may hide behind another run.
+  const rows = [
+    {model:'m', run_id:'v1', scenario:'2026-6m-buyhold', created_utc:'3', metrics:{excess_return_vs_spy:.05}},
+    {model:'m', run_id:'v2', scenario:'2026-6m-monthly',  created_utc:'2', metrics:{excess_return_vs_spy:.02}},
+    {model:'m', run_id:'v3', scenario:'2026-6m-weekly',   created_utc:'1', metrics:{excess_return_vs_spy:-.01}}
+  ];
+  const visible = leaderboardRuns(rows);
+  assert.equal(visible.length, 3);
+  assert.deepEqual(visible.map(r => r.run_id).sort(), ['v1','v2','v3']);
+  assert.equal(versionLabel(rows[0]), 'V1 · Buy once');
+  assert.equal(versionLabel(rows[1]), 'V2 · Monthly');
+  assert.equal(versionLabel(rows[2]), 'V3 · Weekly');
+  assert.equal(versionOf({scenario:'2026-comparison'}), null);
+  assert.equal(versionLabel({scenario:'2026-comparison'}), '2026-comparison');
+  assert.equal(Object.keys(VERSIONS).length, 3);
+});
+
+test('a newer run of one version does not replace a different version', () => {
+  const rows = [
+    {model:'m', run_id:'v1-old', scenario:'2026-6m-buyhold', created_utc:'1', metrics:{excess_return_vs_spy:.05}},
+    {model:'m', run_id:'v1-new', scenario:'2026-6m-buyhold', created_utc:'5', metrics:{excess_return_vs_spy:.04}},
+    {model:'m', run_id:'v2',     scenario:'2026-6m-monthly', created_utc:'2', metrics:{excess_return_vs_spy:.02}}
+  ];
+  const ids = leaderboardRuns(rows).map(r => r.run_id).sort();
+  assert.deepEqual(ids, ['v1-new','v2']);
 });
 test('invalid decisions display retained holdings instead of a false cash liquidation', () => {
   assert.deepEqual(allocationRow({date:'2025-11-28',validated:{invalid:true,weights:{},cash:1},

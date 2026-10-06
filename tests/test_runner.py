@@ -234,3 +234,139 @@ def test_fast_run_calls_only_manager_disables_research_and_replays(tmp_path, mon
     (directory / "run.json").write_text(json.dumps(meta))
     with pytest.raises(ValueError, match="prices only"):
         validate_run(directory)
+
+
+# --------------------------------------------------------------------------- #
+# Six-month benchmark family (protocol 9)
+# --------------------------------------------------------------------------- #
+
+
+def _run_six_month(tmp_path, monkeypatch, settings, name):
+    from beatspy.scenarios import load_scenario
+
+    scenario = load_scenario(name)
+    monkeypatch.setattr(
+        "beatspy.data.freeze.download_ohlc",
+        lambda *a, **k: make_prices(scenario.universe, start="2025-03-01", end="2026-10-02", seed=17),
+    )
+    executor = FakeExecutor()
+    directory = asyncio.run(
+        run_benchmark(
+            scenario, settings, executor=executor, out_root=tmp_path / "results", data_root=tmp_path / "cache"
+        )
+    )
+    return scenario, executor, directory
+
+
+def test_buyhold_version_makes_one_decision_and_holds(tmp_path, monkeypatch, settings):
+    """Version 1: a single allocation decision, then untouched to the cutoff."""
+    from beatspy.agents.pipeline import ROLES
+    from beatspy.bench.validation import validate_run
+
+    scenario, executor, directory = _run_six_month(tmp_path, monkeypatch, settings, "2026-6m-buyhold")
+    meta = validate_run(directory)
+    metrics = json.loads((directory / "metrics.json").read_text())
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+
+    assert metrics["decisions"] == 1
+    assert meta["protocol_version"] == 9
+    assert meta["reference_kind"] == "none" and meta["performance_feedback"] is False
+    # It is still the full five-agent workflow, not a single manager call.
+    assert executor.calls == ROLES
+    assert set(rows[0]["agent_runs"]) == set(ROLES)
+    # No reference allocation is handed over: the model must originate the book.
+    assert rows[0]["market_brief"]["reference_allocation"] is None
+    assert "reference_note" in rows[0]["market_brief"]
+    # No prior window exists, so there is no performance feedback to leak.
+    assert "performance_feedback" not in rows[0]["market_brief"]
+    # No second decision, so no rebalancing trade after the entry.
+    trades = pd.read_csv(directory / "trades.csv")
+    assert set(trades.decision_date) == {"2026-04-06"}
+    assert pd.read_csv(directory / "equity_curve.csv").date.max() == scenario.end
+
+
+def test_buyhold_floor_is_measured_not_enforced(tmp_path, monkeypatch, settings):
+    """A concentrated scripted decision is recorded as a violation, not a crash."""
+    _, _, directory = _run_six_month(tmp_path, monkeypatch, settings, "2026-6m-buyhold")
+    metrics = json.loads((directory / "metrics.json").read_text())
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+    assert metrics["risk_violations"] > 0
+    assert any("diversification floor is 22" in v for v in rows[0]["validated"]["violations"])
+    assert rows[0]["validated"]["invalid"] is False
+
+
+@pytest.mark.parametrize(
+    ("name", "expected_decisions", "frequency"),
+    [("2026-6m-monthly", 7, "monthly"), ("2026-6m-weekly", 24, "weekly")],
+)
+def test_rebalanced_versions_use_their_cadence(tmp_path, monkeypatch, settings, name, expected_decisions, frequency):
+    from beatspy.agents.pipeline import ROLES
+    from beatspy.bench.validation import validate_run
+
+    scenario, _, directory = _run_six_month(tmp_path, monkeypatch, settings, name)
+    meta = validate_run(directory)
+    metrics = json.loads((directory / "metrics.json").read_text())
+    assert metrics["decisions"] == expected_decisions
+    assert metrics["requests"] == expected_decisions * len(ROLES)
+    assert meta["requested"]["frequency"] == frequency
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+    # The first decision has no prior window, so its feedback is a degenerate
+    # zero self-comparison; later decisions compare against real history.
+    first = rows[0]["market_brief"]["performance_feedback"]
+    assert first["since_start"]["start"] == rows[0]["date"]
+    assert first["since_start"]["portfolio_return_pct"] == 0.0
+    last = rows[-1]["market_brief"]["performance_feedback"]
+    assert last["as_of"] == rows[-1]["date"]
+    assert last["previous_window"]["start"] == rows[-2]["date"]
+    assert "universe_groups" in rows[0]["market_brief"]
+
+
+def test_no_six_month_version_can_buy_the_index(tmp_path, monkeypatch, settings):
+    """SPY stays comparison-only, so it must never appear in trades or weights."""
+    from beatspy.scenarios import load_scenario
+
+    for name in ("2026-6m-buyhold", "2026-6m-monthly", "2026-6m-weekly"):
+        assert "SPY" not in load_scenario(name).tradable
+
+    _, _, directory = _run_six_month(tmp_path, monkeypatch, settings, "2026-6m-weekly")
+    # The scripted manager tries to buy SPY; validation must drop it.
+    print("dir", directory)
+    trades = pd.read_csv(directory / "trades.csv")
+    assert "SPY" not in set(trades.ticker)
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+    assert all("SPY" not in row["validated"]["weights"] for row in rows)
+
+
+def test_weekly_version_scores_hedge_assets_beside_spy(tmp_path, monkeypatch, settings):
+    """Gold and oil returns are replayable numbers, not claims in a report."""
+
+    scenario, _, directory = _run_six_month(tmp_path, monkeypatch, settings, "2026-6m-weekly")
+    metrics = json.loads((directory / "metrics.json").read_text())
+    for ticker in scenario.score_assets:
+        assert ticker in metrics["baselines"]
+    equity = pd.read_csv(directory / "equity_curve.csv")
+    assert set(scenario.score_assets) <= set(equity.columns)
+    assert "spy_buy_hold" in equity.columns
+
+
+def test_legacy_scenarios_keep_their_exact_market_brief(tmp_path, monkeypatch, settings):
+    """Protocols 2-8 must not gain or lose brief keys, or archives stop replaying."""
+    from beatspy.scenarios import load_scenario
+
+    scenario = load_scenario("2026-comparison")
+    monkeypatch.setattr(
+        "beatspy.data.freeze.download_ohlc",
+        lambda *a, **k: make_prices(scenario.universe, start="2025-06-02", end="2026-10-02"),
+    )
+    directory = asyncio.run(
+        run_benchmark(
+            scenario, settings, executor=FakeExecutor(), out_root=tmp_path / "results", data_root=tmp_path / "cache"
+        )
+    )
+    rows = [json.loads(line) for line in (directory / "decisions.jsonl").read_text().splitlines()]
+    for row in rows:
+        brief = row["market_brief"]
+        assert "min_names" not in brief
+        assert "universe_groups" not in brief
+        assert "holding_period" not in brief
+        assert "reference_note" not in brief

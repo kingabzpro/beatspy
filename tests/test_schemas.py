@@ -124,6 +124,100 @@ class TestValidateDecision:
         assert not result.invalid
 
 
+class TestDiversificationFloor:
+    """The floor is measured, never enforced by rejecting a portfolio."""
+
+    def _stocks(self, n: int, weight: float = 0.04) -> dict:
+        return {
+            "allocations": [{"ticker": f"S{i}", "weight": weight} for i in range(n)],
+            "cash_weight": max(0.0, 1.0 - n * weight),
+        }
+
+    def test_meeting_the_floor_is_clean(self):
+        tickers = [f"S{i}" for i in range(22)]
+        result = validate_decision(self._stocks(22), tickers, max_weight=0.04, min_names=22)
+        assert len(result.weights) == 22
+        assert result.violations == []
+        assert not result.invalid
+
+    def test_shortfall_is_recorded_but_not_rejected(self):
+        tickers = [f"S{i}" for i in range(22)]
+        result = validate_decision(self._stocks(4), tickers, max_weight=0.04, min_names=22)
+        assert not result.invalid
+        assert len(result.weights) == 4
+        assert any("diversification floor is 22" in v for v in result.violations)
+
+    def test_floor_ignores_dust_weights(self):
+        tickers = [f"S{i}" for i in range(22)]
+        payload = self._stocks(2)
+        payload["allocations"] += [{"ticker": t, "weight": 0.0} for t in tickers[2:]]
+        result = validate_decision(payload, tickers, max_weight=0.04, min_names=22)
+        assert any("only 2 funded names" in v for v in result.violations)
+
+    def test_default_floor_permits_concentration(self):
+        result = validate_decision({"allocations": [{"ticker": "SPY", "weight": 0.35}]}, ["SPY"], max_weight=0.35)
+        assert not any("diversification floor" in v for v in result.violations)
+
+
+class TestScenarioBenchmarkFamilies:
+    def test_six_month_fields_default_for_legacy_scenarios(self):
+        from beatspy.schemas import Scenario
+
+        s = Scenario(name="x", title="x", start="2022-01-03", end="2022-02-01", tradable=["AAPL"])
+        assert s.protocol_version is None  # keeps the historical derivation
+        assert s.reference_kind == "momentum"
+        assert s.first_only is False
+        assert s.require_min_names == 1
+        assert s.universe_groups == {}
+        assert s.score_assets == []
+
+    def test_group_tickers_must_be_in_universe(self):
+        from pydantic import ValidationError
+
+        from beatspy.schemas import Scenario
+
+        with pytest.raises(ValidationError, match="outside the universe"):
+            Scenario(
+                name="x",
+                title="x",
+                start="2022-01-03",
+                end="2022-02-01",
+                tradable=["AAPL"],
+                universe_groups={"stocks": ["TSLA"]},
+            )
+
+    def test_score_assets_must_be_in_universe(self):
+        from pydantic import ValidationError
+
+        from beatspy.schemas import Scenario
+
+        with pytest.raises(ValidationError, match="score_assets"):
+            Scenario(
+                name="x",
+                title="x",
+                start="2022-01-03",
+                end="2022-02-01",
+                tradable=["AAPL"],
+                score_assets=["USO"],
+            )
+
+    def test_floor_cannot_exceed_listed_stocks(self):
+        from pydantic import ValidationError
+
+        from beatspy.schemas import Scenario
+
+        with pytest.raises(ValidationError, match="require_min_names exceeds"):
+            Scenario(
+                name="x",
+                title="x",
+                start="2022-01-03",
+                end="2022-02-01",
+                tradable=["AAPL", "MSFT"],
+                universe_groups={"stocks": ["AAPL", "MSFT"]},
+                require_min_names=5,
+            )
+
+
 class TestScenarioUniverse:
     def test_benchmark_appended(self):
         from beatspy.schemas import Scenario

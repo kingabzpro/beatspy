@@ -1,0 +1,35 @@
+title = "Six-month monthly rebalanced portfolio"
+description = "Version 2: a decision at each month-end of the six-month window, rebalancing on frozen prices and dated events."
+start = "2026-04-06"
+end = "2026-10-02"
+frequency = "monthly"
+pipeline = "team"
+protocol_version = 9
+reference_kind = "none"
+benchmark = "SPY"
+tradable = [
+  "AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "AVGO",
+  "JPM", "V", "BRK-B",
+  "LLY", "JNJ", "UNH",
+  "XOM", "CVX",
+  "CAT", "GE", "UPS",
+  "WMT", "PG", "COST",
+  "NEE", "LIN", "PLD",
+  "GLD", "USO", "TLT",
+]
+universe_groups = { stocks = [
+  "AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "AVGO",
+  "JPM", "V", "BRK-B",
+  "LLY", "JNJ", "UNH",
+  "XOM", "CVX",
+  "CAT", "GE", "UPS",
+  "WMT", "PG", "COST",
+  "NEE", "LIN", "PLD",
+], hedges = ["GLD", "USO", "TLT"] }
+# A moderate diversification floor: many names, but concentration is still allowed.
+require_min_names = 8
+max_position_weight = 0.18
+lookback_days = 400
+forecast_provider = "baseline"
+allow_finnhub = false
+allow_web_search = false

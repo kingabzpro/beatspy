@@ -73,8 +73,8 @@ async def replay_run(run_dir: Path) -> dict:
     meta = read_json(run_dir / "run.json")
     if meta.get("synthetic") is not False:
         raise ValueError("synthetic or incomplete results cannot be submitted")
-    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5, 6, 7, 8):
-        raise ValueError("only complete protocol 2 through 8 runs support submission; rerun legacy results")
+    if meta.get("schema_version") != 2 or meta.get("protocol_version") not in (2, 3, 4, 5, 6, 7, 8, 9):
+        raise ValueError("only complete protocol 2 through 9 runs support submission; rerun legacy results")
     legacy = meta["protocol_version"] == 2
     if not SAFE_ID.fullmatch(meta["run_id"]) or meta["run_id"] != run_dir.name:
         raise ValueError("invalid or mismatched run id")
@@ -82,7 +82,9 @@ async def replay_run(run_dir: Path) -> dict:
         raise ValueError("submission cannot assign its own trust")
     check_numbers(meta)
     scenario = Scenario.model_validate(meta["scenario"])
-    single = meta["protocol_version"] >= 6
+    # Mirrors DecisionPipeline: protocols 6-8 keep their historical "single
+    # call" meaning; protocol 9 defers to the declared pipeline.
+    single = scenario.pipeline == "single" if meta["protocol_version"] >= 9 else meta["protocol_version"] >= 6
     roles = ["portfolio_manager"] if single else ROLES
     if single and (
         scenario.pipeline != "single"
@@ -135,6 +137,7 @@ async def replay_run(run_dir: Path) -> dict:
         scenario.frequency,
         legacy=legacy,
         max_decisions=scenario.max_decisions,
+        first_only=scenario.first_only,
     )
     submitted = lines(run_dir / "decisions.jsonl")
     events = lines(run_dir / "events.jsonl")
@@ -209,7 +212,7 @@ async def replay_run(run_dir: Path) -> dict:
             invested,
             1 - sum(invested.values()),
             recent_summary,
-            portfolio_equity=state.equity(day, data) if single else None,
+            portfolio_equity=state.equity(day, data) if (single or scenario.perf_feedback) else None,
         )
         if not legacy and row.get("market_brief") != record.market_brief:
             raise ValueError(f"market brief replay mismatch on {day}")

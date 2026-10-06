@@ -72,6 +72,12 @@ Scenarios live in `src/beatspy/scenarios/builtin/`; tools must enforce their dec
 date and budget. Prices include warmup data, but scoring starts at the stated start.
 Snapshots remain immutable and must cover every ticker/session. Recent scenarios
 remain available for quick experiments; leaderboard requests use `2026-comparison`.
+The six-month family (`2026-6m-buyhold`, `2026-6m-monthly`, `2026-6m-weekly`) is
+published comparison evidence, not a leaderboard entry: `beatspy submit` rejects it
+with an explicit message, and the trusted runner keeps its `2026-comparison`
+allow-list. Its three versions share one snapshot and window by design, so keep
+universe and cost settings identical when changing them. See
+[docs/six-month-comparison.md](docs/six-month-comparison.md).
 
 The fixed stock universe has survivorship bias. Curated events and Finnhub history
 may be sparse. Current fundamentals and unarchived historical analyst ratings
