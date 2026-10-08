@@ -234,6 +234,14 @@ if (typeof document !== "undefined") {
       return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
     });
     $("run-count").textContent = `${visible.length} result${visible.length === 1 ? "" : "s"}`;
+    // Keep the banner honest about scope, derived from the runs rather than a
+    // hardcoded sentence that drifts the moment the benchmark changes.
+    if (visible.length) {
+      const first = visible.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
+      const last = visible.reduce((a, b) => (String(a.end) >= String(b.end) ? a : b));
+      const decisions = visible[0].decisions ?? visible[0].metrics?.decisions;
+      $("hero-scope").textContent = `${first.start} → ${last.end} · ${plural(decisions, "decision")}`;
+    }
     const syntheticCount = visible.filter(run => run.synthetic).length;
     $("demo-banner").hidden = syntheticCount === 0;
     if (syntheticCount) {

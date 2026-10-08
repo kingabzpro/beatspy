@@ -77,6 +77,13 @@ def render_dashboard(results_root: Path, run_id: str | None = None, out_path: Pa
     if destination.resolve() == static_dir().resolve():
         raise ValueError("local reports cannot overwrite the public dashboard")
     destination.mkdir(parents=True, exist_ok=True)
+    # Clear the previous payload first. `destination` is only ever this run's
+    # output, but copying into it without cleaning means a run that has since been
+    # archived or deleted stays behind as an orphaned directory. Nothing referenced
+    # it, so it was invisible in the catalog yet still shipped in the published
+    # site, which is exactly how a superseded result survives a "clear the old
+    # results" pass.
+    shutil.rmtree(destination / "data", ignore_errors=True)
     for name in ("index.html", "styles.css", "app.js"):
         shutil.copyfile(static_dir() / name, destination / name)
     for name in ("favicon.ico", "site.webmanifest", "robots.txt", "sitemap.xml"):
