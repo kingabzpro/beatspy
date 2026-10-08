@@ -82,14 +82,28 @@ def build_parser() -> argparse.ArgumentParser:
     p.set_defaults(func=cmd_scenarios)
 
     p = sub.add_parser("run", parents=[common], help="run one decision model over one scenario")
-    p.add_argument("--model", help=f"decision model id (default: the configured one, {DEFAULT_DECISION_MODEL})")
+    p.add_argument(
+        "--model",
+        nargs="+",
+        help=(
+            f"decision model id(s) to run (default: the configured one, {DEFAULT_DECISION_MODEL}). "
+            "Several ids run concurrently, since they share nothing but the frozen snapshot."
+        ),
+    )
     p.add_argument("--scenario", help=f"scenario name (default: {DEFAULT_SCENARIO})")
     p.add_argument("--freq", choices=["weekly", "monthly"], help="decision frequency override")
     p.add_argument("--start", help="override start date YYYY-MM-DD")
     p.add_argument("--end", help="override end date YYYY-MM-DD")
     p.add_argument("--max-decisions", type=positive_int, help="limit decisions, evenly spread across the period")
     p.add_argument(
-        "--form", choices=["noul", "choice", "rank", "twin"], default="twin", help="question form (default: twin)"
+        "--form",
+        choices=["per_asset", "noul", "choice", "rank", "twin", "all"],
+        default="per_asset",
+        help=(
+            "question form (default: per_asset — one question for every investable asset, "
+            "which is what makes a single asset's answer mean something on its own). "
+            "twin/all ask extra forms for the same ticker to measure the form itself."
+        ),
     )
     p.add_argument("--label", help="free-text label stored in the run record")
     p.add_argument("--refresh-data", action="store_true", help="re-download the frozen price snapshot")
@@ -473,11 +487,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .schemas import Scenario
 
     settings = load_settings()
-    if args.model:
-        _require_decision_model(args.model)
-        settings = Settings.model_validate(
-            {**settings.model_dump(), "decision": {**settings.model_dump()["decision"], "decision_model": args.model}}
-        )
+    # `--model` may name several models. They share nothing but the frozen
+    # snapshot, so they run concurrently rather than one after another.
+    models = list(dict.fromkeys(args.model or [settings.decision.decision_model]))
+    for name in models:
+        _require_decision_model(name)
 
     scenario = None
     prepared_data = None
@@ -499,35 +513,62 @@ def cmd_run(args: argparse.Namespace) -> int:
         if args.max_decisions is not None:
             scenario = Scenario.model_validate({**scenario.model_dump(), "max_decisions": args.max_decisions})
 
-    print(f"Decision model : {settings.decision.label} ({settings.decision.decision_model})")
-    print(f"Endpoint       : {settings.decision.endpoint}")
+    for name in models:
+        spec = DECISION_MODELS[name]
+        print(f"Decision model : {spec['label']} ({name})")
+        print(f"Endpoint       : {settings.decision.base_url or spec['base_url']}")
     print(f"Scenario       : {scenario.name} | form {args.form} | freq {args.freq or scenario.frequency}")
+    if len(models) > 1:
+        print(f"Models         : {len(models)} in parallel\n")
 
-    def progress(index: int, total: int, day: date) -> None:
-        print(f"  decision {index}/{total} {day.isoformat()}", flush=True)
+    async def run_all():
+        jobs = {}
+        for name in models:
+            model_settings = Settings.model_validate(
+                {**settings.model_dump(), "decision": {**settings.model_dump()["decision"], "decision_model": name}}
+            )
 
-    out_dir = asyncio.run(
-        run_dcn(
-            scenario,
-            settings,
-            freq=args.freq,
-            start=args.start,
-            end=args.end,
-            label=args.label,
-            refresh_data=args.refresh_data,
-            progress=progress,
-            prepared_data=prepared_data,
-            client=client,
-            question_form=args.form,
-        )
-    )
+            # Each model walks its own decision schedule, and later decisions
+            # depend on earlier weights, so the loop inside run_dcn stays
+            # sequential; the models are what run concurrently.
+            def progress(index: int, total: int, day: date, model=name) -> None:
+                if len(models) == 1:
+                    print(f"  decision {index}/{total} {day.isoformat()}", flush=True)
+                else:
+                    print(f"  [{model}] decision {index}/{total} {day.isoformat()}", flush=True)
 
-    metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))
-    calibration = metrics.get("calibration") or {}
-    noul = (calibration.get("signals") or {}).get("noul") or {}
-    print(f"\nRun complete: {out_dir}")
-    print(
-        f"  Return {_percent(metrics.get('total_return'))} | SPY {_percent(metrics.get('spy_total_return'))} | "
+            jobs[name] = asyncio.create_task(
+                run_dcn(
+                    scenario,
+                    model_settings,
+                    freq=args.freq,
+                    start=args.start,
+                    end=args.end,
+                    label=args.label,
+                    refresh_data=args.refresh_data,
+                    progress=progress,
+                    prepared_data=prepared_data,
+                    client=client,
+                    question_form=args.form,
+                )
+            )
+        return await asyncio.gather(*jobs.values(), return_exceptions=True)
+
+    outcomes = asyncio.run(run_all())
+
+    failed = False
+    for name, outcome in zip(models, outcomes, strict=True):
+        if isinstance(outcome, Exception):
+            print(f"\nFAILED {name}: {type(outcome).__name__}: {outcome}", file=sys.stderr)
+            failed = True
+            continue
+        out_dir = outcome
+        metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))
+        calibration = metrics.get("calibration") or {}
+        noul = (calibration.get("signals") or {}).get("noul") or {}
+        print(f"\nRun complete: {out_dir}")
+        print(
+            f"  Return {_percent(metrics.get('total_return'))} | SPY {_percent(metrics.get('spy_total_return'))} | "
         f"Excess {_percent(metrics.get('excess_return_vs_spy'))}"
     )
     print(
@@ -543,7 +584,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         f"est. cost ${_number(metrics.get('estimated_cost_usd'), 6)}"
     )
     print("\nNext: beatspy calibrate   # probability quality   |   beatspy report   # dashboard")
-    return 0
+    return int(failed)
 
 
 # --------------------------------------------------------------------------- #

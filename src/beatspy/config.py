@@ -18,6 +18,7 @@ import os
 import re
 import tomllib
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -108,8 +109,18 @@ class DecisionConfig(BaseModel):
     max_retries: int = 4
     concurrency: int = 6
     # The sizing policy is fixed here so it cannot be tuned after seeing a
-    # result. Only noul probabilities enter the portfolio, and a name must clear
-    # the neutral 0.5 before it is held at all.
+    # result. Only noul probabilities enter the portfolio.
+    #   graded (default) — fully invested across the whole universe. `base_weight`
+    #     of the book is a uniform spread over every asset and the rest is
+    #     allocated in proportion to the probability above the prior, so a weak
+    #     forecast becomes a mild tilt instead of a binary switch. Without the
+    #     uniform base, one confident asset would take the entire book.
+    #   top_n — the legacy cut: hold only `top_n` names above `min_probability`,
+    #     equal-weighted, cash if fewer than `min_names` qualify. Kept so runs
+    #     recorded under it stay reproducible.
+    selection: Literal["graded", "top_n"] = "graded"
+    # Share of the graded book allocated by conviction; the remainder is even.
+    base_weight: float = 0.5
     min_probability: float = 0.5
     top_n: int = 3
     min_names: int = 2

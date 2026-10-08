@@ -194,7 +194,7 @@ def run_offline(
     frozen,
     client,
     *,
-    question_form: str = "twin",
+    question_form: str = "per_asset",
     settings: Settings | None = None,
     label: str | None = None,
     scenario_overrides: dict | None = None,
@@ -222,8 +222,18 @@ def run_offline(
 
 @pytest.fixture
 def dcn_run_dir(tmp_path: Path, scenario, frozen_data, offline_client) -> Path:
-    """A complete DCN run produced offline by the real runner."""
-    return run_offline(tmp_path, scenario, frozen_data, offline_client)
+    """A complete run in the `twin` form, which scores both noul and choice.
+
+    Kept on twin because report/catalog tests assert that a two-signal run
+    renders correctly. Use `per_asset_run_dir` for the default form.
+    """
+    return run_offline(tmp_path, scenario, frozen_data, offline_client, question_form="twin")
+
+
+@pytest.fixture
+def per_asset_run_dir(tmp_path: Path, scenario, frozen_data, offline_client) -> Path:
+    """A complete run in the default `per_asset` form: one question per asset."""
+    return run_offline(tmp_path, scenario, frozen_data, offline_client, question_form="per_asset")
 
 
 __all__ = [

@@ -78,32 +78,71 @@ class DcnDecision:
         return (len(self.question_ids) - len(self.missing_ids)) / len(self.question_ids)
 
 
-def derive_weights(probabilities: dict[str, float], policy, scenario) -> ValidatedDecision:
-    """Turn noul probabilities into a portfolio, under the fixed policy.
+def derive_weights(
+    probabilities: dict[str, float],
+    policy,
+    scenario,
+    *,
+    benchmark: str | None = None,
+) -> ValidatedDecision:
+    """Turn probabilities into a portfolio.
 
-    `probabilities` maps ticker -> P(beat the benchmark). Names at or below
-    `min_probability` are excluded; the strongest `top_n` are equal-weighted; if
-    fewer than `min_names` clear the bar the portfolio holds cash only. The risk
-    limit comes from the scenario, not the policy, so it stays comparable with
-    the deterministic baselines.
+    The default is a **graded, fully invested** book: every asset gets a weight
+    proportional to how far its probability sits above the neutral prior, and the
+    weights are normalized to 1. Nothing is chosen and nothing is dropped, so a
+    weak forecast is expressed as a mild tilt rather than as a binary switch. That
+    matters because the earlier top-N policy could only ever emit 0% or
+    1/top_n% and rewrote the book every week.
+
+    Assets the model declined to distinguish (exactly the prior) receive a zero
+    tilt and therefore cash-level weight, which is the honest expression of "no
+    view". If no asset has any tilt, the book holds the benchmark-less equal
+    spread rather than going to cash, so the portfolio is always comparable.
+
+    `policy.selection` chooses between this and the legacy top-N cut, which is
+    kept so earlier runs stay reproducible.
     """
-    eligible = sorted(
-        (
-            (ticker, probability)
-            for ticker, probability in probabilities.items()
-            if probability > policy.min_probability
-        ),
-        key=lambda item: (-item[1], item[0]),
-    )[: policy.top_n]
-    if len(eligible) < policy.min_names:
+    tradable = [ticker for ticker in scenario.tradable if benchmark is None or ticker != benchmark]
+    if not tradable:
         return ValidatedDecision(weights={}, cash=1.0)
-    weight = 1.0 / len(eligible)
-    return validate_weights(
-        {ticker: weight for ticker, _ in eligible},
-        None,
-        scenario.tradable,
-        scenario.max_position_weight,
-    )
+
+    if policy.selection == "top_n":
+        eligible = sorted(
+            (
+                (ticker, probability)
+                for ticker, probability in probabilities.items()
+                if probability > policy.min_probability
+            ),
+            key=lambda item: (-item[1], item[0]),
+        )[: policy.top_n]
+        if len(eligible) < policy.min_names:
+            return ValidatedDecision(weights={}, cash=1.0)
+        weight = 1.0 / len(eligible)
+        return validate_weights(
+            {ticker: weight for ticker, _ in eligible},
+            None,
+            scenario.tradable,
+            scenario.max_position_weight,
+        )
+
+    # Graded. Half the book is a uniform spread across every asset; the other half
+    # is allocated in proportion to the tilt above the prior. Blending matters: a
+    # pure tilt allocation gives a single confident asset 100% of the book, which
+    # is the concentration this rewrite exists to remove.
+    tilts = {
+        ticker: max(0.0, float(probabilities.get(ticker, policy.min_probability)) - policy.min_probability)
+        for ticker in tradable
+    }
+    total = sum(tilts.values())
+    uniform = 1.0 / len(tradable)
+    if total <= 1e-12:
+        # No view anywhere: the even spread is the whole book, so the run still
+        # participates rather than sitting in cash.
+        weights = {ticker: uniform for ticker in tradable}
+    else:
+        base = 1.0 - policy.base_weight
+        weights = {ticker: base * uniform + policy.base_weight * (tilt / total) for ticker, tilt in tilts.items()}
+    return validate_weights(weights, None, scenario.tradable, scenario.max_position_weight)
 
 
 def label_observations(data, scenario, decision: DcnDecision) -> list[cal.Observation]:
@@ -152,7 +191,7 @@ def label_observations(data, scenario, decision: DcnDecision) -> list[cal.Observ
 class DcnPipeline:
     """Asks one provider for one decision's probabilities, then sizes the book."""
 
-    def __init__(self, settings, scenario, client: DcnClient, *, question_form: str = "twin"):
+    def __init__(self, settings, scenario, client: DcnClient, *, question_form: str = "per_asset"):
         from ..data.calendar import resolve_scenario
 
         self.settings = settings
@@ -217,9 +256,23 @@ class DcnPipeline:
         return decision
 
     def candidates(self, data, as_of: date, holdings: dict[str, float]) -> list[str]:
+        """Which assets this decision asks about.
+
+        `per_asset` asks about **every investable asset**, one question each, so a
+        single asset's answer stands on its own and the portfolio covers the whole
+        universe. Every other form keeps the bounded momentum-ranked candidate set.
+        """
         from .state import candidates
 
-        return candidates(data, self.scenario, as_of, extra=list(holdings), max_candidates=self.scenario.max_candidates)
+        if self.question_form == "per_asset":
+            return [ticker.upper() for ticker in self.scenario.tradable]
+        return candidates(
+            data,
+            self.scenario,
+            as_of,
+            extra=list(holdings),
+            max_candidates=self.scenario.max_candidates,
+        )
 
     def _extract(self, decision: DcnDecision, question_set: QuestionSet) -> None:
         """Read probabilities out of the answers, backfilling misses at neutral.

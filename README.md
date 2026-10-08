@@ -58,35 +58,38 @@ keys and no network.
 
 ## What it asks
 
-One typed question per candidate ticker, phrased identically for every provider:
-*will `TICKER` deliver a higher total return than `SPY` over the next N trading
-days?* Three forms, and the benchmark measures them against each other:
+`--form per_asset` (the default) asks **one question per investable asset, for
+every asset, every decision** — 25 assets means 25 independent predictions each
+week, and each asset's answer stands on its own. `--form twin` or `all` add the
+choice and rank forms for the same ticker in the same request, which is how the
+form itself gets measured.
 
-| Form | Primitive | Answer |
-| --- | --- | --- |
-| `noul` | yes/no | P(ticker beats the benchmark) — **the only form that sizes the portfolio** |
-| `choice` | pick one | a distribution over outperform/underperform |
-| `rank` | ordered score | a five-level attractiveness, normalized to 0–1 |
+This matters, because the reported failure mode of these models is form-dependent:
+community replication found the `choice` form badly miscalibrated — a 70/30 event
+answered as heads **98%** of the time, with probabilities that moved when the
+options were reordered — while the predicate form returned 70% correctly. So the
+choice form is *measured as a hazard*, not trusted as a signal.
 
-`--form twin` (the default) asks noul and choice for the same ticker in one call.
-`--form all` asks all three. This matters, because the reported failure mode of
-these models is form-dependent: community replication found the `choice` form
-badly miscalibrated — a 70/30 event answered as heads **98%** of the time, with
-probabilities that moved when the options were reordered — while the predicate
-form returned 70% correctly. So the choice form is *measured as a hazard*, not
-trusted as a signal.
+## How the probabilities become a portfolio
 
-## The sizing policy is fixed
-
-Whatever the probabilities are, the mapping to a portfolio is fixed in code before
-any result is seen, so a run cannot be tuned after the fact:
+The mapping is fixed in code before any result is seen, so a run cannot be tuned
+after the fact. The default is **graded**:
 
 1. only `noul` probabilities are used;
-2. a ticker must exceed **0.5** to be held at all;
-3. the strongest **three** are equal-weighted, capped by the scenario's position limit;
-4. fewer than **two** qualifying names means the book goes fully to **cash**.
+2. half the book is an even spread across the whole universe, so every asset is
+   always held at some weight;
+3. the other half is allocated in proportion to each asset's probability above
+   the prior (`base_weight`);
+4. the scenario's position limit applies per asset, and cash absorbs any remainder.
 
-An unanswered question is backfilled at the neutral 0.5 — so a provider failure is
+An earlier policy held only the top three names above 0.5, equal-weighted. It could
+emit nothing but 0% or 33% per position, rewrote the entire book every week
+(~50% turnover), and left a single confident asset taking the whole book. `graded`
+exists to remove that: a weak forecast becomes a mild tilt rather than a binary
+switch. `selection = "top_n"` restores the old behaviour for reproducing runs
+recorded under it.
+
+An unanswered question is backfilled at the neutral, so a provider failure is
 recorded as missing coverage and can never become a directional bet.
 
 ## How it is scored

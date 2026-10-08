@@ -162,13 +162,15 @@ def test_run_offline_fixture_writes_a_complete_dcn_run(tmp_path, monkeypatch, ca
     assert meta["benchmark"] == "dcn"
     assert meta["synthetic"] is False
     assert meta["decision"]["decision_model"] == "clef-flash"
-    assert meta["decision"]["question_form"] == "twin"
+    assert meta["decision"]["question_form"] == "per_asset"
     assert meta["label"] == "fixture"
     assert meta["scenario"]["name"] == "test-scenario"
 
     metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
     assert metrics["calibration"]["signals"]["noul"]["n"] > 0
-    assert metrics["calibration"]["signals"]["choice"]["n"] > 0
+    # The default form asks one noul question per asset, so noul is the only
+    # signal present; `--form all` is what adds choice and rank.
+    assert set(metrics["calibration"]["signals"]) == {"noul"}
     assert metrics["decisions"] == len((run_dir / "decisions.jsonl").read_text(encoding="utf-8").splitlines())
 
 
@@ -335,11 +337,24 @@ def test_report_renders_the_dashboard(tmp_path, monkeypatch, capsys):
 def test_parser_keeps_the_hand_rolled_style():
     parser = build_parser()
     args = parser.parse_args(["run", "--model", "clef", "--scenario", "2022-bear", "--form", "rank"])
-    assert args.model == "clef"
+    # `--model` takes one or more ids: several run concurrently.
+    assert args.model == ["clef"]
     assert args.scenario == "2022-bear"
     assert args.form == "rank"
+
+
+def test_run_accepts_several_models_at_once():
+    parser = build_parser()
+    args = parser.parse_args(["run", "--model", "clef", "jev-latest", "gpt-6-luna"])
+    assert args.model == ["clef", "jev-latest", "gpt-6-luna"]
+
+
+def test_run_defaults_to_the_per_asset_form():
+    """One question per asset, every asset, is the benchmark's default."""
+    parser = build_parser()
+    args = parser.parse_args(["run"])
+    assert args.form == "per_asset"
     assert args.offline_fixture is False
-    assert parser.parse_args(["run"]).form == "twin"
     assert parser.parse_args(["run", "--offline-fixture"]).offline_fixture is True
     assert parser.parse_args(["run", "--max-decisions", "6"]).max_decisions == 6
     with pytest.raises(SystemExit):

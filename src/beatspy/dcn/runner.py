@@ -135,7 +135,7 @@ async def run_dcn(
     progress: Callable[[int, int, date], None] | None = None,
     prepared_data: tuple[DataService, dict] | None = None,
     client: DcnClient | None = None,
-    question_form: str = "twin",
+    question_form: str = "per_asset",
 ) -> Path:
     """Run the full DCN benchmark for one decision model on one scenario."""
     scenario = resolve_scenario(scenario)
@@ -235,6 +235,7 @@ async def run_dcn(
                     "cost_per_m_output": settings.decision.cost_per_m_output,
                 },
                 "policy": {
+                    "selection": settings.decision.selection,
                     "min_probability": settings.decision.min_probability,
                     "top_n": settings.decision.top_n,
                     "min_names": settings.decision.min_names,

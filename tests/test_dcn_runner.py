@@ -39,8 +39,8 @@ def test_every_question_form_is_scored_per_form(tmp_path, scenario, frozen_data)
     assert twin_metrics["calibration"]["miscalibration_gap"] is not None
 
 
-def test_run_metadata_identifies_the_decision_model_and_policy(dcn_run_dir):
-    meta, _, _ = read_run(dcn_run_dir)
+def test_run_metadata_identifies_the_decision_model_and_policy(per_asset_run_dir):
+    meta, _, _ = read_run(per_asset_run_dir)
     assert meta["benchmark"] == "dcn"
     assert meta["schema_version"] == 3
     assert meta["dcn_protocol"] >= 1
@@ -48,16 +48,21 @@ def test_run_metadata_identifies_the_decision_model_and_policy(dcn_run_dir):
     decision = meta["decision"]
     assert decision["decision_model"]
     assert decision["provider"] in ("openai_decisions", "typesafe", "cloudflare")
-    assert decision["question_form"] == "twin"
-    assert decision["policy"] == {"min_probability": 0.5, "top_n": 3, "min_names": 2}
+    assert decision["question_form"] == "per_asset"
+    assert decision["policy"] == {
+        "selection": "graded",
+        "min_probability": 0.5,
+        "top_n": 3,
+        "min_names": 2,
+    }
     assert decision["pricing"]["cost_per_m_input"] is not None
     # The snapshot the run was scored against is recorded for replay.
     assert meta["data"]["prices_sha256"]
     assert meta["artifact_hashes"]["metrics.json"]
 
 
-def test_metrics_carry_both_halves_of_the_benchmark(dcn_run_dir):
-    _, metrics, lines = read_run(dcn_run_dir)
+def test_metrics_carry_both_halves_of_the_benchmark(per_asset_run_dir):
+    _, metrics, lines = read_run(per_asset_run_dir)
     # Portfolio half.
     for field in (
         "total_return",
@@ -75,7 +80,9 @@ def test_metrics_carry_both_halves_of_the_benchmark(dcn_run_dir):
     calibration = metrics["calibration"]
     assert calibration["horizons"] == metrics["decisions"] == len(lines)
     assert calibration["observations"] > 0
-    assert set(calibration["signals"]) == {"noul", "choice"}
+    # The default form asks one noul question per asset, so `noul` is the only
+    # signal scored. `all` adds choice and rank; that is asserted separately.
+    assert set(calibration["signals"]) == {"noul"}
     for stats in calibration["signals"].values():
         assert stats["n"] > 0
         assert 0.0 <= stats["brier"] <= 1.0
@@ -135,6 +142,35 @@ def test_the_same_scripted_model_produces_an_identical_run(tmp_path, scenario, f
     assert (first / "equity_curve.csv").read_text(encoding="utf-8") == (second / "equity_curve.csv").read_text(
         encoding="utf-8"
     )
+
+
+def test_one_question_per_asset_per_decision_by_default(per_asset_run_dir):
+    """The whole point of `per_asset`: 25 assets means 25 decisions each week."""
+    meta, metrics, lines = read_run(per_asset_run_dir)
+    scenario = meta["scenario"]
+    universe = scenario["tradable"]
+    assert meta["decision"]["question_form"] == "per_asset"
+    for line in lines:
+        assert sorted(line["tickers"]) == sorted(t.upper() for t in universe)
+        assert len(line["question_ids"] if "question_ids" in line else line["questions"]) == len(universe)
+        assert all(qid.startswith("noul_") for qid in line["questions"])
+        # Every asset answered, so nothing is backfilled at the neutral.
+        assert line["missing_ids"] == []
+        assert set(line["probabilities"]) == {t.upper() for t in universe}
+    # 3 decisions x the fixture's 3 assets = 9 independent predictions.
+    assert metrics["calibration"]["observations"] == len(lines) * len(universe)
+
+
+def test_the_graded_book_holds_every_asset_and_stays_invested(per_asset_run_dir):
+    """No 0%/33% oscillation: all assets held, always fully invested."""
+    _, metrics, lines = read_run(per_asset_run_dir)
+    assert metrics["policy"]["selection"] == "graded" if "policy" in metrics else True
+    for line in lines:
+        weights = line["validated"]["weights"]
+        assert len(weights) == len(line["tickers"]), "every asset should carry weight"
+        # `cash` is recorded rounded to 4 decimals, so allow for that alone.
+        assert sum(weights.values()) + line["validated"]["cash"] == pytest.approx(1.0, abs=1e-3)
+        assert all(weight > 0 for weight in weights.values())
 
 
 def test_every_probability_is_scored_against_a_relative_outcome(dcn_run_dir):

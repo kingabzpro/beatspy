@@ -18,9 +18,15 @@ max_retries = 4
 concurrency = 6
 
 # The sizing policy. Fixed here so a run cannot be tuned after seeing a result.
-# Only noul probabilities enter the portfolio: a name must beat the neutral 0.5
-# to be held, the strongest `top_n` are equal-weighted, and the book goes fully to
-# cash when fewer than `min_names` clear the bar.
+# Only noul probabilities enter the portfolio.
+#   graded (default) — half the book is an even spread across the whole universe
+#     and half follows conviction, so every asset is always held and a weak
+#     forecast is a mild tilt rather than a binary switch.
+#   top_n — the legacy cut: hold only `top_n` names above `min_probability`,
+#     equal-weighted, cash when fewer than `min_names` qualify.
+selection = "graded"
+# Share of the graded book allocated by conviction; the remainder is even.
+base_weight = 0.5
 min_probability = 0.5
 top_n = 3
 min_names = 2

@@ -16,6 +16,10 @@ because the reported failure mode of these models is form-dependent:
   is the cheapest way to quantify that form gap inside one provider.
 - `all`   — asks all three forms for every ticker, so one run produces the full
   calibration picture (noul, choice and rank) for the same decisions.
+- `per_asset` — ONE question per investable asset, every asset, every decision.
+  This is the benchmark's default: 25 assets means 25 independent decisions each
+  week. One question per stock is what makes a single asset's answer mean
+  something on its own, instead of being read only through a top-N cut.
 """
 
 from __future__ import annotations
@@ -24,7 +28,7 @@ from dataclasses import dataclass, field
 
 from ..schemas import Question
 
-FORMS = ("noul", "choice", "rank", "twin", "all")
+FORMS = ("noul", "choice", "rank", "twin", "all", "per_asset")
 
 # Shared level definitions, so `rank` means the same thing for every provider.
 RANK_LEVELS = [
@@ -95,7 +99,7 @@ def build_questions(
 
     for ticker in tickers:
         name = ticker.upper()
-        if form in ("noul", "twin", "all"):
+        if form in ("noul", "twin", "all", "per_asset"):
             question_id = f"noul_{name}"
             qs.questions[question_id] = Question(
                 type="noul",
