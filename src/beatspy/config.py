@@ -15,6 +15,7 @@ from __future__ import annotations
 import contextlib
 import json
 import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -194,15 +195,23 @@ def env_file_path() -> Path:
 
 
 def parse_env_file(text: str) -> dict[str, str]:
-    """Parse a dotenv-style file: KEY=value, `#` comments, optional quotes."""
+    """Parse a dotenv-style file: KEY=value, `#` comments, optional quotes.
+
+    A `#` that follows whitespace starts a comment, which is what people expect
+    from dotenv files. Getting this wrong is expensive rather than cosmetic: a
+    value with a trailing `# note` appended becomes an invalid credential, and
+    the provider answers 401 as if the key were simply wrong.
+    """
     values: dict[str, str] = {}
     for line in text.splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, _, value = line.partition("=")
-        # A trailing inline comment is not part of the value.
-        value = value.split(" #", 1)[0].strip().strip('"').strip("'")
+        # Strip an unquoted trailing comment, but never inside a quoted value.
+        if not value.lstrip().startswith(("'", '"')):
+            value = re.split(r"\s+#", value, maxsplit=1)[0]
+        value = value.strip().strip('"').strip("'")
         key = key.strip()
         if key:
             values[key] = value

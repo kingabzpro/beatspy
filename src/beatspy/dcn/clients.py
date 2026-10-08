@@ -24,13 +24,21 @@ quota, so it raises immediately.
 from __future__ import annotations
 
 import asyncio
+import json
 import random
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import httpx
 
-from ..schemas import CallRecord, Question, parse_answers
+from ..schemas import (
+    CallRecord,
+    ChoiceAnswer,
+    NoulAnswer,
+    Question,
+    ScoreAnswer,
+    parse_answers,
+)
 
 # Documented transient statuses: 429 Too Many Requests, 529 Overloaded,
 # plus the ordinary 5xx family.
@@ -168,49 +176,110 @@ class HttpDcnClient:
 
 
 class OpenAiDecisionsClient(HttpDcnClient):
-    """OpenAI Decisions API over the Responses API."""
+    """OpenAI Decisions API.
+
+    This provider does not share the System One envelope, so it adapts in three
+    documented ways:
+
+    - it has its own endpoint, `POST /v1/decisions`, not the Responses API;
+    - `questions` is an **array** with a required per-question `name`, and the
+      yes/no type is called `predicate`; `choice` takes `choices` of
+      `{value, description}` and `score` takes `levels` of `{label, description}`;
+    - `answers` comes back as an array keyed by `name`, a predicate answer
+      carries `probability`, and an answer may be a `refusal` with no value.
+
+    Getting any of these wrong returns HTTP 400, so they are pinned by tests.
+    """
 
     provider = "openai_decisions"
 
     def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
-        url = f"{self.endpoint.rstrip('/')}/responses"
+        url = f"{self.endpoint.rstrip('/')}/decisions"
         headers = {
             "Authorization": f"Bearer {self.api_key or ''}",
             "Content-Type": "application/json",
         }
-        body = {
-            "model": self.model,
-            "input": [
-                {"role": "user", "content": [{"type": "input_text", "text": _state_text(state)}]},
-            ],
-            "decision": {"questions": _questions_payload(questions)},
-        }
+        payload = []
+        for question_id, question in questions.items():
+            entry: dict[str, Any] = {
+                "name": question_id,
+                "type": "predicate" if question.type == "noul" else question.type,
+                "instructions": _flatten(question.instructions),
+            }
+            if question.type == "choice" and isinstance(question.criteria, dict):
+                entry["choices"] = [
+                    {"value": str(value), "description": str(description)}
+                    for value, description in question.criteria.items()
+                ]
+            elif question.type == "score" and isinstance(question.criteria, list):
+                entry["levels"] = [
+                    {"label": str(level), "description": str(level)} for level in question.criteria
+                ]
+            payload.append(entry)
+        body = {"model": self.model, "input": _state_text(state), "questions": payload}
         return "POST", url, headers, body
 
     def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
-        answers_raw = payload.get("decision") or payload
-        if not isinstance(answers_raw, dict) or "answers" not in answers_raw:
-            # Answers may be nested per output item; take the first block that has them.
-            found = None
-            for item in payload.get("output") or []:
-                if not isinstance(item, dict):
-                    continue
-                for content in item.get("content") or []:
-                    if isinstance(content, dict) and isinstance(content.get("json"), dict):
-                        found = content["json"]
-                        break
-                if found:
-                    break
-            answers_raw = found or {}
-        answers, missing = parse_answers(answers_raw, question_ids)
+        answers: dict[str, NoulAnswer | ChoiceAnswer | ScoreAnswer] = {}
+        refused: list[str] = []
+        for item in payload.get("answers") or []:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name")
+            kind = str(item.get("type", "")).strip().lower()
+            if not isinstance(name, str) or kind == "refusal":
+                if isinstance(name, str):
+                    refused.append(name)
+                continue
+            if kind == "predicate":
+                probability = item.get("probability")
+                if isinstance(probability, (int, float)):
+                    answers[name] = NoulAnswer(noul=min(max(float(probability), 0.0), 1.0))
+            elif kind == "choice":
+                # probabilities arrive as a list of {value, probability}.
+                probabilities = {
+                    str(row.get("value")): float(row.get("probability") or 0.0)
+                    for row in item.get("probabilities") or []
+                    if isinstance(row, dict) and row.get("value") is not None
+                }
+                total = sum(probabilities.values())
+                if probabilities and total > 0:
+                    # A distribution that does not sum to 1 is normalized rather
+                    # than discarded, so a rounding quirk cannot lose an answer.
+                    normalised = {value: weight / total for value, weight in probabilities.items()}
+                    chosen = item.get("choice")
+                    if not isinstance(chosen, str) or chosen not in normalised:
+                        chosen = max(normalised, key=lambda value: normalised[value])
+                    answers[name] = ChoiceAnswer(
+                        choice=chosen,
+                        probabilities=normalised,
+                        confidence=item.get("confidence"),
+                    )
+            elif kind == "score":
+                score = item.get("score")
+                if isinstance(score, (int, float)):
+                    legend = {
+                        str(row.get("value")): str(row.get("label") or "")
+                        for row in item.get("probabilities") or []
+                        if isinstance(row, dict)
+                    }
+                    answers[name] = ScoreAnswer(score=float(score), legend=legend)
+        missing = [question_id for question_id in question_ids if question_id not in answers]
         usage = payload.get("usage") or {}
         return DcnResult(
             answers=answers,
             missing_ids=missing,
             input_tokens=int(usage.get("input_tokens") or 0),
             output_tokens=int(usage.get("output_tokens") or 0),
-            raw=payload,
+            raw={**payload, "_refused": refused} if refused else payload,
         )
+
+
+def _flatten(instructions: str | dict | list) -> str:
+    """OpenAI takes `instructions` as a string; fold structured instructions into one."""
+    if isinstance(instructions, str):
+        return instructions
+    return json.dumps(instructions, separators=(",", ":"), sort_keys=True)
 
 
 class TypeSafeClient(HttpDcnClient):

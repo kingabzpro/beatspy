@@ -49,12 +49,13 @@ def _client(transport, account_id: str | None = None):
 # --------------------------------------------------------------------------- #
 
 
-def test_openai_sends_a_responses_request_with_a_decision_block():
+def test_openai_posts_to_the_dedicated_decisions_endpoint():
+    """OpenAI does not share the System One envelope: /v1/decisions, array questions."""
     import asyncio
 
     calls: list[httpx.Request] = []
     payload = {
-        "decision": {"answers": {"noul_AAPL": {"type": "noul", "noul": 0.62}}},
+        "answers": [{"type": "predicate", "name": "noul_AAPL", "probability": 0.62}],
         "usage": {"input_tokens": 120, "output_tokens": 0},
     }
     transport = _capture(payload, calls=calls)
@@ -64,30 +65,57 @@ def test_openai_sends_a_responses_request_with_a_decision_block():
         api_key="sk-test",
         client=_client(transport),
     )
-    result = asyncio.run(client.decide({"as_of": "2022-02-15"}, _questions()))
+    state = {"as_of": "2022-02-15", "market": [{"ticker": "AAPL"}]}
+    result = asyncio.run(client.decide(state, _questions()))
 
     request = calls[0]
-    assert str(request.url) == "https://api.openai.com/v1/responses"
+    assert str(request.url) == "https://api.openai.com/v1/decisions"
     assert request.headers["authorization"] == "Bearer sk-test"
     body = json.loads(request.content)
     assert body["model"] == "gpt-6-luna"
-    assert body["input"][0]["content"][0]["type"] == "input_text"
-    assert "2022-02-15" in body["input"][0]["content"][0]["text"]
-    assert body["decision"]["questions"]["noul_AAPL"]["type"] == "noul"
-    assert body["decision"]["questions"]["choice_AAPL"]["criteria"] == {
-        "outperform": "Total return above the benchmark over the horizon",
-        "underperform": "Total return at or below the benchmark over the horizon",
-    }
+    # A single text input, not a Responses-style message array.
+    assert isinstance(body["input"], str)
+    assert "2022-02-15" in body["input"]
+    # Questions are an array, each named, and the yes/no type is `predicate`.
+    assert isinstance(body["questions"], list)
+    by_name = {q["name"]: q for q in body["questions"]}
+    assert by_name["noul_AAPL"]["type"] == "predicate"
+    assert by_name["choice_AAPL"]["type"] == "choice"
+    assert by_name["choice_AAPL"]["choices"] == [
+        {"value": "outperform", "description": "Total return above the benchmark over the horizon"},
+        {"value": "underperform", "description": "Total return at or below the benchmark over the horizon"},
+    ]
     assert result.input_tokens == 120
     assert result.answers["noul_AAPL"].noul == pytest.approx(0.62)
+    assert result.missing_ids == ["choice_AAPL"]
 
 
-def test_openai_also_reads_answers_nested_in_output_content():
+def test_openai_reads_list_probabilities_and_a_score_levels():
     import asyncio
 
     payload = {
-        "output": [
-            {"content": [{"type": "output_json", "json": {"answers": {"noul_AAPL": {"type": "noul", "noul": 0.4}}}}]}
+        "answers": [
+            {
+                "type": "choice",
+                "name": "choice_AAPL",
+                "choice": "outperform",
+                "probabilities": [
+                    {"value": "outperform", "probability": 0.7},
+                    {"value": "underperform", "probability": 0.3},
+                ],
+                "confidence": 0.8,
+            },
+            {
+                "type": "score",
+                "name": "rank_AAPL",
+                "score": 1.1,
+                "probabilities": [
+                    {"value": 0, "label": "Cosmetic", "probability": 0.1},
+                    {"value": 1, "label": "Workaround", "probability": 0.7},
+                    {"value": 2, "label": "Blocked", "probability": 0.2},
+                ],
+                "confidence": 0.55,
+            },
         ]
     }
     client = OpenAiDecisionsClient(
@@ -96,9 +124,54 @@ def test_openai_also_reads_answers_nested_in_output_content():
         api_key="sk",
         client=_client(_capture(payload)),
     )
+    result = asyncio.run(client.decide({"as_of": "x"}, {"choice_AAPL": _questions()["choice_AAPL"],
+                                                          "rank_AAPL": _questions()["noul_AAPL"]}))
+    assert result.answers["choice_AAPL"].probabilities == {"outperform": 0.7, "underperform": 0.3}
+    assert result.answers["rank_AAPL"].score == pytest.approx(1.1)
+    assert result.answers["rank_AAPL"].legend["2"] == "Blocked"
+
+
+def test_openai_normalises_a_distribution_that_does_not_sum_to_one():
+    import asyncio
+
+    payload = {
+        "answers": [
+            {
+                "type": "choice",
+                "name": "choice_AAPL",
+                "probabilities": [
+                    {"value": "outperform", "probability": 0.6},
+                    {"value": "underperform", "probability": 0.6},
+                ],
+            }
+        ]
+    }
+    client = OpenAiDecisionsClient(
+        model="gpt-6-luna", endpoint="https://api.openai.com/v1", api_key="sk",
+        client=_client(_capture(payload)),
+    )
+    result = asyncio.run(client.decide({"as_of": "x"}, {"choice_AAPL": _questions()["choice_AAPL"]}))
+    assert result.answers["choice_AAPL"].probabilities == {"outperform": 0.5, "underperform": 0.5}
+
+
+def test_openai_refusal_is_missing_coverage_not_a_crash():
+    """A refusal has no value, so it must count as an unanswered question."""
+    import asyncio
+
+    payload = {
+        "answers": [
+            {"type": "refusal", "name": "noul_AAPL"},
+            {"type": "predicate", "name": "choice_AAPL", "probability": 0.4},
+        ]
+    }
+    client = OpenAiDecisionsClient(
+        model="gpt-6-luna", endpoint="https://api.openai.com/v1", api_key="sk",
+        client=_client(_capture(payload)),
+    )
     result = asyncio.run(client.decide({"as_of": "x"}, _questions()))
-    assert result.answers["noul_AAPL"].noul == pytest.approx(0.4)
-    assert "choice_AAPL" in result.missing_ids
+    assert "noul_AAPL" not in result.answers
+    assert result.missing_ids == ["noul_AAPL"]
+    assert result.raw["_refused"] == ["noul_AAPL"]
 
 
 def test_typesafe_posts_state_and_questions_verbatim():
