@@ -345,14 +345,58 @@ def test_score_answers_pass_through_unchanged():
 
 
 @pytest.mark.parametrize("name", sorted(DECISION_MODELS))
-def test_make_client_builds_every_configured_model(name):
+def test_make_client_builds_every_configured_model(name, monkeypatch):
+    spec = DECISION_MODELS[name]
+    # Supply whatever this provider needs so construction is what is under test.
+    monkeypatch.setenv(spec["api_key_env"], "test-key")
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
     client = make_client(settings)
-    spec = DECISION_MODELS[name]
     assert client.provider == spec["provider"]
     assert client.model == spec["model"]
     assert client.endpoint == spec["base_url"]
+
+
+def test_a_missing_credential_fails_fast_with_the_variable_name(monkeypatch):
+    """An absent key must name itself, not surface as a transport header error."""
+    for env in ("TYPESAFE_API_KEY", "BEATSPY_TYPESAFE_API_KEY"):
+        monkeypatch.delenv(env, raising=False)
+    settings = Settings()
+    settings.decision.decision_model = "jev-latest"
+    with pytest.raises(DcnError) as excinfo:
+        make_client(settings)
+    message = str(excinfo.value)
+    assert "TYPESAFE_API_KEY" in message
+    assert ".env" in message
+
+
+def test_cloudflare_needs_both_the_token_and_the_account_id(monkeypatch):
+    from beatspy.dcn.clients import missing_credentials
+
+    settings = Settings()
+    settings.decision.decision_model = "clef-flash"
+    monkeypatch.setenv("CLOUDFLARE_AUTH_TOKEN", "tok")
+    monkeypatch.delenv("CLOUDFLARE_ACCOUNT_ID", raising=False)
+    monkeypatch.delenv("BEATSPY_CLOUDFLARE_ACCOUNT_ID", raising=False)
+    assert missing_credentials(settings) == ["CLOUDFLARE_ACCOUNT_ID"]
+
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
+    assert missing_credentials(settings) == []
+
+    monkeypatch.delenv("CLOUDFLARE_AUTH_TOKEN")
+    assert missing_credentials(settings) == ["CLOUDFLARE_AUTH_TOKEN"]
+
+
+def test_missing_credentials_is_empty_for_a_non_cloudflare_provider(monkeypatch):
+    from beatspy.dcn.clients import missing_credentials
+
+    settings = Settings()
+    settings.decision.decision_model = "gpt-6-luna"
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.delenv("CLOUDFLARE_ACCOUNT_ID", raising=False)
+    monkeypatch.delenv("BEATSPY_CLOUDFLARE_ACCOUNT_ID", raising=False)
+    assert missing_credentials(settings) == []
 
 
 def test_unknown_model_is_rejected_at_construction():

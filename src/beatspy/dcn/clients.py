@@ -283,6 +283,24 @@ _CLIENTS = {
 }
 
 
+def missing_credentials(settings) -> list[str]:
+    """Environment variables a run of this decision model still needs.
+
+    Checked before a run starts: an absent key would otherwise fail inside the
+    transport as `Illegal header value b'Bearer '` after several retries, which
+    tells the user nothing about the fix.
+    """
+    from ..config import cloudflare_account_id, decision_api_key
+
+    decision = settings.decision
+    missing: list[str] = []
+    if not decision_api_key(decision.decision_model):
+        missing.append(decision.spec["api_key_env"])
+    if decision.provider == "cloudflare" and not cloudflare_account_id():
+        missing.append("CLOUDFLARE_ACCOUNT_ID")
+    return missing
+
+
 def make_client(settings, *, client: httpx.AsyncClient | None = None) -> HttpDcnClient:
     """Build the client for the configured decision model."""
     from ..config import cloudflare_account_id, decision_api_key
@@ -292,6 +310,13 @@ def make_client(settings, *, client: httpx.AsyncClient | None = None) -> HttpDcn
     factory = _CLIENTS.get(provider)
     if factory is None:
         raise DcnError(f"no client for provider {provider!r}")
+    missing = missing_credentials(settings)
+    if missing:
+        raise DcnError(
+            f"{decision.label} needs {' and '.join(missing)}. "
+            f"Export it, or add it to .env next to the repository, then retry. "
+            f"`beatspy models` shows which credentials resolve."
+        )
     return factory(
         model=decision.spec["model"],
         endpoint=decision.endpoint,
