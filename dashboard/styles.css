@@ -8,6 +8,10 @@
 .section-heading>div{min-width:0}.section-heading .pill{flex-shrink:0}#run-title,#run-meta{overflow-wrap:anywhere}
 
 /* A fabricated run must never be mistakable for a real one. */
+/* `[hidden]` must win over any display rule below: a class that sets
+   `display:block` otherwise overrides the browser's own [hidden] rule and the
+   warning renders even when it is not applicable, labelling real results fake. */
+[hidden]{display:none!important}
 .pill.warn{border-color:#7a5a1e;background:#241c0c;color:#f0c265;line-height:1.7;display:block;margin:0 0 14px}
 .pill.warn:before{content:"⚠ ";font-size:12px}
 td .synthetic-chip{display:inline-block;margin-left:8px;border:1px solid #7a5a1e;background:#241c0c;color:#f0c265;border-radius:99px;padding:2px 7px;font:10px ui-monospace,SFMono-Regular,Consolas,monospace;vertical-align:1px}

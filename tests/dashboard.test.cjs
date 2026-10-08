@@ -326,6 +326,23 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   assert.equal($('downloads').children.length, 6);
 });
 
+// A DOM `hidden` property is invisible to a fake DOM, so this checks the
+// stylesheet. `.pill.warn` sets `display:block`, which overrides the browser's
+// own `[hidden]` rule; without an explicit `[hidden]{display:none}` the warning
+// banner rendered even when hidden and labelled real results as fabricated.
+test('the stylesheet makes hidden elements actually hidden', () => {
+  const css = readFileSync(require.resolve('../dashboard/styles.css'), 'utf8');
+  const override = css.match(/\[hidden\]\s*\{[^}]*\}/);
+  assert.ok(override, 'styles.css must define a [hidden] rule');
+  assert.match(override[0], /display\s*:\s*none/, '[hidden] must set display:none');
+  assert.ok(
+    override[0].includes('!important'),
+    '[hidden] needs !important to beat a class that sets its own display'
+  );
+  // The specific collision that caused the bug must still be covered.
+  assert.match(css, /\.pill\.warn\s*\{[^}]*display\s*:\s*block/);
+});
+
 // A fabricated run must be labelled before it is clicked. This regression exists
 // because the trust badge originally lived only inside the click-through details
 // panel, so the leaderboard showed demo numbers with no warning at all.
