@@ -1,0 +1,19 @@
+title = "Latest 6 months"
+description = "Rolling six-month window ending at the latest completed NYSE session, with weekly decisions over 25 stocks and ETFs."
+# Rolling: `start` is resolved as six months before the latest completed session,
+# so this scenario never ages into an old period.
+recent_months = 6
+frequency = "weekly"
+max_decisions = 26
+benchmark = "SPY"
+# 25 investable assets: large companies across all 11 sectors, plus three ETFs.
+# SPY is comparison-only and is added to the universe by the scenario, not here.
+tradable = [
+  "AAPL", "MSFT", "NVDA", "GOOGL", "META",
+  "AMZN", "HD", "WMT", "PG", "COST",
+  "JPM", "V", "LLY", "JNJ", "UNH",
+  "XOM", "CVX", "CAT", "GE", "NEE",
+  "LIN", "PLD", "AMT", "QQQ", "TLT",
+]
+max_candidates = 10
+lookback_days = 400

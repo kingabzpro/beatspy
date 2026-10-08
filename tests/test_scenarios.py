@@ -13,7 +13,15 @@ import pytest
 
 from beatspy.scenarios import DEFAULT_SCENARIO, available_names, load_scenario, make_scenario
 
-BUNDLED = ["2020-covid", "2022-bear", "2023-recovery", "2025-recent", "2026-recent", "2026-ytd"]
+BUNDLED = [
+    "2020-covid",
+    "2022-bear",
+    "2023-recovery",
+    "2025-recent",
+    "2026-recent",
+    "2026-6m",
+    "2026-ytd",
+]
 
 
 def test_all_bundled_scenarios_are_listed():
@@ -47,6 +55,43 @@ def test_unknown_scenario_names_its_alternatives():
     with pytest.raises(FileNotFoundError) as excinfo:
         load_scenario("does-not-exist")
     assert "2026-ytd" in str(excinfo.value)
+
+
+def test_latest_six_month_scenario_is_weekly_over_25_assets():
+    scenario = load_scenario("2026-6m")
+    assert scenario.recent_months == 6
+    assert scenario.frequency == "weekly"
+    assert len(scenario.tradable) == 25
+    assert len(set(scenario.tradable)) == 25
+    assert scenario.benchmark == "SPY"
+    assert scenario.benchmark not in scenario.tradable, "SPY is comparison-only, never investable"
+    # A weekly cadence caps decisions by default rather than running hundreds.
+    assert scenario.max_decisions and scenario.max_decisions <= 30
+
+
+def test_rolling_window_resolves_to_the_latest_completed_session():
+    from datetime import UTC, datetime
+
+    from beatspy.data.calendar import completed_session, resolve_scenario, subtract_months
+
+    scenario = load_scenario("2026-6m")
+    resolved = resolve_scenario(scenario, now=datetime(2026, 10, 8, 20, 0, tzinfo=UTC))
+    assert resolved.end == completed_session(now=datetime(2026, 10, 8, 20, 0, tzinfo=UTC)).isoformat()
+    assert resolved.start == subtract_months(completed_session(
+        now=datetime(2026, 10, 8, 20, 0, tzinfo=UTC)), 6).isoformat()
+    assert resolved.start < resolved.end
+    assert resolved.through_latest is False
+
+
+def test_subtract_months_clamps_short_months():
+    from datetime import date
+
+    from beatspy.data.calendar import subtract_months
+
+    assert subtract_months(date(2026, 10, 8), 6) == date(2026, 4, 8)
+    assert subtract_months(date(2026, 8, 31), 6) == date(2026, 2, 28)  # not February 31
+    assert subtract_months(date(2026, 3, 31), 1) == date(2026, 2, 28)
+    assert subtract_months(date(2026, 1, 15), 1) == date(2025, 12, 15)  # crosses the year
 
 
 def test_make_scenario_applies_overrides():

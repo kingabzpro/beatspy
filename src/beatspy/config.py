@@ -189,24 +189,56 @@ def results_dir() -> Path:
     return Path.cwd() / "results"
 
 
+def env_file_path() -> Path:
+    return Path.cwd() / ".env"
+
+
+def parse_env_file(text: str) -> dict[str, str]:
+    """Parse a dotenv-style file: KEY=value, `#` comments, optional quotes."""
+    values: dict[str, str] = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        # A trailing inline comment is not part of the value.
+        value = value.split(" #", 1)[0].strip().strip('"').strip("'")
+        key = key.strip()
+        if key:
+            values[key] = value
+    return values
+
+
+def read_env_file() -> dict[str, str]:
+    """Read the project `.env`. It is git-ignored and never required."""
+    path = env_file_path()
+    if not path.exists():
+        return {}
+    try:
+        return parse_env_file(path.read_text(encoding="utf-8"))
+    except OSError:
+        return {}
+
+
 def load_secrets() -> None:
-    """Load secrets.env into the environment (never overriding existing vars)."""
-    for key, value in read_secrets().items():
-        os.environ.setdefault(key, value)
+    """Load credentials into the environment, never overriding what is already set.
+
+Precedence: a real exported variable, then `~/.beatspy/secrets.env` (the
+deliberate store, so it wins over a project file), then the project `.env`.
+A `.env` in the working directory is what most people expect to work, so it is
+honoured rather than silently ignored.
+    """
+    merged = {**read_env_file(), **read_secrets()}
+    for key, value in merged.items():
+        if value:
+            os.environ.setdefault(key, value)
 
 
 def read_secrets() -> dict[str, str]:
     path = secrets_path()
     if not path.exists():
         return {}
-    secrets: dict[str, str] = {}
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        secrets[key.strip()] = value.strip().strip('"').strip("'")
-    return secrets
+    return parse_env_file(path.read_text(encoding="utf-8"))
 
 
 def secret_values() -> set[str]:

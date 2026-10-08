@@ -313,6 +313,10 @@ class Scenario(BaseModel):
     through_latest: bool = False
     year: int | None = Field(default=None, ge=2000, le=2100)
     window_days: int = Field(default=90, ge=2, le=366)
+    # A rolling window that always ends at the latest completed session: `start`
+    # is computed as this many months back. This is what keeps a "latest 6 months"
+    # scenario from silently aging into an old period.
+    recent_months: int | None = Field(default=None, ge=1, le=60)
     frequency: str = "monthly"  # weekly | monthly
     max_decisions: int | None = Field(default=None, ge=2, le=10_000, strict=True)
     benchmark: str = "SPY"
@@ -340,11 +344,18 @@ class Scenario(BaseModel):
             if not self.start or self.end or self.year is not None:
                 raise ValueError("through_latest requires start only")
             date.fromisoformat(self.start)
+        elif self.recent_months is not None:
+            # A rolling window resolves both dates, so only a fixed window may
+            # declare them. Reject a half-specified window either way.
+            if bool(self.start) != bool(self.end):
+                raise ValueError("provide both start and end, or neither for a rolling window")
         elif bool(self.start) != bool(self.end):
             raise ValueError("provide both start and end")
-        if not self.through_latest and (not self.start or not self.end):
-            if self.year is None:
-                raise ValueError("scenario needs start/end or year")
+        if not self.through_latest and not self.start and not self.end:
+            # A rolling window resolves its own dates; otherwise a scenario needs
+            # an explicit window or a year to anchor one.
+            if self.year is None and self.recent_months is None:
+                raise ValueError("scenario needs start/end, a year, or recent_months")
         elif self.end and date.fromisoformat(self.start) > date.fromisoformat(self.end):
             raise ValueError("start must not follow end")
         if not self.tradable or len(self.universe) != len(set(self.universe)):

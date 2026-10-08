@@ -200,7 +200,7 @@ test('the committed public catalog is a valid DCN catalog', () => {
 // A tiny stand-in for the DOM so the whole render path can run under `node --test`
 // without a browser. Fetch is served from memory: no network, no files.
 function fakeElement(tag) {
-  return {
+  const element = {
     tagName: tag, attrs: {}, children: [], style: {}, className: "", _text: "", href: "", title: "",
     hidden: false, id: "",
     append(...nodes) {this.children.push(...nodes);},
@@ -216,7 +216,54 @@ function fakeElement(tag) {
       return out;
     },
   };
+  // The page tags rows with classList.add, so the stand-in needs one. It stays
+  // consistent with className because tests read both.
+  const classes = new Set();
+  const sync = () => {element.className = [...classes].join(" ");};
+  element.classList = {
+    add(...names) {for (const name of names) if (name) classes.add(String(name)); sync();},
+    remove(...names) {for (const name of names) classes.delete(String(name)); sync();},
+    contains(name) {return classes.has(String(name));},
+    toggle(name) {classes.has(String(name)) ? classes.delete(String(name)) : classes.add(String(name)); sync(); return classes.has(String(name));},
+  };
+  return element;
 }
+
+// Every element id the page declares, so the render path never trips over a
+// missing node. Kept in sync with dashboard/index.html; a stale entry only means
+// an unused stub, and a missing one surfaces as a failing test.
+const PAGE_IDS = [
+  'leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'cost-overview', 'cost-window',
+  'pricing-table', 'model-costs', 'price-source', 'price-note', 'input-price', 'output-price', 'reset-rates',
+  'run-details', 'run-trust', 'run-title', 'run-meta', 'metrics', 'calibration', 'gap-callout', 'reliability',
+  'reliability-bins', 'reliability-bins-caption', 'performance', 'run-cost', 'coverage', 'settings', 'downloads',
+  'contribute',
+];
+
+// Stand up the page against an in-memory site: no network, no files, no browser.
+function mountSite(site) {
+  const elements = new Map();
+  for (const id of PAGE_IDS) {const element = fakeElement('div'); element.id = id; elements.set(id, element);}
+  global.document = {
+    getElementById(id) {
+      if (!elements.has(id)) {const element = fakeElement('div'); element.id = id; elements.set(id, element);}
+      return elements.get(id);
+    },
+    createElement: fakeElement,
+    createElementNS: (_namespace, tag) => fakeElement(tag),
+  };
+  global.window = {addEventListener() {}};
+  global.location = {hash: ''};
+  global.fetch = async path => ({
+    ok: path in site, status: path in site ? 200 : 404,
+    text: async () => {if (!(path in site)) throw new Error(`missing ${path}`); return site[path];},
+  });
+  delete require.cache[require.resolve('../dashboard/app.js')];
+  require('../dashboard/app.js');
+  return elements;
+}
+
+const settle = async () => {for (let i = 0; i < 50; i++) await new Promise(resolve => setTimeout(resolve, 0));};
 
 test('the payload actually drives the page: leaderboard, equity, reliability and the gap callout', async () => {
   const first = catalogRun();
@@ -237,28 +284,12 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
     [`data/${first.dir}/decisions.jsonl`]: JSON.stringify(
       {date: '2026-01-02', validated: {weights: {AAPL: 0.5}, cash: 0.5, invalid: false}}) + '\n',
   };
-  const elements = new Map();
-  global.document = {
-    getElementById(id) {
-      if (!elements.has(id)) {const element = fakeElement('div'); element.id = id; elements.set(id, element);}
-      return elements.get(id);
-    },
-    createElement: fakeElement,
-    createElementNS: (_namespace, tag) => fakeElement(tag),
-  };
-  global.window = {addEventListener() {}};
-  global.location = {hash: ''};
-  global.fetch = async path => ({
-    ok: path in site, status: path in site ? 200 : 404,
-    text: async () => {if (!(path in site)) throw new Error(`missing ${path}`); return site[path];},
-  });
-  delete require.cache[require.resolve('../dashboard/app.js')];
-  require('../dashboard/app.js');
-  const settle = async () => {for (let i = 0; i < 50; i++) await new Promise(resolve => setTimeout(resolve, 0));};
+  const elements = mountSite(site);
   await settle();
   const $ = id => elements.get(id);
   assert.equal($('run-count').textContent, '2 results');
   assert.equal($('status').textContent, '');
+  assert.equal($('demo-banner').hidden, true, 'real results must not show the synthetic warning');
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
   assert.equal($('cost-overview').hidden, false);
@@ -289,8 +320,67 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   assert.deepEqual([diagonal.attrs.x1, diagonal.attrs.y1, diagonal.attrs.x2, diagonal.attrs.y2], ['56', '334', '538', '22']);
   assert.equal($('performance').children[0].descendants().filter(node => node.tagName === 'polyline').length, 5);
   assert.match($('run-cost').textContent, /Input-only estimate \$0\.000900 · 1000 input tokens · 0 output tokens · 9 requests/);
-  assert.match($('coverage').textContent, /Scored 9 observations over 3 horizons · label coverage 100\.00%/);
+  assert.match($('coverage').textContent, /9 observations over 3 horizons, labeled against realized benchmark-relative outcomes/);
   assert.equal($('reliability-bins').children[0].descendants().filter(node => node.tagName === 'tr').length, 4);
   assert.match($('settings').textContent, /"decision"/);
   assert.equal($('downloads').children.length, 6);
+});
+
+// A fabricated run must be labelled before it is clicked. This regression exists
+// because the trust badge originally lived only inside the click-through details
+// panel, so the leaderboard showed demo numbers with no warning at all.
+test('a synthetic run is disclosed on the leaderboard itself, before any click', async () => {
+  // One real run plus two demo runs. Every model must be distinct: the board
+  // keeps one result per decision model, so duplicate models collapse into one row.
+  const real = catalogRun();
+  const fakeJev = catalogRun({
+    run_id: '20261008-163612_2022-bear_jev-latest_demo1', dir: 'runs/20261008-163612_2022-bear_jev-latest_demo1',
+    model: 'jev-latest', provider: 'typesafe', synthetic: true, trust: 'synthetic', label: 'demo',
+    created_utc: '2026-10-08T16:36:12+00:00',
+  });
+  const fakeLuna = catalogRun({
+    run_id: '20261008-163612_2022-bear_gpt-6-luna_demo0', dir: 'runs/20261008-163612_2022-bear_gpt-6-luna_demo0',
+    model: 'gpt-6-luna', provider: 'openai_decisions', synthetic: true, trust: 'synthetic', label: 'demo',
+    created_utc: '2026-10-08T16:36:12+00:00',
+  });
+  const elements = mountSite({
+    'data/index.json': JSON.stringify({
+      schema_version: 1, default_trust: 'all', selected: null, runs: [real, fakeJev, fakeLuna],
+    }),
+  });
+  await settle();
+  const $ = id => elements.get(id);
+  assert.equal($('run-count').textContent, '3 results');
+  const banner = $('demo-banner');
+  assert.equal(banner.hidden, false, 'the warning must be visible on load');
+  assert.match(banner.textContent, /Synthetic demo data/);
+  assert.match(banner.textContent, /2 of 3 rows/);
+  assert.match(banner.textContent, /not real results/);
+
+  const rows = $('leaderboard-table').children[0].descendants().filter(node => node.tagName === 'tr');
+  assert.equal(rows.length, 4);  // header plus one row per model
+  assert.equal(rows.filter(row => row.className.includes('synthetic')).length, 2);
+  const chips = rows.flatMap(row => row.descendants()).filter(node => node.className === 'synthetic-chip');
+  assert.equal(chips.length, 2);
+  assert.equal(chips[0].textContent, 'synthetic');
+  assert.match(chips[0].title, /fabricated by/);
+});
+
+test('an all-synthetic leaderboard says so unambiguously', async () => {
+  const elements = mountSite({
+    'data/index.json': JSON.stringify({
+      schema_version: 1, default_trust: 'all', selected: null,
+      runs: [
+        catalogRun({synthetic: true, trust: 'synthetic'}),
+        catalogRun({run_id: 'b', dir: 'runs/b', model: 'clef', synthetic: true, trust: 'synthetic'}),
+      ],
+    }),
+  });
+  await settle();
+  const $ = id => elements.get(id);
+  assert.equal($('run-count').textContent, '2 results');
+  assert.match($('demo-banner').textContent, /all 2 rows are fabricated/);
+  assert.match($('demo-banner').textContent, /No decision model was called/);
+  // The result count is styled as a warning too, not a neutral pill.
+  assert.equal($('run-count').className, 'pill warn');
 });

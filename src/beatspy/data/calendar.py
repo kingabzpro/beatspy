@@ -1,5 +1,6 @@
 """NYSE sessions, including holidays and early closes (no incomplete daily bars)."""
 
+from calendar import monthrange
 from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -28,7 +29,28 @@ def completed_session(year: int | None = None, now: datetime | None = None) -> d
     raise ValueError(f"no completed session available for {year or local_day.year}")
 
 
+def subtract_months(day: date, months: int) -> date:
+    """Step back whole months, clamping the day to the target month's length."""
+    month_index = day.month - 1 - months
+    year = day.year + month_index // 12
+    month = month_index % 12 + 1
+    month_length = monthrange(year, month)[1]
+    return date(year, month, min(day.day, month_length))
+
+
 def resolve_scenario(scenario: Scenario, now: datetime | None = None) -> Scenario:
+    if scenario.recent_months is not None:
+        # A rolling window: end at the latest completed session, start N months
+        # back, so the scenario never drifts into an old period.
+        end = completed_session(now=now)
+        return scenario.model_copy(
+            update={
+                "end": end.isoformat(),
+                "start": subtract_months(end, scenario.recent_months).isoformat(),
+                "through_latest": False,
+            },
+            deep=True,
+        )
     if scenario.through_latest:
         return scenario.model_copy(
             update={"end": completed_session(now=now).isoformat(), "through_latest": False}, deep=True

@@ -162,14 +162,27 @@ if (typeof document !== "undefined") {
     ["brier_skill_score", "Brier skill", "score", "row"],
     ["auc", "AUC", "score", "row"],
     ["ece", "ECE", "score", "row"],
-    ["answer_coverage", "Coverage", "percent", "row"],
-    ["estimated_cost_usd", "Cost", "dollars", "row"],
-    ["mean_latency_s", "Mean latency", "seconds", "row"],
+    ["estimated_cost_usd", "Cost", "money", "row"],
+    ["mean_latency_s", "Mean latency", "millis", "row"],
     ["decisions", "Decisions", "count", "row"],
     ["invalid_outputs", "Invalid", "count", "row"],
   ];
   const FORMAT = {text: value => value ?? "—", percent, signed: percent, ratio, score, dollars, count,
-    seconds: value => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)} s` : "—"};
+    // Decision-model costs land in fractions of a cent, so four decimals would
+    // render several providers as the same $0.0000. Show micro-dollars instead.
+    money: value => {
+      const amount = Number(value);
+      if (!Number.isFinite(amount)) return "—";
+      if (amount === 0) return "$0";
+      return amount >= 0.01 ? `$${amount.toFixed(4)}` : `$${amount.toFixed(6)}`;
+    },
+    // These models answer in tens to hundreds of milliseconds; "0.00 s" hides
+    // every difference between them.
+    millis: value => {
+      const ms = Number(value) * 1000;
+      if (!Number.isFinite(ms)) return "—";
+      return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
+    }};
   const rowValue = (run, key, source) => key === "model" ? modelName(run.model) : source === "metrics" ? run.metrics?.[key] : run[key];
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
@@ -221,6 +234,14 @@ if (typeof document !== "undefined") {
       return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
     });
     $("run-count").textContent = `${visible.length} result${visible.length === 1 ? "" : "s"}`;
+    const syntheticCount = visible.filter(run => run.synthetic).length;
+    $("demo-banner").hidden = syntheticCount === 0;
+    if (syntheticCount) {
+      $("demo-banner").textContent = syntheticCount === visible.length
+        ? `Synthetic demo data — all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
+        : `Synthetic demo data — ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`;
+    }
+    $("run-count").className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
     $("status").textContent = visible.length ? "" : (runs.length
       ? "No completed results yet."
       : "No results yet. Record a decision-model run and re-render this page.");
@@ -237,13 +258,22 @@ if (typeof document !== "undefined") {
     for (const run of visible) {
       const row = node("tr");
       if (run.run_id === selected) row.className = "selected";
+      if (run.synthetic) row.classList.add("synthetic");
       row.append(node("td", ranks.get(run.run_id)));
       const td = node("td"), button = node("button", modelName(run.model), "run-button");
       button.onclick = () => {
         const hash = `#run=${encodeURIComponent(run.run_id)}`;
         if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
       };
-      td.append(button); row.append(td);
+      td.append(button);
+      if (run.synthetic) {
+        // Mark the row itself: the details panel is one click away, and a
+        // fabricated number must not read as a real result before that click.
+        const chip = node("span", "synthetic", "synthetic-chip");
+        chip.title = "Synthetic demo run: fabricated by `beatspy demo`, not produced by a decision model.";
+        td.append(chip);
+      }
+      row.append(td);
       for (const [key, , kind, source] of COLUMNS.slice(1)) {
         const raw = rowValue(run, key, source), value = Number(raw);
         const tone = Number.isFinite(value) ? (value >= 0 ? "positive" : "negative") : "";
@@ -462,7 +492,7 @@ if (typeof document !== "undefined") {
       const rates = ratesFor(run.model, meta), cost = run.metrics.estimated_cost_usd ?? inputCost(run.metrics, rates);
       $("run-cost").textContent = `Input-only estimate ${dollars(cost)} · ${count(run.metrics.input_tokens)} input tokens · `
         + `${count(run.metrics.output_tokens)} output tokens · ${plural(run.metrics.requests, "request")} · `
-        + `mean latency ${FORMAT.seconds(run.metrics.mean_latency_s)} · route ${count(run.policy?.top_n)} names at `
+        + `mean latency ${FORMAT.millis(run.metrics.mean_latency_s)} · route ${count(run.policy?.top_n)} names at `
         + `P ≥ ${run.policy?.min_probability ?? "?"}`;
       $("price-source").replaceChildren();
       if (rates?.source) {
@@ -472,8 +502,8 @@ if (typeof document !== "undefined") {
       }
       $("settings").textContent = JSON.stringify(meta, null, 2);
       $("coverage").textContent = `Scored ${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")} · `
-        + `label coverage ${percent(calibration.coverage)} · decision answer coverage ${percent(run.answer_coverage)}. `
-        + (calibration.note || "");
+        + `${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")}, `
+        + `labeled against realized benchmark-relative outcomes. ${calibration.note || ""}`.trim();
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {
         const a = node("a", name); a.href = base + name; a.setAttribute("download", name); $("downloads").append(a);
