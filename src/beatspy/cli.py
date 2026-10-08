@@ -1,6 +1,16 @@
 """BeatSPY command line interface.
 
-Commands: setup, doctor, scenarios, run, compare, report, demo, validate, submit.
+Commands: setup, doctor, models, scenarios, run, calibrate, verify, compare,
+report, demo.
+
+This is a DCN benchmark: a *decision model* reads a frozen point-in-time state
+plus typed questions and answers with probabilities. Each command below is about
+choosing one of those models, running it over frozen prices, and scoring its
+probabilities as well as the portfolio they produce.
+
+Only two commands can reach the network, and each does so only when the user
+asked for it: `run` without `--offline-fixture`, and `doctor --probe`. `setup`
+stores credentials but never calls a provider.
 """
 
 from __future__ import annotations
@@ -10,33 +20,37 @@ import asyncio
 import getpass
 import json
 import logging
-import subprocess
 import sys
 import webbrowser
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pandas as pd
 
 from . import __version__
 from .config import (
-    MODEL_PRESETS,
-    ModelConfig,
+    ACCOUNT_ID_ENV,
+    DECISION_MODELS,
+    DEFAULT_DECISION_MODEL,
+    DecisionConfig,
     Settings,
-    ToolsConfig,
+    cloudflare_account_id,
     config_path,
     data_dir,
+    decision_api_key,
     load_settings,
-    model_api_key,
-    provider_api_key,
     read_secrets,
     results_dir,
     save_settings,
     secrets_path,
 )
-from .models.provider import BeatSpyModelProvider, probe_capabilities
-from .scenarios import available_names, load_events, load_scenario
+from .scenarios import available_names, load_scenario
 
 log = logging.getLogger("beatspy")
+
+DEFAULT_SCENARIO = "2026-ytd"
+DEMO_DECISION_MODELS = ("gpt-6-luna", "jev-latest", "clef-flash")
+DEMO_TICKERS = ["AAPL", "MSFT", "TLT", "GLD"]
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -44,47 +58,58 @@ def build_parser() -> argparse.ArgumentParser:
     common.add_argument("-v", "--verbose", action="store_true", help="debug logging")
     parser = argparse.ArgumentParser(
         prog="beatspy",
-        description="Give any AI model a team of trading agents. Can it beat SPY?",
-        epilog="Run locally. Share validated results through a pull request.",
+        description="Benchmark decision models on frozen market data. Can any of them beat SPY?",
+        epilog="Everything runs locally. Probabilities and prices decide the score; no LLM judge.",
     )
     parser.add_argument("--version", action="version", version=f"beatspy {__version__}")
     sub = parser.add_subparsers(dest="command")
 
-    p = sub.add_parser("setup", parents=[common], help="interactive configuration wizard")
-    p.add_argument("--model", help="configure without prompts using existing environment keys")
-    p.add_argument("--base-url", help="OpenAI-compatible endpoint")
-    p.add_argument("--api-key-env", help="existing environment variable containing the model key")
+    p = sub.add_parser("setup", parents=[common], help="choose which decision model to benchmark")
+    p.add_argument("--model", help="configure without prompts (a decision model id)")
+    p.add_argument("--base-url", help="override the provider endpoint (optional)")
+    p.add_argument("--api-key", help="store this provider key in secrets.env instead of prompting")
+    p.add_argument("--account-id", help="Cloudflare account id (Clef models only)")
     p.set_defaults(func=cmd_setup)
 
-    p = sub.add_parser("doctor", parents=[common], help="check config, model, and data health")
+    p = sub.add_parser("doctor", parents=[common], help="check config, credentials, and scenario health")
+    p.add_argument("--probe", action="store_true", help="send one live decision request per model (network)")
     p.set_defaults(func=cmd_doctor)
+
+    p = sub.add_parser("models", parents=[common], help="list decision models, pricing, and key status")
+    p.set_defaults(func=cmd_models)
 
     p = sub.add_parser("scenarios", parents=[common], help="list available benchmark scenarios")
     p.set_defaults(func=cmd_scenarios)
 
-    p = sub.add_parser("run", parents=[common], help="run a benchmark scenario")
-    p.add_argument("--scenario", action="append", help="repeat for multiple scenarios (default: 2026-ytd)")
-    p.add_argument("--model", action="append", help="repeat for multiple models")
-    p.add_argument("--base-url", help="override configured model base URL")
+    p = sub.add_parser("run", parents=[common], help="run one decision model over one scenario")
+    p.add_argument("--model", help=f"decision model id (default: the configured one, {DEFAULT_DECISION_MODEL})")
+    p.add_argument("--scenario", help=f"scenario name (default: {DEFAULT_SCENARIO})")
     p.add_argument("--freq", choices=["weekly", "monthly"], help="decision frequency override")
-    p.add_argument("--max-decisions", type=positive_int, help="limit decisions, evenly spread across the full period")
     p.add_argument("--start", help="override start date YYYY-MM-DD")
     p.add_argument("--end", help="override end date YYYY-MM-DD")
+    p.add_argument("--max-decisions", type=positive_int, help="limit decisions, evenly spread across the period")
+    p.add_argument(
+        "--form", choices=["noul", "choice", "rank", "twin"], default="twin", help="question form (default: twin)"
+    )
     p.add_argument("--label", help="free-text label stored in the run record")
-    p.add_argument("--submit", action="store_true", help="request trusted leaderboard verification after the run")
     p.add_argument("--refresh-data", action="store_true", help="re-download the frozen price snapshot")
     p.add_argument(
-        "--web-research",
+        "--offline-fixture",
         action="store_true",
-        help="experimental Olostep search/scrape; excluded from official leaderboard",
-    )
-    p.add_argument("--jobs", type=positive_int, default=2, help="parallel independent runs (default: 2)")
-    p.add_argument(
-        "--concurrency", type=positive_int, default=6, help="active agent and external request limits (default: 6)"
+        help="run against scripted synthetic data and a scripted client: no credentials, no network (test aid)",
     )
     p.set_defaults(func=cmd_run)
 
-    p = sub.add_parser("results", aliases=["compare"], parents=[common], help="view the latest result for each model")
+    p = sub.add_parser("calibrate", parents=[common], help="print the calibration table of a finished run")
+    p.add_argument("run", nargs="?", help="run directory or run id (default: latest run)")
+    p.add_argument("--json", action="store_true", help="machine-readable output")
+    p.set_defaults(func=cmd_calibrate)
+
+    p = sub.add_parser("verify", parents=[common], help="replay a finished run offline and check its artifacts")
+    p.add_argument("run", nargs="?", help="run directory or run id (default: latest run)")
+    p.set_defaults(func=cmd_verify)
+
+    p = sub.add_parser("compare", aliases=["results"], parents=[common], help="latest run per decision model")
     p.add_argument("--scenario", help="filter by scenario name")
     p.add_argument("--json", action="store_true", help="machine-readable output")
     p.add_argument("--include-synthetic", action="store_true", help="include synthetic demo runs")
@@ -98,17 +123,6 @@ def build_parser() -> argparse.ArgumentParser:
     p = sub.add_parser("demo", parents=[common], help="generate labeled synthetic runs and a report")
     p.add_argument("--seed", type=int, default=42)
     p.set_defaults(func=cmd_demo)
-
-    for command in ("validate", "submit"):
-        p = sub.add_parser(
-            command, parents=[common], help="replay a run" if command == "validate" else "prepare result files for a PR"
-        )
-        p.add_argument("--run", type=Path, help="completed run directory (default: latest real run)")
-        if command == "submit":
-            p.add_argument("--send", action="store_true", help="send a verification request using GitHub CLI")
-        else:
-            p.add_argument("--public-key", type=Path, default=Path(".github/verification-key.pem"))
-        p.set_defaults(func=cmd_validate if command == "validate" else cmd_submit)
 
     return parser
 
@@ -127,92 +141,91 @@ def _secret_input(prompt: str) -> str:
     return input(prompt)
 
 
+def _require_decision_model(name: str) -> dict:
+    if name not in DECISION_MODELS:
+        raise ValueError(f"unknown decision model {name!r}; choose from {', '.join(DECISION_MODELS)}")
+    return DECISION_MODELS[name]
+
+
+def _number(value, digits: int = 4) -> str:
+    return "n/a" if value is None else f"{value:.{digits}f}"
+
+
+def _percent(value, digits: int = 1) -> str:
+    return "n/a" if value is None else f"{value * 100:.{digits}f}%"
+
+
+def _pricing(spec: dict) -> str:
+    out = spec.get("cost_per_m_output") or 0.0
+    return f"${spec['cost_per_m_input']:.3f}/M input, ${out:.3f}/M output"
+
+
+def _key_status(name: str, spec: dict) -> tuple[bool, str]:
+    """Whether a model can authenticate, plus a one-line explanation."""
+    if not decision_api_key(name):
+        return False, f"missing {spec['api_key_env']}"
+    if spec["provider"] == "cloudflare" and not cloudflare_account_id():
+        return False, f"set {ACCOUNT_ID_ENV} for the account id"
+    return True, "key found"
+
+
+# --------------------------------------------------------------------------- #
+# setup / doctor / models / scenarios
 # --------------------------------------------------------------------------- #
 
 
 def cmd_setup(args: argparse.Namespace) -> int:
-    current_settings = load_settings()
-    if args.model:
-        import os
+    settings = load_settings()
+    secrets = read_secrets()
 
-        settings = current_settings
-        settings.model.model = args.model
-        if args.base_url:
-            settings.model.base_url = args.base_url
-        if args.api_key_env:
-            if not os.environ.get(args.api_key_env):
-                raise ValueError(f"model key environment variable is empty: {args.api_key_env}")
-            os.environ["BEATSPY_API_KEY_ENV"] = args.api_key_env
-        saved = read_secrets()
-        if key := model_api_key(settings):
-            saved["BEATSPY_API_KEY"] = key
-        save_settings(settings, saved)
-        print(f"Configured {args.model}. Run: beatspy run")
-        return 0
-    print("BeatSPY setup")
-    print("API keys are stored in your home directory, never inside a repository.\n")
-
-    preset_names = list(MODEL_PRESETS)
-    for i, name in enumerate(preset_names, 1):
-        url = MODEL_PRESETS[name]
-        print(f"  {i}. {name}" + (f"  ({url})" if url else "  (your own OpenAI-compatible endpoint)"))
-    choice = input(f"\nPreset [{preset_names[0]}]: ").strip().lower() or preset_names[0]
-    if choice.isdigit() and 1 <= int(choice) <= len(preset_names):
-        choice = preset_names[int(choice) - 1]
-    if choice not in MODEL_PRESETS:
-        print(f"Unknown preset {choice!r}; using custom.")
-        choice = "custom"
-
-    default_url = MODEL_PRESETS[choice] or "https://api.openai.com/v1"
-    base_url = input(f"Model base URL [{default_url}]: ").strip() or default_url
-    model = input("Model name (e.g. llama3.1:8b, gpt-4o-mini): ").strip()
+    model = args.model
     if not model:
-        print("A model name is required.")
-        return 1
-    api_key = _secret_input("Model API key (leave empty for local servers): ").strip()
+        print("BeatSPY setup — choose the decision model to benchmark.")
+        print("Decision models return typed probabilities; this benchmark scores them, not their prose.\n")
+        names = list(DECISION_MODELS)
+        for index, name in enumerate(names, 1):
+            spec = DECISION_MODELS[name]
+            print(f"  {index}. {name:<12} {spec['label']:<32} {_pricing(spec)}")
+        entered = input(f"\nDecision model [{settings.decision.decision_model}]: ").strip()
+        entered = entered or settings.decision.decision_model
+        if entered.isdigit() and 1 <= int(entered) <= len(names):
+            entered = names[int(entered) - 1]
+        model = entered
 
-    print("\nOptional integrations; press Enter to skip any of them.")
-    finnhub = _secret_input("Finnhub API key (news, fundamentals): ").strip()
-    timegpt = _secret_input("TimeGPT API key (forecasting): ").strip()
-    default_forecast = "timegpt" if timegpt or provider_api_key(current_settings, "timegpt") else "baseline"
-    forecast = (
-        input(f"Forecast provider [baseline/naive/chronos/timegpt, default {default_forecast}]: ").strip()
-        or default_forecast
-    )
+    spec = _require_decision_model(model)
+    settings.decision.decision_model = model
+    if args.base_url:
+        settings.decision.base_url = args.base_url
 
-    settings = Settings(
-        model=ModelConfig(base_url=base_url, model=model),
-        tools=ToolsConfig(forecast_provider=forecast),
-    )
-    # Keep previously stored keys that the user left blank this time.
-    secrets = {
-        **read_secrets(),
-        **{
-            k: v
-            for k, v in {
-                "BEATSPY_API_KEY": api_key,
-                "BEATSPY_FINNHUB_API_KEY": finnhub,
-                "BEATSPY_TIMEGPT_API_KEY": timegpt,
-            }.items()
-            if v
-        },
-    }
+    if args.api_key:
+        secrets[spec["api_key_env"]] = args.api_key
+    if args.account_id:
+        secrets[ACCOUNT_ID_ENV] = args.account_id
+    if not args.model:  # interactive: offer to store the key
+        key = _secret_input(f"{spec['api_key_env']} (leave empty to use the environment): ").strip()
+        if key:
+            secrets[spec["api_key_env"]] = key
+        if spec["provider"] == "cloudflare":
+            account = input(f"Cloudflare account id (leave empty to use {ACCOUNT_ID_ENV}): ").strip()
+            if account:
+                secrets[ACCOUNT_ID_ENV] = account
+
+    settings = Settings.model_validate(settings.model_dump())
     save_settings(settings, secrets)
-    print(f"\nWrote {config_path()}")
-    print(f"Wrote {secrets_path()} (chmod 600 where supported)")
 
-    print("\nProbing model capabilities...")
-    # probes fail fast: no retries, short timeout, so a dead endpoint answers quickly
-    provider = BeatSpyModelProvider(base_url, api_key or model_api_key(settings), request_timeout=15.0, max_retries=0)
-    probes = asyncio.run(probe_capabilities(provider, model, settings.model.reasoning_effort))
-    for name, (ok, detail) in probes.items():
-        print(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
-
+    ok, detail = _key_status(model, spec)
+    print(f"\nConfigured decision model: {settings.decision.label} ({model})")
+    print(f"  endpoint  {settings.decision.endpoint}")
+    print(f"  pricing   {_pricing(spec)}")
+    print(f"  key       {spec['api_key_env']}: {detail}")
+    print(f"  config    {config_path()}")
+    print(f"  secrets   {secrets_path()}")
     print("\nNext steps:")
-    print("  beatspy doctor                      # full health check")
-    print("  beatspy run                          # 2026 through latest completed session")
-    print("  beatspy report                      # HTML dashboard")
-    return 0 if all(ok for ok, _ in probes.values()) else 1
+    print("  beatspy doctor              # health check (add --probe for one live call per model)")
+    print("  beatspy run                 # run the configured model on the default scenario")
+    if not ok:
+        print(f"  (set {spec['api_key_env']} in the environment or rerun setup to store it)")
+    return 0
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -226,50 +239,45 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         return 1
 
     if config_path().exists():
-        checks.append(("config", "PASS", f"{settings.model.model} @ {settings.model.base_url}"))
+        checks.append(("config", "PASS", f"{settings.decision.decision_model} @ {settings.decision.endpoint}"))
     else:
         checks.append(("config", "WARN", f"no config file at {config_path()}; using defaults (run: beatspy setup)"))
 
-    provider = BeatSpyModelProvider(
-        settings.model.base_url, model_api_key(settings), request_timeout=15.0, max_retries=0
-    )
-    probes = asyncio.run(probe_capabilities(provider, settings.model.model, settings.model.reasoning_effort))
-    for name, (ok, detail) in probes.items():
-        checks.append((f"model {name}", "PASS" if ok else "FAIL", detail))
+    for name, spec in DECISION_MODELS.items():
+        ok, detail = _key_status(name, spec)
+        checks.append(
+            (
+                f"model {name}",
+                "PASS" if ok else "WARN",
+                f"{spec['label']} | {spec['base_url']} | {_pricing(spec)} | {detail}",
+            )
+        )
 
     names = available_names()
-    checks.append(("scenarios", "PASS" if names else "FAIL", ", ".join(names)))
+    checks.append(("scenarios", "PASS" if names else "FAIL", ", ".join(names) if names else "none found"))
 
-    snapshots = sorted(p.name for p in data_dir().iterdir()) if data_dir().exists() else []
+    snapshots = sorted(path.name for path in data_dir().iterdir()) if data_dir().exists() else []
     checks.append(
         (
             "frozen data",
             "PASS" if snapshots else "WARN",
-            ", ".join(snapshots) if snapshots else "no snapshots yet; the first run downloads prices via yfinance",
+            ", ".join(snapshots) if snapshots else "no snapshots yet; a live run downloads prices via yfinance",
         )
     )
 
-    forecast = settings.tools.forecast_provider
-    if forecast == "chronos":
-        try:
-            import chronos  # noqa: F401
-
-            checks.append(("forecast provider", "PASS", "chronos installed"))
-        except ImportError:
-            checks.append(("forecast provider", "FAIL", "chronos not installed; run: uv sync --extra chronos"))
-    elif forecast == "timegpt":
-        checks.append(("forecast provider", "PASS" if provider_api_key(settings, "timegpt") else "FAIL", "timegpt"))
-    else:
-        checks.append(("forecast provider", "PASS", f"{forecast} (built-in, no dependencies)"))
-
-    for integration in ("finnhub",):
-        enabled = bool(provider_api_key(settings, integration))
-        checks.append(
-            (integration, "PASS" if enabled else "WARN", "enabled" if enabled else "add a key with beatspy setup")
-        )
-
     _print_checks(checks)
-    return 0 if all(status != "FAIL" for _, status, _ in checks) else 1
+
+    failed = any(status == "FAIL" for _, status, _ in checks)
+    if not args.probe:
+        print("\nNo network calls were made. Add --probe for one live decision request per model.")
+        return int(failed)
+
+    print("\nProbing every decision model with a single noul question (live network calls)...")
+    for name in DECISION_MODELS:
+        ok, detail = _probe_decision_model(name)
+        print(f"  [{'PASS' if ok else 'FAIL'}] probe {name}: {detail}")
+        failed = failed or not ok
+    return int(failed)
 
 
 def _print_checks(checks: list[tuple[str, str, str]]) -> None:
@@ -280,132 +288,601 @@ def _print_checks(checks: list[tuple[str, str, str]]) -> None:
         print(f"  [{marker}] {name}: {detail}")
 
 
+def _probe_state() -> dict:
+    """A minimal, static state shaped like a real decision's state."""
+    return {
+        "as_of": date.today().isoformat(),
+        "scenario": "probe",
+        "horizon_trading_days": 5,
+        "next_decision_date": None,
+        "benchmark": {"ticker": "SPY", "return_30d_pct": 1.0, "return_90d_pct": 4.0},
+        "costs": {"fee_bps": 5.0, "slippage_bps": 5.0, "max_position_weight_pct": 35.0},
+        "portfolio": {"cash_weight_pct": 100.0, "holdings": []},
+        "market": [
+            {
+                "ticker": "AAPL",
+                "last_close": 210.0,
+                "last_5d_pct": 0.6,
+                "return_30d_pct": 2.4,
+                "return_90d_pct": 5.1,
+                "return_90d_vs_benchmark_pct": 1.1,
+            }
+        ],
+        "decide_on": ["AAPL"],
+        "constraints": {"long_only": True, "notes": "connectivity probe; not a benchmark decision"},
+        "recent_decisions": [],
+    }
+
+
+def _probe_decision_model(name: str) -> tuple[bool, str]:
+    """One live call for one model. Returns (ok, human detail or exact error)."""
+    from .dcn.clients import make_client
+    from .dcn.questions import build_questions
+
+    settings = Settings(decision=DecisionConfig(decision_model=name))
+    questions = build_questions("noul", ["AAPL"], "SPY", 5).questions
+
+    async def call():
+        client = make_client(settings)
+        try:
+            return await client.decide(_probe_state(), questions)
+        finally:
+            await client.close()
+
+    try:
+        result = asyncio.run(call())
+    except Exception as exc:
+        return False, f"{type(exc).__name__}: {exc}"
+
+    answer = result.answers.get("noul_AAPL")
+    if answer is None:
+        missing = ", ".join(result.missing_ids) or "none reported"
+        return False, f"no answer for noul_AAPL (missing ids: {missing})"
+    return True, (
+        f"noul_AAPL={answer.noul:.4f} | {result.input_tokens:,} input tokens | "
+        f"{result.latency_s:.2f}s | {result.attempts} attempt(s)"
+    )
+
+
+def cmd_models(args: argparse.Namespace) -> int:
+    settings = load_settings()
+    active = settings.decision.decision_model
+    print(f"{'':<2}{'model':<12} {'provider':<17} {'$ / M input':>12} {'context':>9}  key")
+    for name, spec in DECISION_MODELS.items():
+        ok, detail = _key_status(name, spec)
+        marker = "*" if name == active else " "
+        context = f"{spec['context_window'] // 1000}k"
+        print(
+            f"{marker:<2}{name:<12} {spec['provider']:<17} {spec['cost_per_m_input']:>12.3f} {context:>9}  "
+            f"{'yes' if ok else 'no'} ({detail})"
+        )
+    print(f"\n* configured decision model ({DEFAULT_DECISION_MODEL} is the default).")
+    print("Decision models bill input tokens only; output is free and no provider offers prompt caching.")
+    print("Run `beatspy doctor --probe` for one live call per model.")
+    return 0
+
+
 def cmd_scenarios(args: argparse.Namespace) -> int:
+    from .data.calendar import resolve_scenario
+
     for name in available_names():
         try:
-            scenario = load_scenario(name)
+            scenario = resolve_scenario(load_scenario(name))
         except Exception as exc:
             print(f"  {name}: unreadable ({exc})")
             continue
-        from .data.calendar import resolve_scenario
-
-        scenario = resolve_scenario(scenario)
-        events = len(load_events(name))
         print(f"  {name}")
         print(f"    {scenario.title}")
         print(
             f"    {scenario.start} to {scenario.end}, decisions {scenario.frequency}, "
-            f"universe {', '.join(scenario.tradable)} (+{scenario.benchmark} benchmark), {events} curated events"
+            f"universe {', '.join(scenario.tradable)} (+{scenario.benchmark} benchmark), "
+            f"up to {scenario.max_candidates} candidates per decision"
         )
     return 0
 
 
+# --------------------------------------------------------------------------- #
+# run
+# --------------------------------------------------------------------------- #
+
+
+def _fixture_helpers():
+    """Load tests/conftest.py by path. `--offline-fixture` is a documented test aid."""
+    import importlib.util
+
+    candidates = [
+        Path(__file__).resolve().parents[2] / "tests" / "conftest.py",
+        Path.cwd() / "tests" / "conftest.py",
+    ]
+    path = next((candidate for candidate in candidates if candidate.is_file()), None)
+    if path is None:
+        raise RuntimeError(
+            "--offline-fixture needs tests/conftest.py beside the checkout; "
+            "install the test dependencies and run from the repository root"
+        )
+    spec = importlib.util.spec_from_file_location("beatspy_offline_fixture", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    try:
+        spec.loader.exec_module(module)
+    except ImportError as exc:
+        raise RuntimeError(
+            f"--offline-fixture needs the test dependencies (pytest, exchange_calendars): {exc}"
+        ) from exc
+    return module
+
+
+def _offline_fixture(base_scenario, args):
+    """Scripted client + synthetic frozen snapshot, so a run needs no credentials.
+
+    `base_scenario` supplies the scenario name and frequency when the requested
+    scenario exists; otherwise the fixture names itself. Prices are always
+    generated, so this mode never touches the network.
+    """
+    from .data.freeze import snapshot_id
+    from .data.service import DataService
+    from .schemas import Scenario
+
+    helpers = _fixture_helpers()
+    start = args.start or "2022-01-03"
+    end = args.end or "2022-03-31"
+    fixture = helpers.make_scenario(
+        name=base_scenario.name if base_scenario else (args.scenario or "offline-fixture"),
+        title=f"{base_scenario.title if base_scenario else 'Offline fixture'} (offline fixture)",
+        description="Synthetic offline fixture: generated prices, scripted decision model, no network.",
+        start=start,
+        end=end,
+        frequency=args.freq or (base_scenario.frequency if base_scenario else "monthly"),
+    )
+    if args.max_decisions is not None:
+        fixture = Scenario.model_validate({**fixture.model_dump(), "max_decisions": args.max_decisions})
+
+    prices = helpers.make_prices(
+        fixture.universe,
+        start=(date.fromisoformat(start) - timedelta(days=180)).isoformat(),
+        end=(date.fromisoformat(end) + timedelta(days=100)).isoformat(),
+    )
+    directory = data_dir() / "offline-fixture"
+    directory.mkdir(parents=True, exist_ok=True)
+    prices.to_csv(directory / "prices.csv", index=False, date_format="%Y-%m-%d")
+
+    from .artifacts import sha256
+
+    manifest = {
+        "schema_version": 2,
+        "scenario": fixture.name,
+        "tickers": fixture.universe,
+        "start": prices.date.min().date().isoformat(),
+        "end": prices.date.max().date().isoformat(),
+        "requested_start": fixture.start,
+        "requested_end": fixture.end,
+        "lookback_days": fixture.lookback_days,
+        "rows": len(prices),
+        "source": "synthetic offline fixture (tests/conftest.py)",
+        "prices_sha256": sha256(directory / "prices.csv"),
+        "fetched_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
+    manifest["snapshot_id"] = snapshot_id(manifest)
+    (directory / "MANIFEST.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    prepared = (DataService(prices, benchmark=fixture.benchmark), {**manifest, "path": str(directory.resolve())})
+    return fixture, prepared, helpers.OfflineDcnClient()
+
+
 def cmd_run(args: argparse.Namespace) -> int:
-    from .bench.batch import run_batch
+    from .dcn.runner import run_dcn
+    from .schemas import Scenario
 
     settings = load_settings()
-    if args.base_url:
-        settings.model.base_url = args.base_url
-    scenarios = [load_scenario(name) for name in (args.scenario or ["2026-ytd"])]
-    if args.web_research:
-        if not provider_api_key(settings, "olostep"):
-            raise ValueError("--web-research requires OLOSTEP_API_KEY (or BEATSPY_OLOSTEP_API_KEY)")
-        scenarios = [scenario.model_copy(update={"allow_web_search": True}) for scenario in scenarios]
-        print(
-            "Experimental Olostep research: at most two searches and three scrapes per decision. "
-            "Not eligible for the official leaderboard."
+    if args.model:
+        _require_decision_model(args.model)
+        settings = Settings.model_validate(
+            {**settings.model_dump(), "decision": {**settings.model_dump()["decision"], "decision_model": args.model}}
         )
-    if args.max_decisions is not None:
-        from .schemas import Scenario
 
-        scenarios = [
-            Scenario.model_validate({**scenario.model_dump(), "max_decisions": args.max_decisions})
-            for scenario in scenarios
-        ]
-    outcomes = asyncio.run(
-        run_batch(
-            scenarios,
+    scenario = None
+    prepared_data = None
+    client = None
+    if args.offline_fixture:
+        base = None
+        if args.scenario:
+            try:
+                base = load_scenario(args.scenario)
+            except FileNotFoundError:
+                base = None
+        else:
+            base = load_scenario(DEFAULT_SCENARIO)
+        scenario, prepared_data, client = _offline_fixture(base, args)
+        print("Offline fixture: synthetic prices written under .beatspy-data, scripted client, no network.")
+        print("This is a test aid. Its numbers are not a benchmark result.\n")
+    else:
+        scenario = load_scenario(args.scenario or DEFAULT_SCENARIO)
+        if args.max_decisions is not None:
+            scenario = Scenario.model_validate({**scenario.model_dump(), "max_decisions": args.max_decisions})
+
+    print(f"Decision model : {settings.decision.label} ({settings.decision.decision_model})")
+    print(f"Endpoint       : {settings.decision.endpoint}")
+    print(f"Scenario       : {scenario.name} | form {args.form} | freq {args.freq or scenario.frequency}")
+
+    def progress(index: int, total: int, day: date) -> None:
+        print(f"  decision {index}/{total} {day.isoformat()}", flush=True)
+
+    out_dir = asyncio.run(
+        run_dcn(
+            scenario,
             settings,
-            args.model,
-            jobs=args.jobs,
-            concurrency=args.concurrency,
             freq=args.freq,
             start=args.start,
             end=args.end,
             label=args.label,
             refresh_data=args.refresh_data,
+            progress=progress,
+            prepared_data=prepared_data,
+            client=client,
+            question_form=args.form,
         )
     )
-    failed = False
-    for outcome in outcomes:
-        if isinstance(outcome, Exception):
-            print(f"FAILED: {outcome}", file=sys.stderr)
-            failed = True
+
+    metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))
+    calibration = metrics.get("calibration") or {}
+    noul = (calibration.get("signals") or {}).get("noul") or {}
+    print(f"\nRun complete: {out_dir}")
+    print(
+        f"  Return {_percent(metrics.get('total_return'))} | SPY {_percent(metrics.get('spy_total_return'))} | "
+        f"Excess {_percent(metrics.get('excess_return_vs_spy'))}"
+    )
+    print(
+        f"  Sharpe {_number(metrics.get('sharpe'))} | Max DD {_percent(metrics.get('max_drawdown'))} | "
+        f"Decisions {metrics.get('decisions')} | Trades {metrics.get('trades')}"
+    )
+    print(
+        f"  Calibration (noul): n {noul.get('n', 0)} | Brier {_number(noul.get('brier'))} | "
+        f"skill {_number(noul.get('brier_skill_score'))} | coverage {_percent(metrics.get('answer_coverage'))}"
+    )
+    print(
+        f"  Requests {metrics.get('requests')} | {metrics.get('input_tokens', 0):,} input tokens | "
+        f"est. cost ${_number(metrics.get('estimated_cost_usd'), 6)}"
+    )
+    print("\nNext: beatspy calibrate   # probability quality   |   beatspy report   # dashboard")
+    return 0
+
+
+# --------------------------------------------------------------------------- #
+# calibrate / verify / compare
+# --------------------------------------------------------------------------- #
+
+
+def _latest_run() -> Path:
+    root = results_dir()
+    rows = []
+    if root.exists():
+        for directory in sorted(root.iterdir()):
+            if not directory.is_dir() or not (directory / "run.json").is_file():
+                continue
+            try:
+                meta = json.loads((directory / "run.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            rows.append((meta.get("created_utc", ""), directory))
+    if not rows:
+        raise ValueError(f"no runs found under {root}; start with: beatspy run")
+    return max(rows, key=lambda row: row[0])[1]
+
+
+def _resolve_run(value: str | None) -> Path:
+    if value:
+        candidate = Path(value).expanduser()
+        if candidate.is_dir():
+            return candidate
+        root = results_dir()
+        if (root / value).is_dir():
+            return root / value
+        matches = sorted(p for p in root.iterdir() if p.is_dir() and p.name.startswith(value)) if root.exists() else []
+        if len(matches) == 1:
+            return matches[0]
+        if not matches:
+            raise ValueError(f"no run matches {value!r} under {root}")
+        raise ValueError(f"ambiguous run id {value!r}: {', '.join(p.name for p in matches)}")
+    return _latest_run()
+
+
+def _calibration_of(directory: Path, metrics: dict, lines: list[dict]) -> dict:
+    from .dcn.runner import calibration_from_decisions
+
+    calibration = metrics.get("calibration")
+    if calibration:
+        return calibration
+    return calibration_from_decisions(lines).model_dump()
+
+
+CALIBRATION_COLUMNS = ("signal", "n", "base rate", "brier", "skill", "log loss", "auc", "acc", "ece", "mce")
+CALIBRATION_WIDTHS = (9, 6, 11, 9, 9, 10, 7, 7, 9, 9)
+CALIBRATION_DASHES = ("-",) * (len(CALIBRATION_COLUMNS) - 2)
+
+
+def _calibration_row(cells: list[str], *, first_left: bool = False) -> str:
+    padded = [
+        cell.ljust(width) if (first_left and index == 0) else cell.rjust(width)
+        for index, (cell, width) in enumerate(zip(cells, CALIBRATION_WIDTHS, strict=True))
+    ]
+    return "  " + "".join(padded)
+
+
+def _calibration_table(calibration: dict) -> str:
+    lines = [_calibration_row(list(CALIBRATION_COLUMNS), first_left=True)]
+    for signal in ("noul", "choice", "rank"):
+        stats = (calibration.get("signals") or {}).get(signal)
+        if not stats:
+            lines.append(_calibration_row([signal, "0", *CALIBRATION_DASHES], first_left=True) + "  (no observations)")
             continue
-        metrics = json.loads((outcome / "metrics.json").read_text(encoding="utf-8"))
-        print(f"Run complete: {outcome}")
-        print(
-            f"  Return {metrics['total_return']:.2%} | SPY {metrics['spy_total_return']:.2%} | "
-            f"Excess {metrics['excess_return_vs_spy']:.2%}"
+        lines.append(
+            _calibration_row(
+                [
+                    signal,
+                    str(stats.get("n", 0)),
+                    _number(stats.get("base_rate")),
+                    _number(stats.get("brier")),
+                    _number(stats.get("brier_skill_score")),
+                    _number(stats.get("log_loss")),
+                    _number(stats.get("auc"), 3),
+                    _number(stats.get("accuracy"), 3),
+                    _number(stats.get("expected_calibration_error")),
+                    _number(stats.get("max_calibration_error")),
+                ],
+                first_left=True,
+            )
         )
+    return "\n".join(lines)
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    from .dcn.runner import read_run
+
+    directory = _resolve_run(args.run)
+    meta, metrics, lines = read_run(directory)
+    calibration = _calibration_of(directory, metrics, lines)
+    decision = meta.get("decision") or {}
+
+    if args.json:
         print(
-            f"  Requests {metrics['requests']} | Tokens {metrics['input_tokens']:,} in / "
-            f"{metrics['output_tokens']:,} out"
+            json.dumps(
+                {
+                    "run_id": meta.get("run_id", directory.name),
+                    "run_dir": str(directory),
+                    "decision_model": decision.get("decision_model"),
+                    "provider": decision.get("provider"),
+                    "question_form": decision.get("question_form"),
+                    "decisions": metrics.get("decisions"),
+                    "calibration": calibration,
+                },
+                indent=2,
+                default=str,
+            )
         )
-        if args.submit:
-            request_submission(outcome, send=True)
-    print("Benchmark complete. Preview with: beatspy report")
-    return int(failed)
+        return 0
+
+    print(f"Run            : {meta.get('run_id', directory.name)}")
+    print(f"Run dir        : {directory}")
+    print(
+        f"Decision model : {decision.get('decision_model', '?')} ({decision.get('label', '?')}) | "
+        f"provider {decision.get('provider', '?')} | form {decision.get('question_form', '?')}"
+    )
+    print(
+        f"Decisions      : {metrics.get('decisions')} | scored observations {calibration.get('observations', 0)} | "
+        f"answer coverage {_percent(calibration.get('coverage'))}"
+    )
+    print()
+    print(_calibration_table(calibration))
+    gap = calibration.get("miscalibration_gap")
+    print(f"\n  noul-vs-choice miscalibration gap: {_number(gap)}")
+    print("  (mean |P_noul - P_choice| on the same ticker and horizon; the paired form gap this benchmark tests)")
+    if calibration.get("note"):
+        print(f"  note: {calibration['note']}")
+    return 0
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    directory = _resolve_run(args.run)
+    try:
+        from .dcn.verify import validate_run
+    except ImportError as exc:
+        print(f"note: full artifact replay is unavailable ({exc}); running the offline calibration replay check.")
+        return _local_verify(directory)
+
+    try:
+        meta = validate_run(directory)
+    except Exception as exc:
+        print(f"FAIL: {directory.name}: {exc}", file=sys.stderr)
+        return 1
+    print(f"PASS: {meta.get('run_id', directory.name)} — artifacts, decisions, and metrics replay exactly.")
+    return 0
+
+
+def _local_verify(directory: Path) -> int:
+    """Fallback replay: rebuild the calibration block from decisions.jsonl and compare."""
+    from .artifacts import RUN_FILES, sha256
+    from .dcn.runner import calibration_from_decisions, read_run
+
+    try:
+        meta, metrics, lines = read_run(directory)
+    except (OSError, ValueError) as exc:
+        print(f"FAIL: {directory.name}: unreadable run ({exc})", file=sys.stderr)
+        return 1
+
+    problems: list[str] = []
+    if meta.get("benchmark") != "dcn":
+        problems.append(f"run.json benchmark is {meta.get('benchmark')!r}, expected 'dcn'")
+
+    recorded = (meta.get("artifact_hashes") or {})
+    for name in RUN_FILES:
+        path = directory / name
+        if not path.is_file():
+            problems.append(f"missing artifact: {name}")
+        elif name in recorded and sha256(path) != recorded[name]:
+            problems.append(f"artifact hash mismatch: {name}")
+
+    if len(lines) != metrics.get("decisions"):
+        problems.append(f"decisions.jsonl has {len(lines)} lines but metrics.json reports {metrics.get('decisions')}")
+    dates = [line.get("date") for line in lines]
+    if len(set(dates)) != len(dates):
+        problems.append("decisions.jsonl contains duplicate decision dates")
+
+    try:
+        rebuilt = calibration_from_decisions(lines).model_dump()
+    except Exception as exc:
+        print(f"FAIL: {directory.name}: calibration could not be rebuilt ({exc})", file=sys.stderr)
+        return 1
+    stored = metrics.get("calibration")
+    if not stored:
+        problems.append("metrics.json has no calibration block")
+    else:
+        for key in ("horizons", "observations"):
+            if rebuilt.get(key) != stored.get(key):
+                problems.append(f"calibration {key}: recorded {stored.get(key)}, replayed {rebuilt.get(key)}")
+        if abs((rebuilt.get("coverage") or 0.0) - (stored.get("coverage") or 0.0)) > 1e-6:
+            problems.append("calibration coverage does not replay")
+        for signal, stats in rebuilt["signals"].items():
+            theirs = (stored.get("signals") or {}).get(signal)
+            if theirs is None:
+                problems.append(f"calibration signal {signal} missing from metrics.json")
+                continue
+            for field in ("n", "brier", "brier_skill_score", "log_loss", "auc", "expected_calibration_error"):
+                mine, yours = stats.get(field), theirs.get(field)
+                if mine is None or yours is None:
+                    if mine != yours:
+                        problems.append(f"calibration {signal}.{field}: recorded {yours}, replayed {mine}")
+                elif abs(float(mine) - float(yours)) > 1e-6:
+                    problems.append(f"calibration {signal}.{field}: recorded {yours}, replayed {mine}")
+
+    if problems:
+        for problem in problems:
+            print(f"FAIL: {problem}", file=sys.stderr)
+        return 1
+    print(f"PASS: {meta.get('run_id', directory.name)} — artifacts, decisions, and calibration replay exactly.")
+    return 0
+
+
+def _read_run_row(directory: Path) -> dict | None:
+    """One comparably-shaped row per run dir, or None when it is not a run dir."""
+    run_json = directory / "run.json"
+    metrics_json = directory / "metrics.json"
+    if not run_json.is_file() or not metrics_json.is_file():
+        return None
+    try:
+        meta = json.loads(run_json.read_text(encoding="utf-8"))
+        metrics = json.loads(metrics_json.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"warning: skipping unreadable run {directory.name}: {exc}", file=sys.stderr)
+        return None
+
+    decision = meta.get("decision") or {}
+    scenario = meta.get("scenario") or {}
+    requested = meta.get("requested") or {}
+    calibration = metrics.get("calibration") or {}
+    noul = (calibration.get("signals") or {}).get("noul") or {}
+    pricing = decision.get("pricing") or {}
+    return {
+        "run_id": meta.get("run_id", directory.name),
+        "dir": str(directory),
+        "decision_model": decision.get("decision_model", "?"),
+        "provider": decision.get("provider", "?"),
+        "question_form": decision.get("question_form", "?"),
+        "scenario": scenario.get("name", "?"),
+        "start": requested.get("start") or scenario.get("start", ""),
+        "end": requested.get("end") or scenario.get("end", ""),
+        "created_utc": meta.get("created_utc", ""),
+        "synthetic": bool(meta.get("synthetic")),
+        "cost_per_m_input": pricing.get("cost_per_m_input"),
+        "total_return": metrics.get("total_return"),
+        "spy_total_return": metrics.get("spy_total_return"),
+        "excess_return_vs_spy": metrics.get("excess_return_vs_spy"),
+        "sharpe": metrics.get("sharpe"),
+        "max_drawdown": metrics.get("max_drawdown"),
+        "brier": noul.get("brier"),
+        "brier_skill_score": noul.get("brier_skill_score"),
+        "auc": noul.get("auc"),
+        "ece": noul.get("expected_calibration_error"),
+        "calibration_gap": calibration.get("miscalibration_gap"),
+        "answer_coverage": metrics.get("answer_coverage"),
+        "mean_latency_s": metrics.get("mean_latency_s"),
+        "estimated_cost_usd": metrics.get("estimated_cost_usd"),
+        "decisions": metrics.get("decisions"),
+        "trades": metrics.get("trades"),
+        "invalid_outputs": metrics.get("invalid_outputs"),
+        "input_tokens": metrics.get("input_tokens"),
+        "requests": metrics.get("requests"),
+        "metrics": metrics,
+    }
 
 
 def cmd_compare(args: argparse.Namespace) -> int:
-    from .reporting.dashboard import collect_runs
+    root = results_dir()
+    rows = []
+    if root.exists():
+        for directory in sorted(root.iterdir()):
+            if not directory.is_dir():
+                continue
+            row = _read_run_row(directory)
+            if row is None:
+                continue
+            rows.append(row)
 
-    runs = collect_runs(results_dir())
     if not args.include_synthetic:
-        runs = [r for r in runs if not r["synthetic"]]
+        rows = [row for row in rows if not row["synthetic"]]
     if args.scenario:
-        runs = [r for r in runs if r["scenario"] == args.scenario]
-    if not runs:
-        print("No runs found in ./results. Try: beatspy run  (or beatspy demo)")
+        rows = [row for row in rows if row["scenario"] == args.scenario]
+    if not rows:
+        print(f"No runs found in {root} (synthetic demo runs need --include-synthetic). Try: beatspy run")
         return 1
 
-    runs.sort(key=lambda r: r["created_utc"], reverse=True)
-    latest = {}
-    for run in runs:
-        latest.setdefault(run["model"], run)
-    runs = sorted(latest.values(), key=lambda r: -r["metrics"].get("excess_return_vs_spy", 0.0))
+    latest: dict[str, dict] = {}
+    for row in rows:
+        current = latest.get(row["decision_model"])
+        if current is None or row["created_utc"] > current["created_utc"]:
+            latest[row["decision_model"]] = row
+    runs = sorted(latest.values(), key=lambda row: -(row["excess_return_vs_spy"] or 0.0))
+
     if args.json:
-        print(json.dumps([{k: v for k, v in r.items() if k not in ("meta",)} for r in runs], indent=2, default=str))
+        print(json.dumps([{k: v for k, v in row.items() if k != "metrics"} for row in runs], indent=2, default=str))
         return 0
 
     frame = pd.DataFrame(
         [
             {
-                "model": r["model"].rsplit("/", 1)[-1],
-                "scenario": r["scenario"],
-                "period": f"{r['start']}..{r['end']}",
-                "total_return": f"{r['metrics'].get('total_return', 0) * 100:.1f}%",
-                "spy": f"{r['metrics'].get('spy_total_return', 0) * 100:.1f}%",
-                "excess": f"{r['metrics'].get('excess_return_vs_spy', 0) * 100:.1f}%",
-                "sharpe": r["metrics"].get("sharpe"),
-                "max_dd": f"{r['metrics'].get('max_drawdown', 0) * 100:.1f}%",
-                "dir_acc": f"{r['metrics'].get('directional_accuracy', 0) * 100:.0f}%",
-                "decisions": r["metrics"].get("decisions"),
-                "invalid": r["metrics"].get("invalid_outputs"),
-                "tokens_in": r["metrics"].get("input_tokens"),
-                "tokens_out": r["metrics"].get("output_tokens"),
-                "synthetic": r["synthetic"],
+                "model": row["decision_model"],
+                "provider": row["provider"],
+                "form": row["question_form"],
+                "scenario": row["scenario"],
+                "period": f"{row['start']}..{row['end']}",
+                "total_return": _percent(row["total_return"]),
+                "spy": _percent(row["spy_total_return"]),
+                "excess": _percent(row["excess_return_vs_spy"]),
+                "sharpe": _number(row["sharpe"]),
+                "max_dd": _percent(row["max_drawdown"]),
+                "brier": _number(row["brier"]),
+                "skill": _number(row["brier_skill_score"], 3),
+                "auc": _number(row["auc"], 3),
+                "ece": _number(row["ece"], 3),
+                "coverage": _percent(row["answer_coverage"]),
+                "cost_usd": _number(row["estimated_cost_usd"], 4),
+                "latency_s": _number(row["mean_latency_s"], 2),
+                "decisions": row["decisions"],
+                "synthetic": row["synthetic"],
             }
-            for r in runs
+            for row in runs
         ]
     )
     print(frame.to_string(index=False))
     print(
-        "\nLatest run per model, sorted by excess; each row shows its evaluation period. "
-        "Full settings and earlier runs are available with --json."
+        f"\nLatest run per decision model from {root}, sorted by excess return. "
+        "Probabilities are scored with Brier, skill, AUC, and ECE on the noul form; "
+        "full settings are available with --json."
     )
     return 0
+
+
+# --------------------------------------------------------------------------- #
+# report / demo
+# --------------------------------------------------------------------------- #
 
 
 def cmd_report(args: argparse.Namespace) -> int:
@@ -413,99 +890,321 @@ def cmd_report(args: argparse.Namespace) -> int:
 
     path = render_dashboard(results_dir(), run_id=args.run)
     print(f"Dashboard written to {path}")
-    print(f"Preview: python -m http.server 8000 --bind 127.0.0.1 --directory {path.parent}")
+    print(f"Preview over HTTP: python -m http.server 8000 --bind 127.0.0.1 --directory {path.parent}")
     if args.open:
-        from functools import partial
-        from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
-
-        with ThreadingHTTPServer(
-            ("127.0.0.1", 8000), partial(SimpleHTTPRequestHandler, directory=str(path.parent))
-        ) as server:
-            webbrowser.open("http://127.0.0.1:8000/" + (f"#run={args.run}" if args.run else ""))
-            print("Serving local dashboard; press Ctrl+C to stop.")
-            server.serve_forever()
+        webbrowser.open(path.resolve().as_uri())
     return 0
+
+
+def _slug(text: str) -> str:
+    import re
+
+    return re.sub(r"[^A-Za-z0-9._-]+", "-", text).strip("-")[:48] or "run"
+
+
+def _demo_decision_days(days: list[date]) -> list[date]:
+    """First session plus every month end, so the demo has distinct decision windows."""
+    month_ends: dict[tuple[int, int], date] = {}
+    for day in days:
+        month_ends[(day.year, day.month)] = day
+    first = (days[0].year, days[0].month)
+    return [days[0], *[day for key, day in month_ends.items() if key != first]]
+
+
+def _write_demo_runs(seed: int = 42, out_root: Path | None = None) -> list[Path]:
+    """Write synthetic demo runs in the real DCN artifact shape. No network, no model.
+
+    The dashboard and `compare` then have something to render on a machine with
+    no credentials. Every run is marked synthetic=true, and the probabilities and
+    outcomes are fabricated by construction — which is exactly why demo runs are
+    excluded from `compare` unless `--include-synthetic` is passed.
+    """
+    import hashlib
+
+    import numpy as np
+
+    from .artifacts import RUN_FILES, atomic_json, sha256
+    from .dcn import DCN_PROTOCOL
+    from .dcn.calibration import Observation, build_report
+    from .dcn.runner import DISCLAIMER, write_run_artifacts
+    from .dcn.scoring import estimate_cost
+    from .engine.metrics import (
+        annualized_volatility,
+        cagr,
+        max_drawdown,
+        outperformance_hit_rate,
+        sharpe_ratio,
+        total_return,
+        window_returns,
+    )
+    from .schemas import RunMetrics, Scenario
+
+    out_root = out_root or results_dir()
+    stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
+    created = datetime.now(UTC).isoformat(timespec="seconds")
+    days = [timestamp.date() for timestamp in pd.bdate_range("2022-01-03", "2022-06-30")]
+    decision_days = _demo_decision_days(days)
+    index_days = pd.Index(days, name="date")
+    run_dirs: list[Path] = []
+
+    for index, name in enumerate(DEMO_DECISION_MODELS):
+        spec = DECISION_MODELS[name]
+        settings = Settings(decision=DecisionConfig(decision_model=name))
+        rng = np.random.default_rng(seed + index)
+
+        spy_log = rng.normal(-0.0013, 0.012, len(days))
+        edge = 0.0009 - 0.0006 * index
+        port_log = spy_log + rng.normal(edge, 0.004 + 0.002 * index, len(days))
+        portfolio = pd.Series(100_000.0 * np.exp(np.cumsum(port_log)), index=index_days)
+        spy_line = pd.Series(100_000.0 * np.exp(np.cumsum(spy_log)), index=index_days)
+        baselines = {
+            key: pd.Series(100_000.0 * np.exp(np.cumsum(rng.normal(drift, vol, len(days)))), index=index_days)
+            for key, drift, vol in (
+                ("equal_weight", -0.0008, 0.013),
+                ("sixty_forty", -0.0006, 0.008),
+                ("momentum_12_1", 0.0002, 0.011),
+            )
+        }
+        equity_df = pd.DataFrame({"portfolio": portfolio, "spy_buy_hold": spy_line, **baselines})
+
+        decision_lines: list[dict] = []
+        event_lines: list[dict] = []
+        observations: list[Observation] = []
+        previous_book: dict[str, float] = {"CASH": 1.0}
+        turnovers: list[float] = []
+
+        for day in decision_days:
+            probabilities: dict[str, float] = {}
+            choice_probabilities: dict[str, float] = {}
+            rank_probabilities: dict[str, float] = {}
+            answers: dict[str, dict] = {}
+            observed: list[dict] = []
+            for ticker in DEMO_TICKERS:
+                probability = round(float(rng.uniform(0.35, 0.85)), 4)
+                # The choice form is deliberately sharper than the noul form, mirroring
+                # the overconfidence this benchmark exists to measure.
+                sharp = round(min(0.99, max(0.01, (probability - 0.5) * 1.6 + 0.5)), 4)
+                rank = round(min(1.0, max(0.0, probability + float(rng.normal(0.0, 0.05)))), 4)
+                probabilities[ticker] = probability
+                choice_probabilities[ticker] = sharp
+                rank_probabilities[ticker] = rank
+                answers[f"noul_{ticker}"] = {"type": "noul", "noul": probability}
+                outcome = int(rng.random() < probability)
+                excess_return = round(float(rng.normal(0.0, 0.05)), 6)
+                observed.append(
+                    {
+                        "ticker": ticker,
+                        "noul": probability,
+                        "choice": sharp,
+                        "rank": rank,
+                        "outcome": outcome,
+                        "excess_return": excess_return,
+                    }
+                )
+                observations.append(
+                    Observation(
+                        ticker=ticker,
+                        noul=probability,
+                        choice=sharp,
+                        rank=rank,
+                        outcome=outcome,
+                        excess_return=excess_return,
+                    )
+                )
+
+            bar = settings.decision.min_probability
+            eligible = sorted(
+                ((ticker, value) for ticker, value in probabilities.items() if value > bar),
+                key=lambda item: (-item[1], item[0]),
+            )[: settings.decision.top_n]
+            weights = (
+                {ticker: round(1.0 / len(eligible), 4) for ticker, _ in eligible}
+                if len(eligible) >= settings.decision.min_names
+                else {}
+            )
+            cash = round(1.0 - sum(weights.values()), 4)
+            book = {**weights, "CASH": cash}
+            moved = sum(
+                abs(book.get(ticker, 0.0) - previous_book.get(ticker, 0.0)) for ticker in {*book, *previous_book}
+            )
+            turnovers.append(0.5 * moved)
+            previous_book = book
+
+            state_sha = hashlib.sha256(f"demo:{name}:{day.isoformat()}".encode()).hexdigest()
+            question_ids = [f"noul_{ticker}" for ticker in DEMO_TICKERS]
+            decision_lines.append(
+                {
+                    "date": day.isoformat(),
+                    "question_form": "twin",
+                    "tickers": list(DEMO_TICKERS),
+                    "state_sha256": state_sha,
+                    "state_chars": 1200,
+                    "questions": {
+                        f"noul_{ticker}": {
+                            "type": "noul",
+                            "instructions": {"question": "synthetic demo decision; no model was called"},
+                        }
+                        for ticker in DEMO_TICKERS
+                    },
+                    "answers": answers,
+                    "missing_ids": [],
+                    "backfilled": [],
+                    "probabilities": probabilities,
+                    "choice_probabilities": choice_probabilities,
+                    "rank_probabilities": rank_probabilities,
+                    "validated": {"weights": weights, "cash": cash, "violations": [], "invalid": False},
+                    "coverage": 1.0,
+                    "observed": observed,
+                    "call": {
+                        "provider": spec["provider"],
+                        "model": spec["model"],
+                        "endpoint": spec["base_url"],
+                        "state_sha256": state_sha,
+                        "state_chars": 1200,
+                        "question_ids": question_ids,
+                        "answers": answers,
+                        "missing_ids": [],
+                        "input_tokens": int(rng.integers(900, 1600)),
+                        "output_tokens": 0,
+                        "requests": 1,
+                        "latency_s": 0.0,
+                        "attempts": 1,
+                        "error": None,
+                    },
+                    "error": None,
+                }
+            )
+            event_lines.append(
+                {
+                    "type": "decision",
+                    "date": day.isoformat(),
+                    "weights": weights,
+                    "cash": cash,
+                    "coverage": 1.0,
+                    "violations": [],
+                    "error": None,
+                }
+            )
+
+        input_tokens = sum(line["call"]["input_tokens"] for line in decision_lines)
+        calibration = build_report(
+            observations,
+            coverage=1.0,
+            horizons=len(decision_lines),
+            note="synthetic demo: fabricated probabilities and outcomes, no model was called",
+        )
+        metrics = RunMetrics(
+            total_return=round(total_return(portfolio), 6),
+            cagr=round(cagr(portfolio), 6),
+            annual_volatility=round(annualized_volatility(portfolio.pct_change().dropna()), 6),
+            sharpe=round(sharpe_ratio(portfolio.pct_change().dropna(), settings.bench.risk_free_annual), 4),
+            max_drawdown=round(max_drawdown(portfolio), 6),
+            spy_total_return=round(total_return(spy_line), 6),
+            excess_return_vs_spy=round(total_return(portfolio) - total_return(spy_line), 6),
+            outperformance_hit_rate=round(
+                outperformance_hit_rate(
+                    window_returns(portfolio, decision_days), window_returns(spy_line, decision_days)
+                ),
+                4,
+            ),
+            decisions=len(decision_lines),
+            avg_turnover=round(sum(turnovers) / len(turnovers), 6) if turnovers else 0.0,
+            trades=0,
+            invalid_outputs=0,
+            risk_violations=0,
+            input_tokens=input_tokens,
+            output_tokens=0,
+            requests=len(decision_lines),
+            calibration=calibration,
+            answer_coverage=1.0,
+            mean_latency_s=0.0,
+            estimated_cost_usd=estimate_cost(settings, input_tokens, 0),
+            baselines={key: round(total_return(values), 6) for key, values in baselines.items()},
+        )
+
+        scenario_block = Scenario(
+            name="2022-bear",
+            title="2022 bear market (synthetic demo window)",
+            description="Synthetic demo window written by `beatspy demo`; not the bundled 2022-bear scenario.",
+            start=days[0].isoformat(),
+            end=days[-1].isoformat(),
+            frequency="monthly",
+            benchmark="SPY",
+            tradable=list(DEMO_TICKERS),
+        )
+        run_id = f"{stamp}_2022-bear_{_slug(name)}_demo{index}"
+        run_meta = {
+            "schema_version": 3,
+            "benchmark": "dcn",
+            "dcn_protocol": DCN_PROTOCOL,
+            "source_revision": "demo",
+            "run_id": run_id,
+            "label": "demo",
+            "beatspy_version": __version__,
+            "created_utc": created,
+            "synthetic": True,
+            "disclaimer": DISCLAIMER,
+            "decision": {
+                "decision_model": settings.decision.decision_model,
+                "provider": settings.decision.provider,
+                "label": settings.decision.label,
+                "endpoint": settings.decision.endpoint,
+                "question_form": "twin",
+                "pricing": {
+                    "cost_per_m_input": settings.decision.cost_per_m_input,
+                    "cost_per_m_output": settings.decision.cost_per_m_output,
+                },
+                "policy": {
+                    "min_probability": settings.decision.min_probability,
+                    "top_n": settings.decision.top_n,
+                    "min_names": settings.decision.min_names,
+                },
+            },
+            "scenario": scenario_block.model_dump(),
+            "requested": {"frequency": "monthly", "start": days[0].isoformat(), "end": days[-1].isoformat()},
+            "data": {
+                "snapshot_id": "synthetic",
+                "tickers": scenario_block.universe,
+                "start": days[0].isoformat(),
+                "end": days[-1].isoformat(),
+                "rows": 0,
+                "fetched_at_utc": created,
+                "source": "synthetic demo series (no market data was downloaded)",
+                "prices_sha256": "synthetic",
+            },
+            "bench": settings.bench.model_dump(),
+            "note": (
+                "Synthetic demo run generated by `beatspy demo`. No decision model was called and "
+                "no market data was downloaded."
+            ),
+        }
+
+        out_dir = out_root / run_id
+        write_run_artifacts(out_dir, run_meta, metrics.model_dump(), equity_df, [], decision_lines, event_lines)
+        run_meta["artifact_hashes"] = {file_name: sha256(out_dir / file_name) for file_name in RUN_FILES}
+        atomic_json(out_dir / "run.json", run_meta)
+        run_dirs.append(out_dir)
+        log.info("wrote synthetic demo run %s", out_dir)
+    return run_dirs
 
 
 def cmd_demo(args: argparse.Namespace) -> int:
-    from .bench.demo import generate_demo_runs
-    from .reporting.dashboard import render_dashboard
-
-    dirs = generate_demo_runs(seed=args.seed)
-    path = render_dashboard(results_dir())
+    dirs = _write_demo_runs(seed=args.seed)
     print(f"Generated {len(dirs)} SYNTHETIC demo runs under {results_dir()}")
-    print(f"Dashboard written to {path}")
-    print("Demo runs use fabricated data and are excluded from `beatspy compare` by default.")
+    for directory in dirs:
+        print(f"  {directory.name}")
+    try:
+        from .reporting.dashboard import render_dashboard
+
+        path = render_dashboard(results_dir())
+        print(f"Dashboard written to {path}")
+    except Exception as exc:  # a broken dashboard must not discard generated runs
+        print(f"Dashboard not rendered: {exc}", file=sys.stderr)
+    print("Demo runs are fabricated, so compare hides them unless you pass --include-synthetic.")
     return 0
 
 
-def cmd_validate(args):
-    from .bench.validation import validate_run
-
-    directory = resolve_run(args.run)
-    meta = validate_run(directory)
-    print(f"PASS: {meta['run_id']} — artifact hashes, decisions, trades, equity, and metrics replay correctly.")
-    if (directory / "verification.json").exists():
-        from .bench.verification import verify_result
-
-        payload = verify_result(directory, args.public_key.read_bytes())
-        print(f"Verified signature: {payload['verification_id']}")
-    else:
-        print("Unsigned local result. Use beatspy submit --send for trusted verification.")
-    return 0
-
-
-def cmd_submit(args):
-    return request_submission(resolve_run(args.run), send=args.send)
-
-
-def resolve_run(directory: Path | None) -> Path:
-    if directory is not None:
-        return directory
-    from .reporting.dashboard import collect_runs
-
-    runs = [row for row in collect_runs(results_dir()) if not row["synthetic"]]
-    if not runs:
-        raise ValueError("No completed real runs. Start with: beatspy run")
-    return results_dir() / max(runs, key=lambda row: row["created_utc"])["dir"]
-
-
-def request_submission(directory: Path, *, send=False) -> int:
-    from .bench.validation import validate_run
-
-    meta = validate_run(directory)
-    if meta["scenario"]["name"] != "2026-ytd":
-        raise ValueError("Leaderboard requests require 2026-ytd. Run: beatspy run")
-    request = {
-        "model": meta["model"]["model"],
-        "benchmark": "2026-ytd",
-        "beatspy_version": __version__,
-        "local_run_id": meta["run_id"],
-    }
-    path = directory / "submission.md"
-    path.write_text(
-        "Please verify this model on the trusted runner.\n\n```json\n" + json.dumps(request, indent=2) + "\n```\n",
-        encoding="utf-8",
-    )
-    if send:
-        subprocess.run(
-            [
-                "gh",
-                "issue",
-                "create",
-                "--repo",
-                "kingabzpro/beatspy",
-                "--title",
-                f"Benchmark verification: {meta['model']['model']}",
-                "--body-file",
-                str(path),
-            ],
-            check=True,
-        )
-        print("Verification requested. The trusted runner will rerun, replay, sign, and prepare leaderboard results.")
-    else:
-        print(f"Submission ready: {path}\nSend it with: beatspy submit --send")
-    return 0
+# --------------------------------------------------------------------------- #
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -516,9 +1215,8 @@ def main(argv: list[str] | None = None) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         datefmt="%H:%M:%S",
     )
-    # httpx request lines include full URLs with query strings (API tokens for
-    # Finnhub) and are pure noise at INFO; keep them for --verbose only.
-    for noisy in ("httpx", "httpx2", "openai"):
+    # httpx request lines include full URLs with query strings and are pure noise at INFO.
+    for noisy in ("httpx", "httpx2"):
         logging.getLogger(noisy).setLevel(logging.WARNING)
     try:
         if args.command is None:

@@ -1,100 +1,110 @@
 # Contributing
 
-## Run and submit
+## Run the benchmark
 
-1. Clone the repo and run `uv sync` (Python 3.11+ required).
-2. Run `uv run beatspy setup` to select a model and optionally add Finnhub/TimeGPT keys. TimeGPT requires `uv sync --extra timegpt`.
-3. Run `uv run beatspy run`. The benchmark starts on January 1, 2026 and ends at the latest completed NYSE session, with weekly decisions capped at 36 per model. Olostep is disabled for official results.
-4. View `uv run beatspy results` or `uv run beatspy report --open`.
-5. Run `uv run beatspy submit --send`. Authenticate GitHub CLI first with `gh auth login`.
+1. Clone the repo and run `uv sync --extra dev` (Python 3.11+ required).
+2. Run `uv run beatspy models` to see the decision models and which keys resolve.
+3. Run `uv run beatspy setup` to pick a model and store its key, or export the key
+   yourself (`OPENAI_API_KEY`, `TYPESAFE_API_KEY`, or `CLOUDFLARE_ACCOUNT_ID` plus
+   `CLOUDFLARE_AUTH_TOKEN`). Each also has a `BEATSPY_`-prefixed form that wins.
+4. Run `uv run beatspy run --model <id>`.
+5. Inspect the result with `uv run beatspy calibrate <run-id>`, `uv run beatspy
+   compare`, or `uv run beatspy report --open`.
 
-No run IDs, artifact copying, commits, or forks are needed to request verification.
-`beatspy run --submit` combines running and submission. `beatspy submit` only prepares
-a request file; `beatspy validate` replays the latest real run without sending anything.
+Add `--probe` to `beatspy doctor` to make one live call per model and see exactly
+what each provider returns, including its question limits and latency. Without
+`--probe`, `doctor` makes no network calls at all.
 
-To compare direct Olostep search and scraping locally, set `OLOSTEP_API_KEY` and
-run `uv run beatspy run --web-research`. It is capped at two searches and three
-scrapes per decision. Pages with missing, future, or future-updated dates are
-withheld. Live publisher dates cannot authenticate historical content, so this
-experimental mode does not qualify for the official leaderboard.
+## What a contribution should not do
 
-Submission creates a GitHub issue containing the model name and local run ID.
-The owner adds the `verify-benchmark` label to start an approved trusted rerun.
-Unknown models need an owner-reviewed entry in `.github/benchmark-models.json`.
-Requests cannot set endpoints, scenarios, scripts, or signing credentials.
-Once the rerun finishes, the workflow checks and signs its own new result and opens
-a leaderboard PR. Publication follows its review and merge. The public dashboard
-also offers a prefilled verification request button.
-
-## Owner setup (once)
-
-- Commit the **public** Ed25519 PEM key to `.github/verification-key.pem`.
-- Put the matching existing **private** PEM key in the `BEATSPY_SIGNING_KEY` secret
-  of the `leaderboard-signing` GitHub environment. Never commit the private key.
-- Configure that environment to allow only protected `main` and require owner approval.
-- Add the model API secrets listed in `.github/benchmark-models.json`, plus
-  `FINNHUB_API_KEY` and `NIXTLA_API_KEY` when those integrations should be enabled.
-  The trusted workflow selects TimeGPT when its key is present, otherwise the built-in forecast.
-- Enable Actions to create PRs. Require the result-validation check and CODEOWNER
-  review for protected code/workflows/public-key changes before merging.
-- Optionally set `BEATSPY_SUBMISSION_TOKEN` to a repository-scoped GitHub App/PAT
-  token so generated PR checks start automatically. With the default Actions token,
-  approve the generated PR's workflow runs before merging ([GitHub behavior](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow)).
-
-The trusted workflow only checks out main-branch code; it never executes submitted
-code or downloads a user's proposed result to sign. Its signing key is available
-only in the signing step, after model execution. New submissions must pass the
-pinned public-key signature, benchmark version/code digest checks, full historical
-period check, artifact hashes, and deterministic replay using base-branch code.
-A unique verification ID binds the result, release, source revision, and execution URL.
-Modified unsigned legacy records cannot be accepted as new verified results.
-Only an owner-authored PR can reset the leaderboard to an empty catalog; that exception
-accepts no result artifacts. Every subsequent addition still needs a trusted signature.
-
-The private key signs; the public key validates. Signatures attest the controlled
-execution and exact artifact bytes, not predictive skill or freedom from model
-knowledge leakage. Nondeterministic reruns can legitimately produce different scores.
+- **Do not tune the sizing policy to a result.** `min_probability`, `top_n` and
+  `min_names` live in `DecisionConfig` and are fixed before a run. If you change
+  them, say so in the PR and expect every previously recorded number to be
+  incomparable. `DCN_PROTOCOL` in `src/beatspy/dcn/__init__.py` exists so a run
+  records the rules it executed under; bump it when the question set, the state
+  layout, or the sizing policy changes.
+- **Do not put an inference into a scored number.** Unanswered questions are
+  backfilled at the neutral 0.5 so the portfolio can be sized, but calibration
+  reads only `answered_noul` / `answered_choice` / `answered_rank`. If you add a
+  scoring path, keep that separation.
+- **Do not reach forward from state construction.** Only `DataService.close_on_offset`
+  may look past the decision date, and only for labeling. A test builds the same
+  decision from two price series that diverge after the decision date and requires
+  identical state — keep it passing.
+- **Do not let the state grow.** Workers AI truncates long text state at roughly
+  2K tokens, which would give Clef a different question from everyone else. The
+  state budget is enforced by tests for both a small and a 23-name universe.
+- **Do not ship a fake provider in `src/`.** The scripted offline client lives in
+  `tests/conftest.py` on purpose.
 
 ## Develop
 
 ```bash
-uv sync --extra dev --extra browser
-uv run playwright install chromium
+uv sync --extra dev
 uv run --no-sync pytest
 uv run --no-sync ruff check .
-uv run --no-sync ruff format --check .
 node --test tests/dashboard.test.cjs
-uv build
 ```
 
-Commit `uv.lock` for dependency changes. Unit tests must not call model/data APIs.
-Live forecast checks require `BEATSPY_LIVE_TESTS=1` and provider credentials.
-Scenarios live in `src/beatspy/scenarios/builtin/`; tools must enforce their decision
-date and budget. Prices include warmup data, but scoring starts at the stated start.
-Snapshots remain immutable and must cover every ticker/session. Recent scenarios
-remain available for quick experiments; leaderboard requests use `2026-ytd`.
+`src/beatspy/cli.py` is a large hand-rolled argparse module; wrap help strings
+rather than raising the line limit. Commit `uv.lock` with dependency changes.
 
-The fixed stock universe has survivorship bias. Curated events and Finnhub history
-may be sparse. Current fundamentals and unarchived historical analyst ratings
-are withheld; adjusted prices and model knowledge remain historical-test limitations.
+### Tests must stay hermetic
+
+No network, no credentials, no real models, and no live price downloads. Build
+runs with the fixtures in `tests/conftest.py`:
+
+- `scenario`, `data_service`, `settings` — a dated scenario over synthetic prices;
+- `frozen_data` — a real content-addressed snapshot on disk (valid
+  `prices_sha256`, row count and coverage) so a run copies it exactly as a live
+  run would, without the network;
+- `offline_client` — a deterministic decision model that answers all three forms;
+- `dcn_run_dir` — a complete run produced by the real runner, for report,
+  catalog and verification tests;
+- `run_offline(...)` — the helper behind them.
+
+Calibration constants are verified against hand-computed values, so a change to
+`dcn/calibration.py` that silently shifts Brier, log loss, AUC or the reliability
+bins fails immediately.
+
+### Adding a provider
+
+1. Add an entry to `DECISION_MODELS` in `config.py` with `provider`, `model`,
+   `label`, `base_url`, `api_key_env`, `cost_per_m_input`, `cost_per_m_output`,
+   `context_window`, `max_questions`, and a `state_note` if the transport has a
+   quirk worth recording.
+2. Subclass `HttpDcnClient` in `dcn/clients.py`: implement `build_request` and
+   `parse_response`, and register it in `_CLIENTS`.
+3. Add a contract test asserting on the exact request body and the exact response
+   envelope, plus a retry test for a transient status.
+4. Cite the pricing source in the PR. Never guess a price; an unpriced model must
+   report no cost rather than a made-up one.
+
+## Limitations to state plainly
+
+- Prices are real adjusted OHLCV, but the universe is a fixed set of large
+  companies chosen after the fact. It has survivorship bias and is **not**
+  point-in-time index membership.
+- `2026-ytd` and the recent windows end at the latest completed session, so they
+  are frozen at snapshot time and do not move.
+- A single window is one draw: one deterministic momentum rule moves across a
+  ~41-point range between sub-windows of a six-month period. Report dispersion.
+- Workers AI's state truncation means Clef may read less of the state than the
+  other providers if the budget is ever exceeded. The budget is enforced, but the
+  caveat belongs in any comparison.
+- A decision model may already know historical outcomes from pretraining. Frozen
+  prices prevent look-ahead *in the harness*; they cannot prevent it in the
+  weights.
 
 ## Dashboard
 
-The static frontend in `dashboard/` reads `data/index.json`. It displays the latest
-execution per model, never selects the best score, and lists each evaluation period.
-Details include performance, allocations, cost estimates, provenance, and verification IDs.
-Decision and trade evidence remains downloadable for replay; detailed tables are omitted from the interface.
-Cost estimates use OpenRouter's standard uncached input/output token prices, checked
-2026-10-05. They exclude provider cache discounts, subscriptions, and external tool fees.
-Custom rates can be entered in the dashboard. Run estimates are not provider invoices.
+The static frontend in `dashboard/` reads `data/index.json`. It shows the latest
+execution per decision model and never selects the best score. Details include
+the equity curve with baselines and a reliability curve per run, with the
+noul/choice/rank curves and the miscalibration gap. Never render data as HTML;
+the frontend already escapes it.
 
 Preview with `python -m http.server 8000 --bind 127.0.0.1 --directory dashboard`.
-Vercel uses Root Directory `dashboard`, Framework Preset **Other**, and no build or
-install command. `beatspy report --open` serves local results separately.
-Production follows approved merges; private credentials must never be deployed.
-
-Website branding lives in `dashboard/assets/`: SVG source artwork, a 1200×630 PNG
-social preview, and home-screen icons. `index.html` includes Open Graph/X sharing
-metadata and the canonical public URL. Keep image URLs, dimensions, and alternate
-text synchronized when replacing the preview. All branding assets ship in local
-reports and the Python wheel too.
+`beatspy report --open` serves a local copy separately. Branding lives in
+`dashboard/assets/`; keep image URLs, dimensions and alternate text synchronized.
+Private credentials must never be deployed.

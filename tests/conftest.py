@@ -1,23 +1,52 @@
-"""Shared test fixtures. All tests are hermetic: no network, no real models."""
+"""Shared test fixtures. All tests are hermetic: no network, no real models.
+
+The DCN benchmark never needs a live provider in tests. `OfflineDcnClient` stands
+in for one: it answers every typed question deterministically, so a whole run can
+be executed, scored, replayed, and rendered offline.
+
+`frozen_data` writes a real content-addressed snapshot (valid `prices_sha256`,
+row count and coverage) so a run can copy it into its artifact directory exactly
+as a live run does — without touching the network.
+"""
 
 from __future__ import annotations
 
+import hashlib
 import json
-from datetime import date
+from datetime import UTC, date, datetime
+from pathlib import Path
 
 import exchange_calendars as xcals
 import numpy as np
 import pandas as pd
 import pytest
 
-from beatspy.agents.pipeline import AgentOutcome
+from beatspy.artifacts import sha256
 from beatspy.config import Settings
+from beatspy.data.freeze import PRICE_COLUMNS, snapshot_id
 from beatspy.data.service import DataService
-from beatspy.schemas import Scenario
-from beatspy.tools.context import ToolContext
-from beatspy.tools.forecast import get_forecast_fn
+from beatspy.dcn import DCN_PROTOCOL
+from beatspy.dcn.clients import DcnResult
+from beatspy.schemas import ChoiceAnswer, NoulAnswer, Question, Scenario, ScoreAnswer
 
 TICKERS = ["AAPL", "MSFT", "TLT"]
+
+
+def make_scenario(**overrides) -> Scenario:
+    """A small test scenario; override any field by keyword."""
+    payload = {
+        "name": "test-scenario",
+        "title": "Test Scenario",
+        "description": "synthetic",
+        "start": "2022-01-03",
+        "end": "2022-03-31",
+        "frequency": "monthly",
+        "benchmark": "SPY",
+        "tradable": list(TICKERS),
+        "initial_capital": 100_000.0,
+    }
+    payload.update(overrides)
+    return Scenario(**payload)
 
 
 def make_prices(
@@ -29,18 +58,18 @@ def make_prices(
 ) -> pd.DataFrame:
     """Deterministic synthetic OHLCV covering the scenario window plus lookback."""
     tradable = [t for t in (tickers or TICKERS) if t != benchmark]
-    tickers = [benchmark, *tradable]
+    names = [benchmark, *tradable]
     rng = np.random.default_rng(seed)
     calendar = xcals.get_calendar("XNYS", start=start, end=end)
-    days = calendar.sessions
-    days = days[(days >= pd.Timestamp(start)) & (days <= pd.Timestamp(end))]
+    sessions = calendar.sessions
+    sessions = sessions[(sessions >= pd.Timestamp(start)) & (sessions <= pd.Timestamp(end))]
     rows = []
-    for ticker in tickers:
-        n = len(days)
+    for ticker in names:
+        n = len(sessions)
         drift = -0.002 if ticker == benchmark else float(rng.normal(0.0, 0.001))
         close = 100.0 * np.exp(np.cumsum(rng.normal(drift, 0.015, n)))
         open_ = close * (1.0 + rng.normal(0.0, 0.003, n))
-        for i, day in enumerate(days):
+        for i, day in enumerate(sessions):
             rows.append(
                 (
                     day.date().isoformat(),
@@ -52,28 +81,20 @@ def make_prices(
                     1_000_000.0,
                 )
             )
-    return pd.DataFrame(rows, columns=["date", "ticker", "open", "high", "low", "close", "volume"]).assign(
-        date=lambda df: pd.to_datetime(df["date"])
-    )
+    return pd.DataFrame(rows, columns=PRICE_COLUMNS).assign(date=lambda df: pd.to_datetime(df["date"]))
 
 
 @pytest.fixture
 def scenario() -> Scenario:
-    return Scenario(
-        name="test-scenario",
-        title="Test Scenario",
-        description="synthetic",
-        start="2022-01-03",
-        end="2022-03-31",
-        frequency="monthly",
-        benchmark="SPY",
-        tradable=TICKERS,
-        initial_capital=100_000.0,
-    )
+    """A dated test scenario. Bundled scenarios can carry `through_latest` and no
+    explicit end, so resolve the dates exactly as a real run does."""
+    from beatspy.data.calendar import resolve_scenario
+
+    return resolve_scenario(make_scenario())
 
 
 @pytest.fixture
-def data_service(scenario: Scenario) -> DataService:
+def data_service(scenario) -> DataService:
     return DataService(make_prices(scenario.universe), benchmark=scenario.benchmark)
 
 
@@ -82,99 +103,135 @@ def settings() -> Settings:
     return Settings()
 
 
-def make_tctx(
-    data_service: DataService, scenario: Scenario, as_of: date | None = None, budget: int = 10
-) -> ToolContext:
-    return ToolContext(
-        as_of=as_of or date(2022, 2, 1),
-        data=data_service,
-        scenario=scenario,
-        forecast_fn=get_forecast_fn("baseline"),
-        tool_budget_per_agent=budget,
+class OfflineDcnClient:
+    """A deterministic decision model. Answers every question form, no network.
+
+    The probability comes from the question id, so a fixture run is reproducible
+    byte-for-byte while still varying across tickers. The choice answer it returns
+    is deliberately sharper than its noul answer, mirroring the reported
+    overconfidence of the choice form that this benchmark exists to measure.
+    """
+
+    provider = "offline"
+    model = "offline-scripted"
+    endpoint = "https://offline.invalid/v1/systemone"
+
+    def __init__(self, *, fixed: float | None = None, fail_ids: set[str] | None = None):
+        self.fixed = fixed
+        self.fail_ids = fail_ids or set()
+        self.calls: list[str] = []
+        self.states: list[dict] = []
+
+    @staticmethod
+    def probability_for(question_id: str) -> float:
+        digest = hashlib.sha256(question_id.encode("utf-8")).digest()
+        return 0.05 + 0.90 * (digest[0] / 255.0)
+
+    async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
+        self.calls.append(state["as_of"])
+        self.states.append(state)
+        answers: dict[str, object] = {}
+        for question_id, question in questions.items():
+            if question_id in self.fail_ids:
+                continue
+            probability = self.fixed if self.fixed is not None else self.probability_for(question_id)
+            if question.type == "noul":
+                answers[question_id] = NoulAnswer(noul=round(probability, 4))
+            elif question.type == "choice":
+                sharp = min(0.99, max(0.01, (probability - 0.5) * 1.8 + 0.5))
+                answers[question_id] = ChoiceAnswer(
+                    choice="outperform" if sharp >= 0.5 else "underperform",
+                    probabilities={"outperform": round(sharp, 4), "underperform": round(1 - sharp, 4)},
+                    confidence=0.8,
+                )
+            else:
+                levels = len(question.criteria or [])
+                answers[question_id] = ScoreAnswer(
+                    score=round(min(probability, 0.999) * max(levels - 1, 1), 4),
+                    legend={str(i): str(level) for i, level in enumerate(question.criteria or [])},
+                    probabilities={},
+                )
+        return DcnResult(answers=answers, input_tokens=500, output_tokens=0, latency_s=0.01, attempts=1)
+
+    async def close(self) -> None:
+        return None
+
+
+@pytest.fixture
+def offline_client() -> OfflineDcnClient:
+    return OfflineDcnClient()
+
+
+@pytest.fixture
+def frozen_data(tmp_path: Path, scenario, data_service):
+    """Write a real, valid frozen snapshot and return (DataService, manifest)."""
+    prices = make_prices(scenario.universe)
+    directory = tmp_path / "snapshots" / "fixture"
+    directory.mkdir(parents=True, exist_ok=True)
+    prices.to_csv(directory / "prices.csv", index=False, date_format="%Y-%m-%d")
+    manifest = {
+        "schema_version": 2,
+        "scenario": scenario.name,
+        "tickers": scenario.universe,
+        "start": prices.date.min().date().isoformat(),
+        "end": prices.date.max().date().isoformat(),
+        "requested_start": scenario.start,
+        "requested_end": scenario.end,
+        "lookback_days": scenario.lookback_days,
+        "rows": len(prices),
+        "source": "synthetic fixture",
+        "prices_sha256": sha256(directory / "prices.csv"),
+        "fetched_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+    }
+    manifest["snapshot_id"] = snapshot_id(manifest)
+    (directory / "MANIFEST.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return data_service, {**manifest, "path": str(directory.resolve())}
+
+
+def run_offline(
+    tmp_path: Path,
+    scenario,
+    frozen,
+    client,
+    *,
+    question_form: str = "twin",
+    settings: Settings | None = None,
+    label: str | None = None,
+    scenario_overrides: dict | None = None,
+):
+    """Execute a complete DCN run offline through the real runner."""
+    import asyncio
+
+    from beatspy.dcn.runner import run_dcn
+
+    # Overrides are applied to the raw scenario and resolved inside run_dcn, so a
+    # test that narrows the window really narrows it.
+    active = scenario.model_copy(update=scenario_overrides or {})
+    return asyncio.run(
+        run_dcn(
+            active,
+            settings or Settings(),
+            out_root=tmp_path / "results",
+            prepared_data=frozen,
+            client=client,
+            question_form=question_form,
+            label=label,
+        )
     )
 
 
-# --------------------------------------------------------------------------- #
-# Canned agent outputs
-# --------------------------------------------------------------------------- #
-
-RESEARCH_JSON = json.dumps(
-    {
-        "summary": "Fed tightening is pressuring equities; energy strong.",
-        "key_events": [{"date": "2022-02-24", "headline": "Russia invades Ukraine", "relevance": "risk-off"}],
-        "sentiment": {"AAPL": -0.3, "MSFT": -0.2, "TLT": 0.2},
-        "risks": ["inflation"],
-        "confidence": 0.6,
-    }
-)
-
-ANALYST_JSON = json.dumps(
-    {
-        "trend": {
-            "AAPL": {"trend": "down", "momentum_30d_pct": -5.0, "volatility_regime": "high", "notes": ""},
-            "SPY": {"trend": "down", "momentum_30d_pct": -6.0, "volatility_regime": "high", "notes": ""},
-        },
-        "opportunities": ["energy strength"],
-        "risks": ["rate hikes"],
-        "confidence": 0.55,
-    }
-)
-
-FORECAST_JSON = json.dumps(
-    {
-        "forecasts": [
-            {
-                "ticker": "SPY",
-                "direction": "down",
-                "expected_return_pct": -2.0,
-                "p10_pct": -8.0,
-                "p90_pct": 4.0,
-                "confidence": 0.5,
-            }
-        ],
-        "method_notes": "tool-based",
-    }
-)
-
-CRITIC_JSON = json.dumps(
-    {
-        "issues": [{"agent": "forecaster", "claim": "SPY -2%", "problem": "ignores event risk", "severity": "medium"}],
-        "contradictions": [],
-        "overall_assessment": "reasonable but uncertain",
-        "adjusted_confidence": 0.5,
-    }
-)
-
-PM_JSON = json.dumps(
-    {
-        "allocations": [{"ticker": "MSFT", "weight": 0.30}, {"ticker": "TLT", "weight": 0.20}],
-        "cash_weight": 0.50,
-        "expected_direction": "up",
-        "expected_return_pct": 1.0,
-        "rationale": "Defensive tilt.",
-    }
-)
+@pytest.fixture
+def dcn_run_dir(tmp_path: Path, scenario, frozen_data, offline_client) -> Path:
+    """A complete DCN run produced offline by the real runner."""
+    return run_offline(tmp_path, scenario, frozen_data, offline_client)
 
 
-DEFAULT_OUTPUTS = {
-    "research": RESEARCH_JSON,
-    "analyst": ANALYST_JSON,
-    "forecaster": FORECAST_JSON,
-    "critic": CRITIC_JSON,
-    "portfolio_manager": PM_JSON,
-}
-
-
-class FakeExecutor:
-    """Scripted AgentExecutor: role -> output text (or callable(decision_index))."""
-
-    def __init__(self, outputs: dict[str, object] | None = None):
-        self.outputs = dict(outputs or DEFAULT_OUTPUTS)
-        self.calls: list[str] = []
-        self.index = 0
-
-    async def run(self, agent, input_text: str, tctx: ToolContext) -> AgentOutcome:
-        self.calls.append(agent.name)
-        spec = self.outputs.get(agent.name, "{}")
-        text = spec(self.index) if callable(spec) else spec
-        return AgentOutcome(role=agent.name, final_output=text, input_tokens=100, output_tokens=50, requests=1)
+__all__ = [
+    "DCN_PROTOCOL",
+    "OfflineDcnClient",
+    "TICKERS",
+    "date",
+    "make_prices",
+    "make_scenario",
+    "run_offline",
+]

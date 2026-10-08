@@ -71,6 +71,21 @@ class DataService:
         later = [d for d in self.calendar if d > day]
         return later[0] if later else None
 
+    def close_on_offset(self, ticker: str, day: date, offset: int) -> float | None:
+        """Close `offset` calendar trading days after `day`, for realized outcomes.
+
+        This is the only accessor that deliberately looks forward: it exists so a
+        decision recorded at `day` can be labeled with what actually happened.
+        It must never be reachable from state construction, which is why state
+        building goes through `window`/`trailing_return_pct` instead.
+        """
+        if offset <= 0:
+            return None
+        later = [d for d in self.calendar if d > day]
+        if len(later) < offset:
+            return None
+        return self.close_on(ticker, later[offset - 1])
+
     def decision_dates(
         self, start: date, end: date, freq: str = "monthly", *, legacy=False, max_decisions: int | None = None
     ) -> list[date]:

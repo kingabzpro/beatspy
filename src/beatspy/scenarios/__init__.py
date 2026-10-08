@@ -1,8 +1,12 @@
 """Scenario loading: bundled TOMLs plus user scenarios in ~/.beatspy/scenarios.
 
-A scenario file defines dates, universe, costs, and risk limits; an optional
-`<name>.events.toml` beside it provides the curated event feed. Bundled
-scenarios never require external API subscriptions.
+A scenario file defines dates, universe, costs, and risk limits. Bundled
+scenarios never require external API subscriptions, and they are frozen price
+windows rather than live feeds.
+
+The curated event feeds the old agent benchmark used are gone: a decision model
+receives its evidence as point-in-time state, so there is nothing for a hand-kept
+news list to contribute.
 """
 
 from __future__ import annotations
@@ -11,22 +15,40 @@ import tomllib
 from importlib import resources
 from pathlib import Path
 
-from ..schemas import EventItem, Scenario
+from ..schemas import Scenario
+
+DEFAULT_SCENARIO = "2026-ytd"
 
 
 def user_scenario_dir() -> Path:
     return Path.home() / ".beatspy" / "scenarios"
 
 
+def make_scenario(**overrides) -> Scenario:
+    """Build a Scenario from defaults plus overrides (used by tests and tools)."""
+    payload = {
+        "name": "custom",
+        "title": "Custom scenario",
+        "start": "2022-01-03",
+        "end": "2022-03-31",
+        "frequency": "monthly",
+        "benchmark": "SPY",
+        "tradable": ["AAPL", "MSFT", "TLT"],
+        "initial_capital": 100_000.0,
+    }
+    payload.update(overrides)
+    return Scenario(**payload)
+
+
 def available_names() -> list[str]:
     names: set[str] = set()
     builtin = resources.files("beatspy.scenarios") / "builtin"
     for entry in builtin.iterdir():
-        if entry.name.endswith(".toml") and not entry.name.endswith(".events.toml"):
+        if entry.name.endswith(".toml"):
             names.add(entry.name.removesuffix(".toml"))
     user = user_scenario_dir()
     if user.exists():
-        names |= {p.name.removesuffix(".toml") for p in user.glob("*.toml") if not p.name.endswith(".events.toml")}
+        names |= {path.name.removesuffix(".toml") for path in user.glob("*.toml")}
     return sorted(names)
 
 
@@ -45,25 +67,3 @@ def load_scenario(name: str) -> Scenario:
         data = _read_toml(builtin)
     data["name"] = name
     return Scenario.model_validate(data)
-
-
-def load_events(name: str) -> list[EventItem]:
-    if name == "2026-ytd":
-        # Reuse the bundled dated events; uncovered years remain explicitly sparse.
-        builtin = resources.files("beatspy.scenarios") / "builtin"
-        events = {}
-        for entry in builtin.iterdir():
-            if entry.name.endswith(".events.toml"):
-                for item in _read_toml(entry).get("events", []):
-                    event = EventItem.model_validate(item)
-                    events[(event.date, event.headline)] = event
-        return sorted(events.values(), key=lambda event: (event.date, event.headline))
-    user_file = user_scenario_dir() / f"{name}.events.toml"
-    if user_file.exists():
-        data = _read_toml(user_file)
-    else:
-        builtin = resources.files("beatspy.scenarios") / "builtin" / f"{name}.events.toml"
-        if not builtin.is_file():
-            return []
-        data = _read_toml(builtin)
-    return [EventItem.model_validate(item) for item in data.get("events", [])]

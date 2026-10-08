@@ -1,84 +1,167 @@
-"""Static result catalog and local PR preparation."""
+"""Static result catalog for decision-model (DCN) runs.
+
+The signed submission path went away with the five-agent benchmark, so this
+module only *reads* recorded runs. A catalog row is a flat, comparable summary of
+one run: the decision model and provider that answered, the typed question form it
+answered, the portfolio and calibration numbers from ``metrics.json``, and a
+``comparison_group`` hash that marks runs as comparable.
+
+Nothing here imports the replay validator: the catalog has to stay readable while
+a run is only partially written, and readers must not depend on an in-flight
+module.
+"""
+
+from __future__ import annotations
 
 import hashlib
 import json
-import shutil
+import re
 from pathlib import Path
-from urllib.parse import urlsplit, urlunsplit
 
-from ..artifacts import RUN_FILES, atomic_json, sha256
-from ..bench.validation import SAFE_ID, read_json, snapshot_directory, validate_run
-from ..config import secret_values
+from ..artifacts import atomic_json
+
+# Run ids double as directory names, so they are limited to a safe subset.
+SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,199}")
+
+# The noul signal is the one that sizes the portfolio, so it supplies the
+# headline calibration numbers in a catalog row. The other signals stay in
+# ``metrics.calibration`` and in the per-signal breakdown.
+PRIMARY_SIGNAL = "noul"
+
+# Files a catalogued run directory has to carry. ``run.json`` is added separately.
+CATALOG_FILES = ("metrics.json",)
+
+MAX_ARTIFACT_BYTES = 25_000_000
 
 
-def comparison_group(meta):
-    scenario = {k: v for k, v in meta.get("scenario", {}).items() if k not in ("title", "description")}
+def read_json(path: Path):
+    """Read a JSON artifact, rejecting symlinks, oversized files and NaN."""
+    path = Path(path)
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > MAX_ARTIFACT_BYTES:
+        raise ValueError(f"missing, oversized, or unsafe JSON artifact: {path.name}")
+
+    def invalid(value):
+        raise ValueError(f"invalid JSON number: {value}")
+
+    return json.loads(path.read_text(encoding="utf-8"), parse_constant=invalid)
+
+
+def validate_run_meta(run_dir: Path) -> dict:
+    """Structural check of a recorded DCN run directory; returns its run.json.
+
+    This is deliberately not a replay check: it proves the directory is a
+    well-formed schema-3 DCN run, nothing about its scores.
+    """
+    run_dir = Path(run_dir)
+    if run_dir.is_symlink() or run_dir.parent.is_symlink():
+        raise ValueError("run symlinks are not allowed")
+    meta = read_json(run_dir / "run.json")
+    if meta.get("benchmark") != "dcn":
+        raise ValueError("only dcn runs can be catalogued")
+    if meta.get("schema_version") != 3:
+        raise ValueError("only schema_version 3 dcn runs can be catalogued")
+    run_id = meta.get("run_id")
+    if not isinstance(run_id, str) or not SAFE_ID.fullmatch(run_id):
+        raise ValueError("invalid run id")
+    if run_id != run_dir.name:
+        raise ValueError("run id does not match its directory name")
+    for name in CATALOG_FILES:
+        read_json(run_dir / name)
+    return meta
+
+
+def comparison_group(meta) -> str:
+    """Hash of everything two runs must share before their scores are comparable.
+
+    The decision model is deliberately absent: comparing models under one frozen
+    scenario is the point of the group.
+    """
+    scenario = {k: v for k, v in (meta.get("scenario") or {}).items() if k not in ("title", "description")}
+    decision = meta.get("decision") or {}
     payload = {
         "scenario": scenario,
         "requested": meta.get("requested"),
         "bench": meta.get("bench"),
-        "snapshot": meta.get("data", {}).get("snapshot_id"),
-        "capabilities": meta.get("capabilities"),
-        "protocol": meta.get("protocol_version", "legacy"),
+        "snapshot": (meta.get("data") or {}).get("snapshot_id"),
+        "protocol": meta.get("dcn_protocol", meta.get("protocol_version", "legacy")),
         "synthetic": meta.get("synthetic", False),
-        "temperature": (
-            float(meta["model"]["temperature"]) if meta.get("model", {}).get("temperature") is not None else None
-        ),
-        "max_turns": meta.get("model", {}).get("max_turns"),
+        "question_form": decision.get("question_form"),
+        "policy": decision.get("policy"),
     }
-    if (effort := meta.get("model", {}).get("reasoning_effort")) is not None:
-        payload["reasoning_effort"] = effort
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def summary(meta, metrics, directory, trust="replayed"):
+def calibration_row(metrics) -> dict:
+    """Pull the headline calibration numbers out of a metrics dict."""
+    calibration = (metrics or {}).get("calibration") or {}
+    signals = calibration.get("signals") or {}
+    primary = signals.get(PRIMARY_SIGNAL) or {}
+    row = {
+        "brier": primary.get("brier"),
+        "brier_skill_score": primary.get("brier_skill_score"),
+        "auc": primary.get("auc"),
+        "ece": primary.get("expected_calibration_error"),
+        "max_calibration_error": primary.get("max_calibration_error"),
+        "calibration_gap": calibration.get("miscalibration_gap"),
+    }
+    for name, stats in signals.items():
+        stats = stats or {}
+        row[f"{name}_brier"] = stats.get("brier")
+        row[f"{name}_ece"] = stats.get("expected_calibration_error")
+    return row
+
+
+def summary(meta, metrics, directory, trust="replayed") -> dict:
+    """Flatten one recorded run into a catalog row."""
     scenario = meta.get("scenario") or {}
     requested = meta.get("requested") or {}
+    decision = meta.get("decision") or {}
+    metrics = metrics or {}
     start = requested.get("start") or scenario.get("start", "")
     end = requested.get("end") or scenario.get("end", "")
-    result = {
+    row = {
         "run_id": meta["run_id"],
         "dir": directory,
-        "model": (meta.get("model") or {}).get("model", "?"),
+        "model": decision.get("decision_model", "?"),
+        "model_label": decision.get("label"),
+        "provider": decision.get("provider", "?"),
+        "question_form": decision.get("question_form", "?"),
+        "policy": decision.get("policy") or {},
+        "pricing": decision.get("pricing") or {},
         "scenario": scenario.get("name", "?"),
         "start": start,
         "end": end,
         "year": end[:4],
-        "data_cutoff": meta.get("data", {}).get("end", end),
-        "snapshot_id": meta.get("data", {}).get("snapshot_id"),
+        "data_cutoff": (meta.get("data") or {}).get("end", end),
+        "snapshot_id": (meta.get("data") or {}).get("snapshot_id"),
         "created_utc": meta.get("created_utc", ""),
         "synthetic": bool(meta.get("synthetic")),
         "trust": "synthetic" if meta.get("synthetic") else trust,
         "label": meta.get("label"),
         "group": comparison_group(meta),
+        "decisions": metrics.get("decisions"),
+        "invalid_outputs": metrics.get("invalid_outputs"),
+        "answer_coverage": metrics.get("answer_coverage"),
+        "mean_latency_s": metrics.get("mean_latency_s"),
+        "estimated_cost_usd": metrics.get("estimated_cost_usd"),
         "metrics": metrics,
     }
-    if (effort := meta.get("model", {}).get("reasoning_effort")) is not None:
-        result["reasoning_effort"] = effort
-    return result
+    row.update(calibration_row(metrics))
+    return row
 
 
-def build_catalog(data_root: Path, *, public_key: Path | None = None, validate=True):
+def build_catalog(data_root: Path, *, validate: bool = True):
+    """Rebuild ``index.json`` for every run under ``data_root/runs``."""
+    data_root = Path(data_root)
     if any((data_root / name).is_symlink() for name in ("runs", "snapshots")):
         raise ValueError("catalog directories must not be symlinks")
-    from ..bench.verification import verify_result
-
-    public_key = public_key or Path(".github/verification-key.pem")
     runs = []
-    identities = set()
     for directory in sorted((data_root / "runs").glob("*")):
         if not directory.is_dir():
             continue
-        meta = validate_run(directory) if validate else read_json(directory / "run.json")
+        meta = validate_run_meta(directory) if validate else read_json(directory / "run.json")
         metrics = read_json(directory / "metrics.json")
-        row = summary(meta, metrics, f"runs/{directory.name}", "replayed")
-        if (directory / "verification.json").exists():
-            verified = verify_result(directory, public_key.read_bytes())
-            if verified["verification_id"] in identities:
-                raise ValueError("duplicate verification ID")
-            identities.add(verified["verification_id"])
-            row.update(trust="verified", verification_id=verified["verification_id"])
-        runs.append(row)
+        runs.append(summary(meta, metrics, f"runs/{directory.name}", "replayed"))
     atomic_json(data_root / "index.json", {"schema_version": 1, "default_trust": "all", "runs": runs})
     return runs
 
@@ -97,50 +180,3 @@ def sanitized(value, secrets):
             if len(secret) >= 6:
                 value = value.replace(secret, "[REDACTED]")
     return value
-
-
-def submit_run(run_dir: Path, data_root: Path) -> Path:
-    meta = validate_run(run_dir)
-    if not SAFE_ID.fullmatch(meta["run_id"]):
-        raise ValueError("unsafe run id")
-    target = data_root / "runs" / meta["run_id"]
-    if target.exists():
-        raise ValueError("run already submitted; existing public artifacts are immutable")
-    secrets = secret_values()
-    source_snapshot = snapshot_directory(run_dir, meta)
-    snapshot = data_root / "snapshots" / meta["data"]["snapshot_id"]
-    if not snapshot.exists():
-        shutil.copytree(source_snapshot, snapshot)
-    target.mkdir(parents=True)
-    try:
-        for name in RUN_FILES:
-            if name.endswith(".json"):
-                atomic_json(target / name, sanitized(read_json(run_dir / name), secrets))
-            elif name.endswith(".jsonl"):
-                rows = [
-                    sanitized(json.loads(line), secrets)
-                    for line in (run_dir / name).read_text(encoding="utf-8").splitlines()
-                    if line.strip()
-                ]
-                (target / name).write_text(
-                    "".join(json.dumps(row, allow_nan=False) + "\n" for row in rows), encoding="utf-8"
-                )
-            else:
-                shutil.copyfile(run_dir / name, target / name)
-        url = urlsplit(meta["model"]["base_url"])
-        host = url.hostname or ""
-        if url.port:
-            host += f":{url.port}"
-        meta["model"]["base_url"] = urlunsplit((url.scheme, host, url.path, "", ""))
-        meta = sanitized(meta, secrets)
-        meta["artifact_hashes"] = {name: sha256(target / name) for name in RUN_FILES}
-        meta["artifact_hashes"].update(
-            {f"snapshot/{name}": sha256(snapshot / name) for name in ("prices.csv", "MANIFEST.json")}
-        )
-        atomic_json(target / "run.json", meta)
-        validate_run(target)
-        build_catalog(data_root)
-    except Exception:
-        shutil.rmtree(target)
-        raise
-    return target

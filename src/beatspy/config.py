@@ -2,6 +2,12 @@
 
 Precedence: CLI flags > BEATSPY_* environment variables > ~/.beatspy/config.toml > defaults.
 API keys live in ~/.beatspy/secrets.env (never inside a repository) or in the environment.
+
+This benchmark talks to *decision models*, not chat models. A decision model
+reads a state plus typed questions and returns probabilities, so there is no
+temperature, no turn budget, and no tool budget to configure — only which
+endpoint to call, how hard to retry it, and how its probabilities become a
+portfolio.
 """
 
 from __future__ import annotations
@@ -11,36 +17,143 @@ import json
 import os
 import tomllib
 from pathlib import Path
-from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-MODEL_PRESETS: dict[str, str] = {
-    "ollama": "http://localhost:11434/v1",
-    "vllm": "http://localhost:8000/v1",
-    "lmstudio": "http://localhost:1234/v1",
-    "openai": "https://api.openai.com/v1",
-    "openrouter": "https://openrouter.ai/api/v1",
-    "custom": "",
+# Decision-model providers. All three speak the same state-plus-typed-questions
+# contract; they differ only in transport, auth, and question limits.
+PROVIDERS = ("openai_decisions", "typesafe", "cloudflare")
+
+# The decision models this benchmark covers, with pricing verified against the
+# sources below on 2026-10-08. Decision models bill input only: there is no
+# output charge and no cache charge anywhere in this table, and none of the three
+# providers offers prompt caching.
+#
+# - OpenAI Decisions API (public beta) — gpt-6-luna, $0.10 per 1M input:
+#   https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877
+# - TypeSafe Jev — $42 per 1B input (~$0.042 per 1M), output free:
+#   https://docs.typesafe.ai/models
+# - Cloudflare Clef / Clef-flash — $0.24 / $0.09 per 1M input:
+#   https://developers.cloudflare.com/workers-ai/models/clef/index.md
+DECISION_MODELS: dict[str, dict] = {
+    "gpt-6-luna": {
+        "provider": "openai_decisions",
+        "model": "gpt-6-luna",
+        "label": "OpenAI Decisions (gpt-6-luna)",
+        "base_url": "https://api.openai.com/v1",
+        "api_key_env": "OPENAI_API_KEY",
+        "cost_per_m_input": 0.10,
+        "cost_per_m_output": 0.0,
+        "context_window": 128_000,
+        "max_questions": 64,
+        "state_note": "no prompt caching; input-only billing",
+    },
+    "jev-latest": {
+        "provider": "typesafe",
+        "model": "jev-latest",
+        "label": "TypeSafe Jev",
+        "base_url": "https://api.typesafe.ai/v1/systemone",
+        "api_key_env": "TYPESAFE_API_KEY",
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0,
+        "context_window": 32_000,
+        "max_questions": 64,
+        "state_note": "output tokens are free; no prompt caching",
+    },
+    "clef": {
+        "provider": "cloudflare",
+        "model": "clef",
+        "label": "Cloudflare Clef (27B)",
+        "base_url": "https://api.cloudflare.com/client/v4/accounts",
+        "api_key_env": "CLOUDFLARE_AUTH_TOKEN",
+        "cost_per_m_input": 0.24,
+        "cost_per_m_output": 0.0,
+        "context_window": 65_536,
+        "max_questions": 64,
+        "state_note": "Workers AI truncates long text state to roughly the first 2K tokens",
+    },
+    "clef-flash": {
+        "provider": "cloudflare",
+        "model": "clef-flash",
+        "label": "Cloudflare Clef-flash (9B)",
+        "base_url": "https://api.cloudflare.com/client/v4/accounts",
+        "api_key_env": "CLOUDFLARE_AUTH_TOKEN",
+        "cost_per_m_input": 0.09,
+        "cost_per_m_output": 0.0,
+        "context_window": 65_536,
+        "max_questions": 64,
+        "state_note": "Workers AI truncates long text state to roughly the first 2K tokens",
+    },
 }
 
-DEFAULT_MODEL_API_KEY_ENV = "BEATSPY_API_KEY"
+# Clef validates question ids as letters, digits, '_', '.', '-', at most 100 chars.
+SAFE_QUESTION_ID = r"[A-Za-z0-9_.-]{1,100}"
+
+DEFAULT_DECISION_MODEL = "clef-flash"
+
+# Cloudflare needs an account id alongside the token.
+ACCOUNT_ID_ENV = "CLOUDFLARE_ACCOUNT_ID"
 
 
-class ModelConfig(BaseModel):
+class DecisionConfig(BaseModel):
+    """How one DCN run talks to its provider and turns answers into a portfolio."""
+
     model_config = ConfigDict(protected_namespaces=())
 
-    base_url: str = "https://api.openai.com/v1"
-    model: str = "gpt-4o-mini"
-    temperature: float = 0.0
-    max_turns: int = 8
-    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] | None = None
-    cost_per_m_input: float | None = None
-    cost_per_m_output: float | None = None
+    decision_model: str = DEFAULT_DECISION_MODEL
+    base_url: str | None = None
+    api_key_env: str | None = None
+    timeout_s: float = 120.0
+    max_retries: int = 4
+    concurrency: int = 6
+    # The sizing policy is fixed here so it cannot be tuned after seeing a
+    # result. Only noul probabilities enter the portfolio, and a name must clear
+    # the neutral 0.5 before it is held at all.
+    min_probability: float = 0.5
+    top_n: int = 3
+    min_names: int = 2
+    # Workers AI silently truncates long state to ~2K tokens, so the state is
+    # budgeted conservatively for every provider and the budget is recorded.
+    max_state_tokens: int = 1800
 
+    @model_validator(mode="after")
+    def check_model(self):
+        if self.decision_model not in DECISION_MODELS:
+            raise ValueError(
+                f"unknown decision model {self.decision_model!r}; "
+                f"choose from {', '.join(sorted(DECISION_MODELS))}"
+            )
+        if self.concurrency < 1 or self.max_retries < 0:
+            raise ValueError("concurrency must be >= 1 and max_retries >= 0")
+        return self
 
-class ToolsConfig(BaseModel):
-    forecast_provider: str = "baseline"
+    @property
+    def spec(self) -> dict:
+        return DECISION_MODELS[self.decision_model]
+
+    @property
+    def provider(self) -> str:
+        return self.spec["provider"]
+
+    @property
+    def label(self) -> str:
+        return self.spec["label"]
+
+    @property
+    def endpoint(self) -> str:
+        return self.base_url or self.spec["base_url"]
+
+    @property
+    def max_questions(self) -> int:
+        return int(self.spec.get("max_questions", 64))
+
+    @property
+    def cost_per_m_input(self) -> float | None:
+        return self.spec.get("cost_per_m_input")
+
+    @property
+    def cost_per_m_output(self) -> float | None:
+        return self.spec.get("cost_per_m_output")
 
 
 class BenchConfig(BaseModel):
@@ -48,13 +161,11 @@ class BenchConfig(BaseModel):
     fee_bps: float = 5.0
     slippage_bps: float = 5.0
     max_position_weight: float = 0.35
-    tool_budget_per_agent: int = 10
     risk_free_annual: float = 0.0
 
 
 class Settings(BaseModel):
-    model: ModelConfig = Field(default_factory=ModelConfig)
-    tools: ToolsConfig = Field(default_factory=ToolsConfig)
+    decision: DecisionConfig = Field(default_factory=DecisionConfig)
     bench: BenchConfig = Field(default_factory=BenchConfig)
 
 
@@ -99,15 +210,32 @@ def read_secrets() -> dict[str, str]:
 
 
 def secret_values() -> set[str]:
-    values = set(read_secrets().values()) | {
+    values = set(read_secrets().values())
+    values |= {
         value
         for key, value in os.environ.items()
-        if (key.startswith("BEATSPY_") and "KEY" in key)
-        or key in {"FINNHUB_API_KEY", "OLOSTEP_API_KEY", "NIXTLA_API_KEY"}
+        if key in {"OPENAI_API_KEY", "TYPESAFE_API_KEY", "CLOUDFLARE_AUTH_TOKEN", "CLOUDFLARE_ACCOUNT_ID"}
+        or (key.startswith("BEATSPY_") and "KEY" in key)
     }
-    if value := os.environ.get(os.environ.get("BEATSPY_API_KEY_ENV", DEFAULT_MODEL_API_KEY_ENV)):
-        values.add(value)
     return values
+
+
+def _api_key_env_names(spec: dict) -> list[str]:
+    primary = spec["api_key_env"]
+    return [f"BEATSPY_{primary}", primary]
+
+
+def decision_api_key(decision_model: str) -> str | None:
+    """Resolve the API key for one decision model from the environment."""
+    spec = DECISION_MODELS[decision_model]
+    for env_name in _api_key_env_names(spec):
+        if value := os.environ.get(env_name):
+            return value
+    return None
+
+
+def cloudflare_account_id() -> str | None:
+    return os.environ.get(ACCOUNT_ID_ENV) or os.environ.get(f"BEATSPY_{ACCOUNT_ID_ENV}")
 
 
 def load_settings(path: Path | None = None) -> Settings:
@@ -118,39 +246,16 @@ def load_settings(path: Path | None = None) -> Settings:
         data = tomllib.loads(path.read_text(encoding="utf-8"))
     settings = Settings.model_validate(data)
 
-    m = settings.model
-    if (v := os.environ.get("BEATSPY_BASE_URL")) is not None:
-        m.base_url = v
-    if (v := os.environ.get("BEATSPY_MODEL")) is not None:
-        m.model = v
-    if (v := os.environ.get("BEATSPY_TEMPERATURE")) is not None:
-        m.temperature = float(v)
-    if (v := os.environ.get("BEATSPY_MAX_TURNS")) is not None:
-        m.max_turns = int(v)
-    if (v := os.environ.get("BEATSPY_REASONING_EFFORT")) is not None:
-        m.reasoning_effort = v
+    if (v := os.environ.get("BEATSPY_DECISION_MODEL")) is not None:
+        settings.decision.decision_model = v
         settings = Settings.model_validate(settings.model_dump())
-    if (v := os.environ.get("BEATSPY_FORECAST_PROVIDER")) is not None:
-        settings.tools.forecast_provider = v
+    if (v := os.environ.get("BEATSPY_DECISION_BASE_URL")) is not None:
+        settings.decision.base_url = v
+    if (v := os.environ.get("BEATSPY_DECISION_CONCURRENCY")) is not None:
+        settings.decision.concurrency = int(v)
+    if (v := os.environ.get("BEATSPY_DECISION_TIMEOUT_S")) is not None:
+        settings.decision.timeout_s = float(v)
     return settings
-
-
-def model_api_key(settings: Settings) -> str | None:
-    env_name = os.environ.get("BEATSPY_API_KEY_ENV", DEFAULT_MODEL_API_KEY_ENV)
-    value = os.environ.get(env_name)
-    return value or None
-
-
-def provider_api_key(settings: Settings, which: str) -> str | None:
-    env_names = {
-        "olostep": "BEATSPY_OLOSTEP_API_KEY",
-        "finnhub": "BEATSPY_FINNHUB_API_KEY",
-        "timegpt": "BEATSPY_TIMEGPT_API_KEY",
-    }
-    value = os.environ.get(env_names[which]) or os.environ.get(
-        {"olostep": "OLOSTEP_API_KEY", "finnhub": "FINNHUB_API_KEY", "timegpt": "NIXTLA_API_KEY"}[which]
-    )
-    return value or None
 
 
 def _toml_value(value: object) -> str:
@@ -162,25 +267,16 @@ def _toml_value(value: object) -> str:
 
 
 def render_config(settings: Settings) -> str:
-    lines: list[str] = []
-    m = settings.model
-    lines += [
-        "[model]",
-        f"base_url = {_toml_value(m.base_url)}",
-        f"model = {_toml_value(m.model)}",
-        f"temperature = {_toml_value(m.temperature)}",
-        f"max_turns = {_toml_value(m.max_turns)}",
-    ]
-    if m.cost_per_m_input is not None:
-        lines.append(f"cost_per_m_input = {_toml_value(m.cost_per_m_input)}")
-    if m.reasoning_effort is not None:
-        lines.append(f"reasoning_effort = {_toml_value(m.reasoning_effort)}")
-    if m.cost_per_m_output is not None:
-        lines.append(f"cost_per_m_output = {_toml_value(m.cost_per_m_output)}")
-    lines += [
-        "",
-        "[tools]",
-        f"forecast_provider = {_toml_value(settings.tools.forecast_provider)}",
+    d = settings.decision
+    lines = [
+        "[decision]",
+        f"decision_model = {_toml_value(d.decision_model)}",
+        f"timeout_s = {_toml_value(d.timeout_s)}",
+        f"max_retries = {_toml_value(d.max_retries)}",
+        f"concurrency = {_toml_value(d.concurrency)}",
+        f"min_probability = {_toml_value(d.min_probability)}",
+        f"top_n = {_toml_value(d.top_n)}",
+        f"min_names = {_toml_value(d.min_names)}",
         "",
         "[bench]",
     ]

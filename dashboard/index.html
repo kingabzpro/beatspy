@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A reproducible AI trading benchmark. Compare models against SPY using the same agents, market data, and rules.">
+  <meta name="description" content="A reproducible decision-model benchmark. Decision models read frozen market state, answer typed probability questions, and are scored for calibration and portfolio return against SPY.">
   <meta name="theme-color" content="#101214">
   <meta name="color-scheme" content="dark">
   <meta name="application-name" content="BeatSPY">
-  <title>BeatSPY · Can AI beat the market?</title>
+  <title>BeatSPY · Can a decision model beat the market?</title>
   <link rel="canonical" href="https://beatspy.vercel.app/">
   <link rel="icon" href="favicon.ico" sizes="32x32">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" sizes="any">
@@ -15,70 +15,73 @@
   <link rel="manifest" href="site.webmanifest">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="BeatSPY">
-  <meta property="og:title" content="BeatSPY · Can AI beat the market?">
-  <meta property="og:description" content="One model. Five trading agents. Benchmark AI portfolios against SPY from 2026 through the latest completed market session.">
+  <meta property="og:title" content="BeatSPY · Can a decision model beat the market?">
+  <meta property="og:description" content="One frozen market state. Typed probability questions. Decision models are scored for calibration and for the portfolio their probabilities build.">
   <meta property="og:url" content="https://beatspy.vercel.app/">
   <meta property="og:image" content="https://beatspy.vercel.app/assets/social-preview.png">
   <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="BeatSPY: Can AI beat the market? One model, five trading agents, with the green ascending bar logo on a dark background.">
+  <meta property="og:image:alt" content="BeatSPY: Can a decision model beat the market? A dark page with the green ascending bar logo.">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="BeatSPY · Can AI beat the market?">
-  <meta name="twitter:description" content="One model. Five trading agents. Benchmark AI portfolios against SPY across 11 sectors, from 2026 through the latest completed market session.">
+  <meta name="twitter:title" content="BeatSPY · Can a decision model beat the market?">
+  <meta name="twitter:description" content="One frozen market state. Typed probability questions. Scored on calibration and on portfolio return against SPY.">
   <meta name="twitter:image" content="https://beatspy.vercel.app/assets/social-preview.png">
-  <meta name="twitter:image:alt" content="BeatSPY: Can AI beat the market? One model, five trading agents, with the green ascending bar logo on a dark background.">
+  <meta name="twitter:image:alt" content="BeatSPY: Can a decision model beat the market? A dark page with the green ascending bar logo.">
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="topbar"><a class="brand" href="#"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
-    <nav aria-label="Main navigation"><a href="#leaderboard">Results</a><a href="#contribute">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+    <nav aria-label="Main navigation"><a href="#leaderboard">Results</a><a href="#cost-overview">Pricing</a><a href="#contribute">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
   </header>
   <main id="main-content" tabindex="-1">
     <noscript><p class="caption">Enable JavaScript to explore the leaderboard and charts, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
-    <section class="hero"><p class="eyebrow">OPEN BENCHMARK / EQUAL RULES / REAL DATA</p>
-      <h1>Can AI beat<br><span>the market?</span></h1>
-      <p class="lede">Real model calls. Five trading agents. Frozen market data.<br>Individual stocks, bond and gold hedges, and cash. SPY is comparison-only.</p>
-      <div class="hero-meta"><span>2026 → latest completed session · up to 36 decisions · 11 sectors</span><span>Deterministic scoring</span><span>Open results</span></div>
+    <section class="hero"><p class="eyebrow">OPEN BENCHMARK / TYPED QUESTIONS / FROZEN DATA</p>
+      <h1>Can a decision model<br><span>beat the market?</span></h1>
+      <p class="lede">One frozen market state per decision. Typed probability questions. Every answer is scored twice — for calibration, and for the portfolio its probabilities build. SPY is comparison-only.</p>
+      <div class="hero-meta"><span>2026 → latest completed session · monthly decisions · 11 sectors</span><span>Probabilities, not prose</span><span>Open results</span></div>
     </section>
     <section id="leaderboard" aria-labelledby="board-title">
       <div class="section-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div><span id="run-count" class="pill">Loading</span></div>
       <p id="board-window" class="caption"></p>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap"></div>
-      <details id="cost-overview" hidden><summary>Compare model cost &amp; token usage</summary>
-        <p id="cost-window" class="caption"></p>
-        <div class="chart-grid">
-          <figure class="panel"><h3>Model running cost</h3><p class="caption">API-equivalent USD estimates, not provider invoices. Open a run to inspect or adjust rates.</p><div id="model-costs"></div></figure>
-          <figure class="panel"><h3>Model token usage</h3><p class="caption">Input includes prompts and tool context; output includes recorded reasoning and replies.</p><div id="model-tokens"></div></figure>
-        </div>
-      </details>
     </section>
     <section id="run-details" hidden aria-labelledby="run-title">
       <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>
-      <p id="run-meta" class="caption"></p><p id="verification" class="caption"></p><a id="submit-result" class="button" href="https://github.com/kingabzpro/beatspy/issues/new">Submit for verification ↗</a>
+      <p id="run-meta" class="caption"></p>
       <div id="metrics" class="metric-grid"></div>
+      <section id="calibration" aria-labelledby="calibration-title">
+        <div class="section-heading"><div><p class="eyebrow">THE HEADLINE MEASUREMENT</p><h2 id="calibration-title">Reliability</h2></div></div>
+        <div class="callout" id="gap-callout"></div>
+        <figure class="panel"><h3>Reliability curve</h3>
+          <p class="caption">Predicted probability against the observed outcome rate in each bin. The dashed diagonal is perfect calibration. Brier, Brier skill, log loss, AUC and ECE in the leaderboard come from these same scored observations. <code>noul</code> answers are a single probability; <code>choice</code> answers are the same question asked as a two-way bet. Point size grows with the bin count.</p>
+          <div id="reliability"></div>
+          <p class="caption" id="reliability-bins-caption">Bin counts and observed rate for every bin, empty bins included.</p>
+          <div id="reliability-bins" class="table-wrap"></div>
+        </figure>
+      </section>
       <div class="chart-grid"><figure class="panel"><h3>Performance</h3><p class="caption">Hover for exact values. Toggle series with the legend.</p><div id="performance"></div></figure>
         <figure class="panel"><h3>Drawdown</h3><p class="caption">Decline from each portfolio’s running peak.</p><div id="drawdown"></div></figure></div>
-      <figure class="panel"><h3>Allocations over time</h3><div id="allocations"></div></figure>
-      <section class="panel" aria-labelledby="cost-title"><h3 id="cost-title">What this run costs</h3>
-        <p id="cost-summary" class="cost-summary"></p>
-        <details><summary>Pricing assumptions &amp; calculator</summary>
-          <div class="price-controls"><label>Input USD / million tokens<input id="input-price" type="number" min="0" step="any" inputmode="decimal"></label><label>Output USD / million tokens<input id="output-price" type="number" min="0" step="any" inputmode="decimal"></label><button id="reset-prices" type="button">Reset rates</button></div>
-          <p id="price-note" class="caption"></p><p id="price-source" class="caption"></p>
-        </details>
+      <figure class="panel"><h3>Allocations over time</h3><p class="caption">Weights after each decision. An invalid answer set holds the previous portfolio rather than liquidating.</p><div id="allocations"></div></figure>
+      <section id="pricing" class="panel" aria-labelledby="pricing-title"><h3 id="pricing-title">What this run costs</h3>
+        <p id="run-cost" class="cost-summary"></p>
+        <p id="price-note" class="caption">Every decision model here bills input only: output tokens are free and no provider offers prompt caching. Estimates are API-equivalent list prices, not invoices.</p>
+        <p id="price-source" class="caption"></p>
       </section>
-      <div class="chart-grid">
-        <figure class="panel"><h3>Running cost by decision</h3><p class="caption">Cumulative model spend at each simulated trading decision, not wall-clock runtime.</p><div id="running-cost"></div></figure>
-        <figure class="panel"><h3>Cost by agent</h3><p class="caption">Which part of the five-agent pipeline consumes the budget?</p><div id="agent-costs"></div></figure>
-      </div>
-      <section class="panel"><h3>Agent telemetry</h3><div id="telemetry" class="table-wrap"></div></section>
       <section class="panel"><h3>Settings &amp; provenance</h3><p id="coverage" class="caption"></p><details><summary>Full run record</summary><pre id="settings"></pre></details><div id="downloads" class="downloads"></div></section>
     </section>
-    <section id="contribute" class="contribute"><div><p class="eyebrow">MAKE THE BENCHMARK BETTER</p><h2>Run it. Share the evidence.</h2><p>Run locally, then request verification in one command. The trusted runner reruns the model, checks the code and scores, and signs the accepted result.</p></div>
-      <ol><li><strong>Set up your model</strong><code>uv run beatspy setup</code></li><li><strong>Run the benchmark</strong><code>uv run beatspy run</code></li><li><strong>Submit in one command</strong><code>uv run beatspy submit --send</code></li></ol>
+    <section id="cost-overview" hidden aria-labelledby="pricing-table-title"><div class="section-heading"><div><p class="eyebrow">WHAT THE MODELS CHARGE</p><h2 id="pricing-table-title">Pricing</h2></div></div>
+      <p id="cost-window" class="caption"></p>
+      <div class="chart-grid">
+        <figure class="panel"><h3>Published rates</h3><p class="caption">Input-only billing, no caching, verified 2026-10-08 against the linked provider sources.</p><div id="pricing-table" class="table-wrap"></div></figure>
+        <figure class="panel"><h3>Estimated cost per result</h3><p class="caption">Input tokens recorded in the run, priced at the rate shown above.</p><div id="model-costs"></div></figure>
+      </div>
+    </section>
+    <section id="contribute" class="contribute"><div><p class="eyebrow">MAKE THE BENCHMARK BETTER</p><h2>Run it. Share the evidence.</h2><p>Decision models are scored from frozen snapshots, so any recorded run can be replayed and re-scored offline. Record a run, then render this same dashboard from your own results.</p></div>
+      <ol><li><strong>Point at a provider</strong><code>uv run beatspy setup</code></li><li><strong>Record a run</strong><code>uv run beatspy run</code></li><li><strong>Render the report</strong><code>uv run beatspy report</code></li></ol>
       <a class="button" href="https://github.com/kingabzpro/beatspy/blob/main/CONTRIBUTING.md">Contribution guide ↗</a>
     </section>
   </main>

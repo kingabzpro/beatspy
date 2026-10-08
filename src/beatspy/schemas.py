@@ -1,142 +1,207 @@
-"""Pydantic schemas for agent artifacts, decisions, scenarios, and metrics.
+"""Pydantic schemas for DCN questions, answers, decisions, scenarios, and metrics.
 
-Agent outputs are requested as JSON in the prompt and parsed leniently
-(`extract_json`), then validated here. Parse failures are a measured benchmark
-signal (invalid outputs), never a crash.
+A decision model (DCN) does not generate text. It reads a `state` plus a map of
+typed `questions` and returns one `answer` per question: a probability for a
+noul, a distribution over options for a choice, a weighted level for a score.
+
+The three primitives and their response fields are shared by every provider this
+benchmark covers (OpenAI Decisions, TypeSafe Jev, Cloudflare Clef), so one
+schema set serves all of them. A malformed answer is a measured benchmark
+signal, never a crash.
 """
 
 from __future__ import annotations
 
-import json
 import math
 import re
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 # --------------------------------------------------------------------------- #
-# Agent artifacts
+# Typed questions (the request side of the System One contract)
 # --------------------------------------------------------------------------- #
 
-
-class KeyEvent(BaseModel):
-    date: str = ""
-    headline: str = ""
-    relevance: str = ""
+QuestionType = Literal["noul", "choice", "score"]
 
 
-class ResearchReport(BaseModel):
-    summary: str = ""
-    key_events: list[KeyEvent] = Field(default_factory=list)
-    sentiment: dict[str, float] = Field(default_factory=dict)
-    risks: list[str] = Field(default_factory=list)
-    confidence: float = 0.5
+class Question(BaseModel):
+    """One typed question. `criteria` is a map for choice, a list for score."""
 
+    type: QuestionType
+    instructions: str | dict | list
+    criteria: dict | list | None = None
 
-class TickerTrend(BaseModel):
-    trend: str = "sideways"
-    momentum_30d_pct: float = 0.0
-    volatility_regime: str = "normal"
-    notes: str = ""
-
-
-class MarketAnalysis(BaseModel):
-    trend: dict[str, TickerTrend] = Field(default_factory=dict)
-    opportunities: list[str] = Field(default_factory=list)
-    risks: list[str] = Field(default_factory=list)
-    confidence: float = 0.5
-
-
-class ForecastPoint(BaseModel):
-    ticker: str = ""
-    direction: str = "flat"
-    expected_return_pct: float = 0.0
-    p10_pct: float | None = None
-    p90_pct: float | None = None
-    confidence: float = 0.5
-
-
-class ForecastReport(BaseModel):
-    forecasts: list[ForecastPoint] = Field(default_factory=list)
-    method_notes: str = ""
-
-
-class CriticIssue(BaseModel):
-    agent: str = ""
-    claim: str = ""
-    problem: str = ""
-    severity: str = "medium"
-
-
-class CritiqueReport(BaseModel):
-    issues: list[CriticIssue] = Field(default_factory=list)
-    contradictions: list[str] = Field(default_factory=list)
-    overall_assessment: str = ""
-    adjusted_confidence: float = 0.5
-
-
-class Allocation(BaseModel):
-    ticker: str
-    weight: float
-
-
-class PortfolioDecision(BaseModel):
-    allocations: list[Allocation] = Field(default_factory=list)
-    cash_weight: float | None = None
-    expected_direction: str = "flat"
-    expected_return_pct: float | None = None
-    rationale: str = ""
-
-
-ARTIFACT_MODELS: dict[str, type[BaseModel]] = {
-    "research": ResearchReport,
-    "analyst": MarketAnalysis,
-    "forecaster": ForecastReport,
-    "critic": CritiqueReport,
-}
+    @model_validator(mode="after")
+    def check_criteria(self):
+        if self.type == "choice":
+            if not isinstance(self.criteria, dict) or not self.criteria:
+                raise ValueError("a choice question needs a non-empty criteria map of option -> description")
+            if len(self.criteria) > 255:
+                raise ValueError("a choice question accepts at most 255 options")
+        elif self.type == "score":
+            if not isinstance(self.criteria, list) or not 2 <= len(self.criteria) <= 10:
+                raise ValueError("a score question needs 2-10 ordered levels")
+        elif self.criteria is not None:
+            raise ValueError("a noul question takes no criteria")
+        return self
 
 
 # --------------------------------------------------------------------------- #
-# Lenient parsing
+# Typed answers (the response side)
 # --------------------------------------------------------------------------- #
 
 
-def extract_json(text: str, *, legacy=False) -> Any | None:
-    """Extract the first JSON object from model output, tolerating prose and fences."""
-    if not text:
-        return None
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        cleaned = re.sub(r"^```[a-zA-Z0-9_-]*\s*", "", cleaned)
-        cleaned = re.sub(r"\s*```\s*$", "", cleaned)
-    decoder = json.JSONDecoder()
-    for idx, ch in enumerate(cleaned):
-        if ch == "{":
-            try:
-                return decoder.raw_decode(cleaned, idx)[0]
-            except json.JSONDecodeError:
-                if not legacy:
-                    return None  # Never reinterpret a nested fragment as a complete report.
-                continue
-    return None
+class NoulAnswer(BaseModel):
+    type: Literal["noul"] = "noul"
+    noul: float = Field(ge=0.0, le=1.0)
 
 
-def parse_artifact(role: str, text: str, *, legacy=False) -> tuple[BaseModel | None, str | None]:
-    """Parse an agent output into its schema. Returns (model, error)."""
-    model_cls = ARTIFACT_MODELS.get(role)
-    if model_cls is None:
-        return None, f"unknown artifact role: {role}"
-    obj = extract_json(text, legacy=legacy)
-    if obj is None:
-        return None, "no JSON object found in output"
-    required = {"research": "summary", "analyst": "trend", "forecaster": "forecasts", "critic": "overall_assessment"}
-    if not legacy and (not isinstance(obj, dict) or required[role] not in obj):
-        return None, "schema validation failed: missing report fields"
-    try:
-        return model_cls.model_validate(obj), None
-    except ValidationError as exc:
-        return None, f"schema validation failed: {exc.errors()[0].get('msg', 'invalid')}"
+class ChoiceAnswer(BaseModel):
+    type: Literal["choice"] = "choice"
+    choice: str
+    probabilities: dict[str, float]
+    confidence: float | None = None
+
+    @model_validator(mode="after")
+    def check_distribution(self):
+        if not self.probabilities:
+            raise ValueError("choice answer needs probabilities")
+        if self.choice not in self.probabilities:
+            raise ValueError("the chosen option is missing from probabilities")
+        total = sum(self.probabilities.values())
+        if not 0.98 <= total <= 1.02:
+            raise ValueError(f"choice probabilities must sum to 1 (got {total:.4f})")
+        return self
+
+
+class ScoreAnswer(BaseModel):
+    type: Literal["score"] = "score"
+    score: float
+    legend: dict[str, str] = Field(default_factory=dict)
+    probabilities: dict[str, float] = Field(default_factory=dict)
+    confidence: float | None = None
+
+
+Answer = NoulAnswer | ChoiceAnswer | ScoreAnswer
+
+
+class AnswerSet(BaseModel):
+    """Answers returned for one request, keyed by the question ids we sent."""
+
+    answers: dict[str, Answer] = Field(default_factory=dict)
+
+    def noul(self, question_id: str) -> float | None:
+        answer = self.answers.get(question_id)
+        return answer.noul if isinstance(answer, NoulAnswer) else None
+
+
+class CallRecord(BaseModel):
+    """One DCN request/response, kept whole so a run replays without the network."""
+
+    provider: str
+    model: str
+    endpoint: str
+    state_sha256: str
+    state_chars: int
+    question_ids: list[str]
+    answers: dict[str, Answer] = Field(default_factory=dict)
+    missing_ids: list[str] = Field(default_factory=list)
+    input_tokens: int = 0
+    output_tokens: int = 0
+    requests: int = 0
+    latency_s: float = 0.0
+    attempts: int = 1
+    error: str | None = None
+    raw: dict | None = None
+
+    def as_dict(self) -> dict:
+        return {
+            "provider": self.provider,
+            "model": self.model,
+            "endpoint": self.endpoint,
+            "state_sha256": self.state_sha256,
+            "state_chars": self.state_chars,
+            "question_ids": self.question_ids,
+            "answers": {key: value.model_dump() for key, value in self.answers.items()},
+            "missing_ids": self.missing_ids,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "requests": self.requests,
+            "latency_s": round(self.latency_s, 3),
+            "attempts": self.attempts,
+            "error": self.error,
+        }
+
+
+def parse_answers(payload: dict | None, question_ids: list[str]) -> tuple[dict[str, Answer], list[str]]:
+    """Validate a provider's `answers` map. Returns (answers, missing ids).
+
+    An answer that fails validation is treated as missing rather than fatal: the
+    benchmark measures coverage, so one malformed answer must not discard the
+    rest of the response.
+    """
+    raw = (payload or {}).get("answers")
+    if not isinstance(raw, dict):
+        return {}, list(question_ids)
+    models: dict[str, type[BaseModel]] = {"noul": NoulAnswer, "choice": ChoiceAnswer, "score": ScoreAnswer}
+    answers: dict[str, Answer] = {}
+    for question_id in question_ids:
+        candidate = raw.get(question_id)
+        if not isinstance(candidate, dict):
+            continue
+        model_cls = models.get(str(candidate.get("type", "")).strip().lower())
+        if model_cls is None:
+            continue
+        try:
+            answers[question_id] = model_cls.model_validate(candidate)
+        except ValidationError:
+            continue
+    missing = [question_id for question_id in question_ids if question_id not in answers]
+    return answers, missing
+
+
+# --------------------------------------------------------------------------- #
+# Calibration
+# --------------------------------------------------------------------------- #
+
+
+class ReliabilityBin(BaseModel):
+    lower: float
+    upper: float
+    count: int
+    mean_predicted: float
+    observed_rate: float | None = None
+
+
+class SignalStats(BaseModel):
+    """Calibration and discrimination for one question form (noul/choice/score)."""
+
+    signal: str
+    n: int
+    base_rate: float | None = None
+    brier: float | None = None
+    brier_skill_score: float | None = None
+    log_loss: float | None = None
+    auc: float | None = None
+    accuracy: float | None = None
+    mean_predicted: float | None = None
+    expected_calibration_error: float | None = None
+    max_calibration_error: float | None = None
+    bins: list[ReliabilityBin] = Field(default_factory=list)
+
+
+class CalibrationReport(BaseModel):
+    """Everything the calibration side of the benchmark reports."""
+
+    horizons: int = 0
+    observations: int = 0
+    coverage: float = 0.0
+    signals: dict[str, SignalStats] = Field(default_factory=dict)
+    # Paired comparison of the noul and choice forms: the claim this benchmark tests.
+    miscalibration_gap: float | None = None
+    note: str = ""
 
 
 # --------------------------------------------------------------------------- #
@@ -150,56 +215,54 @@ class ValidatedDecision:
     cash: float = 1.0
     violations: list[str] = field(default_factory=list)
     invalid: bool = False
-    raw: dict | None = None
 
 
-def validate_decision(obj: Any, tradable: list[str], max_weight: float, *, legacy=False) -> ValidatedDecision:
-    """Clamp a raw portfolio decision to tradable tickers and risk limits.
+def validate_weights(
+    weights: dict[str, float],
+    cash: float | None,
+    tradable: list[str],
+    max_weight: float,
+) -> ValidatedDecision:
+    """Clamp a weight map to tradable tickers and risk limits.
 
-    Deterministic: unknown tickers are dropped, negative weights dropped,
-    per-ticker weight clamped to max_weight, and exposure capped at 1.0 with
-    the remainder in cash. Every correction is recorded as a violation.
+    Deterministic: unknown or non-positive tickers are dropped, each weight is
+    clamped to max_weight, and exposure is capped at 1.0 with the remainder in
+    cash. Every correction is recorded as a violation rather than silently
+    applied.
     """
-    if not isinstance(obj, dict):
-        return ValidatedDecision(invalid=True, violations=["decision was not a JSON object"])
-    if not legacy and "allocations" not in obj:
-        return ValidatedDecision(invalid=True, violations=["decision missing allocations"])
-    try:
-        pm = PortfolioDecision.model_validate(obj)
-    except ValidationError:
-        return ValidatedDecision(invalid=True, violations=["decision did not match the schema"])
-
     violations: list[str] = []
-    weights: dict[str, float] = {}
-    for alloc in pm.allocations:
-        ticker = (alloc.ticker or "").upper().strip()
-        weight = float(alloc.weight) if math.isfinite(alloc.weight) else 0.0
-        if ticker not in tradable:
-            violations.append(f"dropped unknown ticker {ticker!r}")
+    cleaned: dict[str, float] = {}
+    for ticker, weight in weights.items():
+        name = str(ticker).upper().strip()
+        value = float(weight) if isinstance(weight, (int, float)) and math.isfinite(weight) else 0.0
+        if name not in tradable:
+            violations.append(f"dropped unknown ticker {name!r}")
             continue
-        if weight <= 0:
-            violations.append(f"dropped non-positive weight for {ticker}")
+        if value <= 0:
+            violations.append(f"dropped non-positive weight for {name}")
             continue
-        weights[ticker] = weights.get(ticker, 0.0) + weight
+        cleaned[name] = cleaned.get(name, 0.0) + value
 
-    cash = pm.cash_weight
     if cash is None:
-        cash = max(0.0, 1.0 - sum(weights.values()))
+        cash = max(0.0, 1.0 - sum(cleaned.values()))
     cash = min(max(float(cash), 0.0), 1.0)
 
-    total = sum(weights.values())
+    total = sum(cleaned.values())
     if total > 1e-9 and total + cash > 1.0 + 1e-9:
         scale = (1.0 - cash) / total
-        weights = {t: w * scale for t, w in weights.items()}
+        cleaned = {ticker: value * scale for ticker, value in cleaned.items()}
         violations.append(f"scaled exposure from {total:.1%} to {1.0 - cash:.1%}")
 
-    for ticker in list(weights):
-        if weights[ticker] > max_weight + 1e-9:
-            violations.append(f"clamped {ticker} from {weights[ticker]:.1%} to {max_weight:.1%}")
-            weights[ticker] = max_weight
+    for ticker in list(cleaned):
+        if cleaned[ticker] > max_weight + 1e-9:
+            violations.append(f"clamped {ticker} from {cleaned[ticker]:.1%} to {max_weight:.1%}")
+            cleaned[ticker] = max_weight
 
-    final_cash = max(0.0, 1.0 - sum(weights.values()))
-    return ValidatedDecision(weights=weights, cash=final_cash, violations=violations, raw=obj)
+    return ValidatedDecision(
+        weights=cleaned,
+        cash=max(0.0, 1.0 - sum(cleaned.values())),
+        violations=violations,
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -218,16 +281,18 @@ class RunMetrics(BaseModel):
     spy_total_return: float
     excess_return_vs_spy: float
     outperformance_hit_rate: float
-    directional_accuracy: float
     decisions: int
     avg_turnover: float
     trades: int
     invalid_outputs: int
     risk_violations: int
-    tool_calls: int
     input_tokens: int
     output_tokens: int
     requests: int
+    # DCN-specific: the decision-model side of the benchmark.
+    calibration: CalibrationReport | None = None
+    answer_coverage: float = 0.0
+    mean_latency_s: float = 0.0
     estimated_cost_usd: float | None = None
     baselines: dict[str, float] = Field(default_factory=dict)
 
@@ -235,13 +300,6 @@ class RunMetrics(BaseModel):
 # --------------------------------------------------------------------------- #
 # Scenarios
 # --------------------------------------------------------------------------- #
-
-
-class EventItem(BaseModel):
-    date: str
-    headline: str
-    detail: str = ""
-    source: str = ""
 
 
 class Scenario(BaseModel):
@@ -264,10 +322,11 @@ class Scenario(BaseModel):
     fee_bps: float = 5.0
     slippage_bps: float = 5.0
     max_position_weight: float = 0.35
-    allow_web_search: bool = False
-    allow_finnhub: bool = False
-    forecast_provider: str | None = None
     lookback_days: int = 90
+    # How many candidates a single decision asks about. The whole universe stays
+    # in the state for context; this bounds the number of typed questions per
+    # request so cost and provider question limits stay predictable.
+    max_candidates: int = Field(default=10, ge=2, le=64)
 
     @model_validator(mode="after")
     def check_window(self):

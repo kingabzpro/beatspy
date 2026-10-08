@@ -3,34 +3,39 @@
 # API keys are never stored here: they go to ~/.beatspy/secrets.env (git-excluded),
 # or can be provided as environment variables instead.
 
-[model]
-# Any OpenAI-compatible Chat Completions endpoint works.
-# Ollama:    http://localhost:11434/v1
-# vLLM:      http://localhost:8000/v1
-# LM Studio: http://localhost:1234/v1
-# OpenAI:    https://api.openai.com/v1
-# OpenRouter: https://openrouter.ai/api/v1
-base_url = "http://localhost:11434/v1"
-model = "llama3.1:8b"
-# temperature 0 keeps runs as deterministic as the provider allows
-temperature = 0.0
-# max model turns per agent run (bounds tool-call loops)
-max_turns = 8
-# optional USD prices per million tokens for cost reporting
-# cost_per_m_input = 0.15
-# cost_per_m_output = 0.60
+[decision]
+# Which decision model to benchmark. Run `beatspy models` for the current list:
+#   gpt-6-luna  OpenAI Decisions API       $0.10 / 1M input
+#   jev-latest  TypeSafe Jev                $0.042 / 1M input
+#   clef        Cloudflare Clef (27B)       $0.24 / 1M input
+#   clef-flash  Cloudflare Clef-flash (9B)  $0.09 / 1M input
+# Decision models bill input tokens only: output and cache are free everywhere.
+decision_model = "clef-flash"
 
-[tools]
-# baseline (built-in statistical forecaster, no dependencies)
-# naive     (built-in flat forecaster)
-# chronos   (local Chronos, requires: uv sync --extra chronos)
-# timegpt   (Nixtla API, requires: uv sync --extra timegpt + key)
-forecast_provider = "baseline"
+# Transport and retry behaviour. 429/529/5xx are retried with exponential backoff.
+timeout_s = 120.0
+max_retries = 4
+concurrency = 6
+
+# The sizing policy. Fixed here so a run cannot be tuned after seeing a result.
+# Only noul probabilities enter the portfolio: a name must beat the neutral 0.5
+# to be held, the strongest `top_n` are equal-weighted, and the book goes fully to
+# cash when fewer than `min_names` clear the bar.
+min_probability = 0.5
+top_n = 3
+min_names = 2
+
+# State budget in tokens. Workers AI silently truncates long text state to roughly
+# its first 2K tokens, so the state is kept inside this bound for every provider.
+max_state_tokens = 1800
+
+# Optional overrides (normally taken from the decision-model registry)
+# base_url = "https://api.typesafe.ai/v1/systemone"
+# api_key_env = "TYPESAFE_API_KEY"
 
 [bench]
 initial_capital = 100000.0
 fee_bps = 5.0
 slippage_bps = 5.0
 max_position_weight = 0.35
-tool_budget_per_agent = 10
 risk_free_annual = 0.0

@@ -1,46 +1,39 @@
 "use strict";
 
 const COLORS = ["#b4f272", "#79b6ff", "#ffbc79", "#cb9aff", "#ff9292", "#74d8cb", "#f0b9da", "#d1d7de", "#8d9969"];
-const TRUST = {verified: "Verified", replayed: "Replay checked · unsigned", local: "Local · unsigned", synthetic: "Synthetic demo"};
-const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
-const dollars = value => typeof value === "number" && Number.isFinite(value) ? `$${value.toFixed(4)}` : "—";
-// OpenRouter standard uncached token rates checked 2026-10-05; estimates are not invoices.
+const TRUST = {replayed: "Replay checked", local: "Local", synthetic: "Synthetic demo"};
+// Every decision model bills input only; output tokens are free and no provider
+// offers prompt caching. Rates checked 2026-10-08 against the cited sources.
 const PRICES = {
-  "Kimi-K3": {"input": 0.67, "output": 14.0, "source": "https://openrouter.ai/moonshotai/kimi-k3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
-  "gpt-6-luna": {"input": 0.1, "output": 0.5, "source": "https://openrouter.ai/openai/gpt-6-luna", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
-  "mimo-v2.6-pro": {"input": 0.435, "output": 0.87, "source": "https://openrouter.ai/xiaomi/mimo-v2.6-pro", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
-  "GLM-5.3": {"input": 0.05, "output": 7.0, "source": "https://openrouter.ai/z-ai/glm-5.3", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
-  "GLM-5.3-Flash": {"input": 0.15, "output": 0.5, "source": "https://openrouter.ai/z-ai/glm-5.3-flash", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
-  "DeepSeek-V4.1-Flash": {"input": 0.3, "output": 1.2, "source": "https://openrouter.ai/deepseek/deepseek-v4.1-flash", "note": "OpenRouter list price; subscriptions and provider discounts may differ"},
+  "gpt-6-luna": {
+    label: "OpenAI Decisions (gpt-6-luna)", provider: "openai_decisions", input: 0.10, output: 0,
+    source: "https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877",
+    note: "Decisions API public beta list price, input only."},
+  "jev-latest": {
+    label: "TypeSafe Jev", provider: "typesafe", input: 0.042, output: 0,
+    source: "https://docs.typesafe.ai/models",
+    note: "$42 per 1B input tokens (about $0.042 per 1M); output is free."},
+  "clef": {
+    label: "Cloudflare Clef (27B)", provider: "cloudflare", input: 0.24, output: 0,
+    source: "https://developers.cloudflare.com/workers-ai/models/clef/index.md",
+    note: "Workers AI list price, input only."},
+  "clef-flash": {
+    label: "Cloudflare Clef-flash (9B)", provider: "cloudflare", input: 0.09, output: 0,
+    source: "https://developers.cloudflare.com/workers-ai/models/clef/index.md",
+    note: "Workers AI list price, input only."},
 };
-
-function tokenCost(usage, rates) {
-  if (![usage?.input_tokens, usage?.output_tokens, rates?.input, rates?.output].every(value => typeof value === "number" && Number.isFinite(value) && value >= 0)) return null;
-  const cost = (usage.input_tokens * rates.input + usage.output_tokens * rates.output) / 1e6;
-  return Number.isFinite(cost) ? cost : null;
-}
-
-function usageBreakdown(decisions, rates) {
-  const agents = Object.create(null), steps = [];
-  let cumulative = 0;
-  for (const decision of decisions) {
-    const total = {input_tokens: 0, output_tokens: 0, requests: 0, tool_calls: 0};
-    const usages = Object.entries(decision.usage || {});
-    for (const [role, usage] of usages) {
-      agents[role] ||= {label: role, input_tokens: 0, output_tokens: 0, requests: 0, tool_calls: 0};
-      for (const key of Object.keys(total)) {
-        const raw = usage[key] ?? (key.endsWith("tokens") ? NaN : 0);
-        const value = typeof raw === "number" && Number.isFinite(raw) && raw >= 0 ? raw : NaN;
-        agents[role][key] += value; total[key] += value;
-      }
-    }
-    if (!usages.length) {total.input_tokens = NaN; total.output_tokens = NaN;}
-    const cost = usages.length ? tokenCost(total, rates) : null;
-    cumulative = cost === null || cumulative === null ? null : cumulative + cost;
-    steps.push({date: decision.date, ...total, cost, cumulative});
-  }
-  return {agents: Object.values(agents).map(usage => ({...usage, cost: tokenCost(usage, rates)})), steps};
-}
+const SIGNALS = ["noul", "choice", "rank"];
+const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
+const ratio = value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "—";
+const score = value => Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "—";
+// Decision-model runs cost fractions of a cent, so small values keep more digits.
+const dollars = value => {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return "—";
+  return `$${number.toFixed(Math.abs(number) < 0.01 ? 6 : 4)}`;
+};
+const count = value => Number.isInteger(Number(value)) ? String(Number(value)) : "—";
+const plural = (value, word) => `${count(value)} ${word}${Number(value) === 1 ? "" : "s"}`;
 
 function parseCSV(text) {
   const rows = [], row = [];
@@ -68,20 +61,81 @@ function modelName(model) {
   return String(model).split("/").at(-1);
 }
 
-function allocationRow(row) {
-  const held = row.validated?.invalid ? row.market_brief : null;
-  return {date: row.date, ...(held?.current_portfolio_weights || row.validated?.weights || row.decision?.allocations?.reduce((obj, a) => ({...obj, [a.ticker]: a.weight}), {}) || {}),
-    CASH: held?.current_cash_weight ?? row.validated?.cash ?? row.decision?.cash_weight ?? 0};
-}
-
 function leaderboardRuns(runs) {
   const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(a.run_id)));
   const models = new Map();
   for (const run of ordered) if (!models.has(run.model)) models.set(run.model, run);
-  return [...models.values()].sort((a, b) => b.metrics.excess_return_vs_spy - a.metrics.excess_return_vs_spy);
+  return [...models.values()].sort((a, b) => (Number(b.metrics?.excess_return_vs_spy) || 0) - (Number(a.metrics?.excess_return_vs_spy) || 0));
 }
 
-if (typeof module !== "undefined") module.exports = {parseCSV, leaderboardRuns, modelName, allocationRow, percent, tokenCost, usageBreakdown, PRICES};
+function inputCost(metrics, rates) {
+  const inputTokens = metrics?.input_tokens, outputTokens = metrics?.output_tokens ?? 0;
+  // Both rates must be recorded: a partial rate table is not a free rate.
+  const input = rates?.input, output = rates?.output;
+  if (![inputTokens, outputTokens, input, output].every(value => typeof value === "number" && Number.isFinite(value) && value >= 0)) return null;
+  const cost = (inputTokens * input + outputTokens * output) / 1e6;
+  return Number.isFinite(cost) ? cost : null;
+}
+
+function ratesFor(model, meta) {
+  const pricing = meta?.decision?.pricing;
+  if (typeof pricing?.cost_per_m_input === "number" && typeof pricing?.cost_per_m_output === "number") {
+    return {input: pricing.cost_per_m_input, output: pricing.cost_per_m_output, note: "Rates recorded in run.json"};
+  }
+  return PRICES[modelName(model)] || null;
+}
+
+// Bins with no observations carry no observed rate and must not be plotted.
+function reliabilitySeries(calibration) {
+  const series = [];
+  for (const name of SIGNALS) {
+    const stats = calibration?.signals?.[name];
+    if (!stats || !Array.isArray(stats.bins)) continue;
+    series.push({
+      name, n: stats.n, brier: stats.brier, skill: stats.brier_skill_score, ece: stats.expected_calibration_error,
+      meanPredicted: stats.mean_predicted, bins: stats.bins,
+      points: stats.bins.filter(bin => Number.isFinite(Number(bin.count)) && Number(bin.count) > 0 && Number.isFinite(Number(bin.observed_rate)))
+        .map(bin => ({predicted: Number(bin.mean_predicted), observed: Number(bin.observed_rate), count: Number(bin.count)})),
+    });
+  }
+  return series;
+}
+
+// An invalid answer set means "hold the previous portfolio", never "liquidate".
+function allocationRows(decisions) {
+  const rows = [];
+  let held = {};
+  for (const decision of decisions) {
+    const validated = decision?.validated || {};
+    if (!validated.invalid) held = {...(validated.weights || {})};
+    const invested = Object.values(held).reduce((sum, weight) => sum + (Number(weight) || 0), 0);
+    const cash = validated.invalid ? Math.max(0, 1 - invested) : (Number(validated.cash) || 0);
+    rows.push({date: decision?.date, ...held, CASH: cash});
+  }
+  return rows;
+}
+
+function catalogProblems(catalog) {
+  const problems = [];
+  if (!catalog || typeof catalog !== "object") return ["catalog is not an object"];
+  if (catalog.schema_version !== 1) problems.push("schema_version must be 1");
+  if (catalog.default_trust !== "all") problems.push("default_trust must be all");
+  if (!Array.isArray(catalog.runs)) return [...problems, "runs must be an array"];
+  for (const run of catalog.runs) {
+    if (typeof run?.run_id !== "string" || !run.run_id) problems.push("run without a run_id");
+    else if (run.dir !== `runs/${run.run_id}`) problems.push(`bad artifact path for ${run.run_id}`);
+    if (typeof run?.model !== "string" || !run.model) problems.push(`run ${run?.run_id} has no decision model`);
+    if (typeof run?.provider !== "string" || !run.provider) problems.push(`run ${run?.run_id} has no provider`);
+    if (!Number.isFinite(Number(run?.metrics?.total_return))) problems.push(`run ${run?.run_id} has no total return`);
+    if (!Number.isFinite(Number(run?.metrics?.excess_return_vs_spy))) problems.push(`run ${run?.run_id} has no excess return`);
+  }
+  return problems;
+}
+
+if (typeof module !== "undefined") module.exports = {
+  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, count, plural, ratio, score, inputCost,
+  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
+};
 
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
@@ -96,18 +150,29 @@ if (typeof document !== "undefined") {
     for (const [key, value] of Object.entries(attrs || {})) result.setAttribute(key, String(value));
     return result;
   };
+  // [row key, heading, formatter, source of the value]
+  const COLUMNS = [
+    ["model", "Decision model", "text", "row"],
+    ["provider", "Provider", "text", "row"],
+    ["total_return", "Return", "percent", "metrics"],
+    ["excess_return_vs_spy", "Excess vs SPY", "signed", "metrics"],
+    ["sharpe", "Sharpe", "ratio", "metrics"],
+    ["max_drawdown", "Max DD", "percent", "metrics"],
+    ["brier", "Brier", "score", "row"],
+    ["brier_skill_score", "Brier skill", "score", "row"],
+    ["auc", "AUC", "score", "row"],
+    ["ece", "ECE", "score", "row"],
+    ["answer_coverage", "Coverage", "percent", "row"],
+    ["estimated_cost_usd", "Cost", "dollars", "row"],
+    ["mean_latency_s", "Mean latency", "seconds", "row"],
+    ["decisions", "Decisions", "count", "row"],
+    ["invalid_outputs", "Invalid", "count", "row"],
+  ];
+  const FORMAT = {text: value => value ?? "—", percent, signed: percent, ratio, score, dollars, count,
+    seconds: value => Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)} s` : "—"};
+  const rowValue = (run, key, source) => key === "model" ? modelName(run.model) : source === "metrics" ? run.metrics?.[key] : run[key];
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
-  const priceOverrides = new Map();
-  let costContext = null;
-  function ratesFor(model, meta) {
-    return priceOverrides.get(model) || (meta?.model?.cost_per_m_input != null && meta?.model?.cost_per_m_output != null
-      ? {input: meta.model.cost_per_m_input, output: meta.model.cost_per_m_output, note: "Recorded run rates"} : PRICES[modelName(model)]);
-  }
-  function costForRun(run) {
-    if (!priceOverrides.has(run.model) && Number.isFinite(run.metrics.estimated_cost_usd)) return run.metrics.estimated_cost_usd;
-    return tokenCost(run.metrics, ratesFor(run.model));
-  }
 
   async function fetchText(path) {
     const response = await fetch(path);
@@ -125,35 +190,50 @@ if (typeof document !== "undefined") {
     }
     $(target).replaceChildren(element);
   }
+  function renderPricing() {
+    const records = Object.entries(PRICES).map(([model, rates]) => {
+      const row = node("tr");
+      row.append(node("td", model), node("td", rates.provider), node("td", `$${rates.input.toFixed(3)}`, "num"),
+        node("td", `$${rates.output.toFixed(2)}`, "num"), node("td", "None"));
+      const cell = node("td"), link = node("a", "Source ↗");
+      link.href = rates.source; link.rel = "noreferrer noopener"; link.target = "_blank";
+      cell.append(link); row.append(cell);
+      row.title = rates.note;
+      return row;
+    });
+    const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
+    for (const title of ["Decision model", "Provider", "Input USD / M", "Output USD / M", "Prompt caching", "Pricing source"]) {
+      header.append(node("th", title));
+    }
+    head.append(header); element.append(head, body);
+    for (const row of records) body.append(row);
+    $("pricing-table").replaceChildren(element);
+  }
   function renderBoard() {
     visible = leaderboardRuns(runs);
-    $("board-window").textContent = "Latest completed result per model. Each row shows its evaluation period.";
+    $("board-window").textContent = "Latest completed result per decision model; every row shows its own evaluation window.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
-      const av = sortKey === "model" ? modelName(a.model) : sortKey === "estimated_cost_usd" ? costForRun(a) : a.metrics[sortKey];
-      const bv = sortKey === "model" ? modelName(b.model) : sortKey === "estimated_cost_usd" ? costForRun(b) : b.metrics[sortKey];
-      if (sortKey === "estimated_cost_usd" && (av === null || bv === null)) return av === null ? (bv === null ? 0 : 1) : -1;
-      const result = typeof av === "string" ? av.localeCompare(bv) : Number(av) - Number(bv);
-      return descending ? -result : result;
+      const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
+      const av = rowValue(a, column[0], column[3]), bv = rowValue(b, column[0], column[3]);
+      if (column[2] === "text") return descending ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
+      if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
+      return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
     });
     $("run-count").textContent = `${visible.length} result${visible.length === 1 ? "" : "s"}`;
     $("status").textContent = visible.length ? "" : (runs.length
       ? "No completed results yet."
-      : "No new results yet. Completed benchmark runs will appear here after verification.");
+      : "No results yet. Record a decision-model run and re-render this page.");
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank"));
-    const columns = [["model", "Model"], ["total_return", "Return"], ["spy_total_return", "SPY"],
-      ["excess_return_vs_spy", "Excess"], ["sharpe", "Sharpe"], ["max_drawdown", "Max DD"],
-      ["directional_accuracy", "Direction"], ["input_tokens", "Tokens in"], ["estimated_cost_usd", "Est. cost"]];
-    for (const [key, title] of columns) {
-      const th = node("th", undefined, key === "model" ? "" : "num");
+    for (const [key, title, kind] of COLUMNS) {
+      const th = node("th", undefined, kind === "text" ? "" : "num");
       const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
-      button.onclick = () => {descending = sortKey === key ? !descending : key !== "model"; sortKey = key; renderBoard();};
+      button.onclick = () => {descending = sortKey === key ? !descending : true; sortKey = key; renderBoard();};
       th.append(button); header.append(th);
     }
-    header.append(node("th", "Period"));
-    header.append(node("th", "Evidence")); head.append(header); element.append(head, body);
+    header.append(node("th", "Period")); head.append(header); element.append(head, body);
     for (const run of visible) {
       const row = node("tr");
       if (run.run_id === selected) row.className = "selected";
@@ -164,50 +244,36 @@ if (typeof document !== "undefined") {
         if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
       };
       td.append(button); row.append(td);
-      for (const [key] of columns.slice(1)) {
-        const raw = key === "estimated_cost_usd" ? costForRun(run) : run.metrics[key], value = Number(raw);
-        const formatted = raw == null ? "—" : key === "estimated_cost_usd" ? dollars(raw) : key === "sharpe" ? value.toFixed(2) : key === "input_tokens" ? Math.round(value).toLocaleString() : percent(value);
-        row.append(node("td", formatted, `num ${key === "excess_return_vs_spy" ? (value >= 0 ? "positive" : "negative") : ""}`));
+      for (const [key, , kind, source] of COLUMNS.slice(1)) {
+        const raw = rowValue(run, key, source), value = Number(raw);
+        const tone = Number.isFinite(value) ? (value >= 0 ? "positive" : "negative") : "";
+        row.append(node("td", FORMAT[kind](raw), `num ${key === "excess_return_vs_spy" ? tone : ""}`));
       }
       row.append(node("td", `${run.start} → ${run.end}`));
-      row.append(node("td", TRUST[run.trust] || "Unverified")); body.append(row);
+      body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
     $("cost-overview").hidden = !visible.length;
-    $("cost-window").textContent = "API-equivalent estimates for the latest result of each model.";
-    bars("model-costs", visible.map(run => ({label: modelName(run.model), cost: costForRun(run)})), ["cost"], dollars);
-    bars("model-tokens", visible.map(run => ({label: modelName(run.model), input: run.metrics.input_tokens, output: run.metrics.output_tokens})), ["input", "output"], value => Math.round(value).toLocaleString());
+    $("cost-window").textContent = visible.length
+      ? "Published list prices on 2026-10-08. Decision models bill input only: every provider charges $0 for output tokens and none offers prompt caching."
+      : "";
+    runBars("model-costs", visible.map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, PRICES[run.model])})));
   }
-  function bars(target, rows, series, format) {
+  function runBars(target, rows) {
     const container = $(target); container.replaceChildren();
-    const max = Math.max(1e-12, ...rows.map(row => series.reduce((sum, key) => sum + (Number.isFinite(row[key]) ? row[key] : 0), 0)));
-    if (!rows.length) {container.append(node("p", "No recorded usage.", "caption")); return;}
+    const known = rows.filter(row => typeof row.cost === "number" && Number.isFinite(row.cost));
+    if (!rows.length || !known.length) {container.append(node("p", "No recorded input cost.", "caption")); return;}
+    const max = Math.max(1e-12, ...known.map(row => row.cost));
     for (const row of rows) {
       const line = node("div", undefined, "bar-row"), track = node("div", undefined, "bar-track");
-      const known = series.every(key => typeof row[key] === "number" && Number.isFinite(row[key]) && row[key] >= 0);
-      const total = known ? series.reduce((sum, key) => sum + row[key], 0) : null;
       line.append(node("span", row.label, "bar-label"));
-      if (known) series.forEach((key, i) => {
-        const bar = node("span", undefined, "bar-fill"); bar.style.width = `${row[key] / max * 100}%`; bar.style.background = COLORS[i]; track.append(bar);
-      });
-      line.title = known ? series.map(key => `${key}: ${format(row[key])}`).join(" · ") : "No price or usage recorded";
-      line.append(track, node("span", total === null ? "—" : format(total), "bar-value")); container.append(line);
+      if (typeof row.cost === "number" && Number.isFinite(row.cost)) {
+        const bar = node("span", undefined, "bar-fill");
+        bar.style.width = `${row.cost / max * 100}%`; bar.style.background = COLORS[0]; track.append(bar);
+      }
+      line.append(track, node("span", typeof row.cost === "number" ? dollars(row.cost) : "—", "bar-value"));
+      container.append(line);
     }
-    if (series.length > 1) {
-      const legend = node("div", undefined, "legend");
-      series.forEach((key, i) => {const label = node("span", `● ${key}`); label.style.color = COLORS[i]; legend.append(label);}); container.append(legend);
-    }
-  }
-  function renderCosts() {
-    if (!costContext) return;
-    const {run, meta, decisions} = costContext, rates = ratesFor(run.model, meta);
-    const {agents, steps} = usageBreakdown(decisions, rates), cost = tokenCost(run.metrics, rates);
-    $("cost-summary").textContent = `Estimated model cost ${dollars(cost)} · Per decision ${dollars(decisions.length && cost !== null ? cost / decisions.length : null)} · ${run.metrics.requests ?? "—"} model requests`;
-    $("price-note").textContent = `${rates?.note || "Enter both rates to calculate cost"}. Input $${rates?.input ?? "—"} / Output $${rates?.output ?? "—"} per million tokens. Estimates assume uncached input; cache tiers, long-context pricing, hosting, subscriptions, and paid tools are not included. Reference prices checked 2026-10-05.`;
-    $("price-source").replaceChildren();
-    if (rates?.source) {const link = node("a", "OpenRouter pricing ↗"); link.href = rates.source; $("price-source").append(link);}
-    chart("running-cost", steps.length && steps.every(step => step.cumulative !== null) ? steps : [], ["cumulative"], dollars);
-    bars("agent-costs", agents, ["cost"], dollars);
   }
   function chart(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
@@ -223,8 +289,7 @@ if (typeof document !== "undefined") {
       const values = rows.flatMap(row => keys.map(key => Number(row[key]))).filter(Number.isFinite);
       let min = Math.min(...values), max = Math.max(...values);
       if (!values.length) {min = 0; max = 1;}
-      if (target === "running-cost") {min = 0; max = Math.max(max, 1e-6);}
-      else if (max === min) {max += 1; min -= 1;}
+      if (max === min) {max += 1; min -= 1;}
       const x = i => L + i * (W - L - R) / Math.max(rows.length - 1, 1);
       const y = value => T + (max - value) * (H - T - B) / (max - min);
       for (let i = 0; i <= 4; i++) {
@@ -233,10 +298,14 @@ if (typeof document !== "undefined") {
         const label = svgNode("text", {x: L - 8, y: y(value) + 4, fill: "#a7b0ba", "font-size": 10, "text-anchor": "end"});
         label.textContent = format(value); svg.append(label);
       }
-      for (const key of keys) svg.append(svgNode("polyline", {
-        points: rows.map((row, i) => `${x(i)},${y(Number(row[key]))}`).join(" "),
-        fill: "none", stroke: COLORS[series.indexOf(key) % COLORS.length], "stroke-width": 2,
-      }));
+      for (const key of keys) {
+        const points = rows.map((row, i) => Number(row[key])).filter(Number.isFinite);
+        if (points.length !== rows.length) continue;
+        svg.append(svgNode("polyline", {
+          points: rows.map((row, i) => `${x(i)},${y(Number(row[key]))}`).join(" "),
+          fill: "none", stroke: COLORS[series.indexOf(key) % COLORS.length], "stroke-width": 2,
+        }));
+      }
       for (const [i, anchor] of [[0, "start"], [rows.length - 1, "end"]]) {
         const label = svgNode("text", {x: x(i), y: H - 9, fill: "#a7b0ba", "font-size": 10, "text-anchor": anchor});
         label.textContent = rows[i].date; svg.append(label);
@@ -261,8 +330,96 @@ if (typeof document !== "undefined") {
     });
     container.append(plot, labels, tooltip); draw();
   }
+  // Predicted (x) against observed (y) per reliability bin, with the y = x diagonal.
+  function reliabilityChart(target, calibration) {
+    const container = $(target); container.replaceChildren();
+    const series = reliabilitySeries(calibration);
+    if (!series.length || !series.some(item => item.points.length)) {
+      container.append(node("p", "No scored observations in this run.", "caption")); return;
+    }
+    const hidden = new Set(), labels = node("div", undefined, "legend"), plot = node("div", undefined, "chart");
+    const tooltip = node("div", "Move over a point for its bin and count.", "tooltip");
+    tooltip.setAttribute("aria-live", "polite");
+    const W = 560, H = 380, L = 56, R = 22, T = 22, B = 46;
+    const px = value => L + value * (W - L - R);
+    const py = value => T + (1 - value) * (H - T - B);
+    function draw() {
+      plot.replaceChildren();
+      const svg = svgNode("svg", {viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "reliability curve"});
+      const diagonal = svgNode("line", {x1: px(0), y1: py(0), x2: px(1), y2: py(1), stroke: "#a7b0ba",
+        "stroke-width": 1, "stroke-dasharray": "5 5"});
+      svg.append(diagonal);
+      for (let i = 0; i <= 5; i++) {
+        const value = i / 5;
+        svg.append(svgNode("line", {x1: px(value), y1: T, x2: px(value), y2: py(0), stroke: "#30363d"}));
+        svg.append(svgNode("line", {x1: L, y1: py(value), x2: px(1), y2: py(value), stroke: "#30363d"}));
+        const left = svgNode("text", {x: L - 8, y: py(value) + 4, fill: "#a7b0ba", "font-size": 10, "text-anchor": "end"});
+        left.textContent = percent(value); svg.append(left);
+        const bottom = svgNode("text", {x: px(value), y: py(0) + 18, fill: "#a7b0ba", "font-size": 10, "text-anchor": "middle"});
+        bottom.textContent = value.toFixed(1); svg.append(bottom);
+      }
+      const axisX = svgNode("text", {x: px(0.5), y: H - 6, fill: "#a7b0ba", "font-size": 11, "text-anchor": "middle"});
+      axisX.textContent = "Predicted probability"; svg.append(axisX);
+      for (const item of series) {
+        if (hidden.has(item.name) || !item.points.length) continue;
+        const color = COLORS[SIGNALS.indexOf(item.name) % COLORS.length];
+        svg.append(svgNode("polyline", {
+          points: item.points.map(point => `${px(point.predicted)},${py(point.observed)}`).join(" "),
+          fill: "none", stroke: color, "stroke-width": 2,
+        }));
+        for (const point of item.points) {
+          const circle = svgNode("circle", {cx: px(point.predicted), cy: py(point.observed),
+            r: Math.min(9, 3 + point.count), fill: color, "fill-opacity": 0.85, stroke: "#101214"});
+          circle.onpointerenter = () => {
+            tooltip.textContent = `${item.name} · predicted ${percent(point.predicted)} → observed ${percent(point.observed)} (n=${point.count})`;
+          };
+          svg.append(circle);
+        }
+      }
+      plot.append(svg);
+    }
+    for (const item of series) {
+      const color = COLORS[SIGNALS.indexOf(item.name) % COLORS.length];
+      const button = node("button", `● ${item.name} · n=${count(item.n)} · Brier ${score(item.brier)}`);
+      button.style.color = color;
+      button.setAttribute("aria-pressed", "true");
+      button.onclick = () => {if (hidden.has(item.name)) hidden.delete(item.name); else hidden.add(item.name); button.setAttribute("aria-pressed", !hidden.has(item.name)); draw();};
+      labels.append(button);
+    }
+    const diagonalLabel = node("span", "┈ y = x (perfect calibration)");
+    labels.append(diagonalLabel);
+    container.append(plot, labels, tooltip); draw();
+    const headers = ["Predicted bin", ...series.map(item => `${item.name} (n)`), ...series.map(item => `${item.name} observed`)];
+    const bins = series[0].bins || [];
+    const records = bins.map((bin, i) => [
+      `${Number(bin.lower).toFixed(1)}–${Number(bin.upper).toFixed(1)}`,
+      ...series.map(item => count(item.bins?.[i]?.count)),
+      ...series.map(item => item.bins?.[i]?.observed_rate == null ? "—" : percent(item.bins[i].observed_rate)),
+    ]);
+    table("reliability-bins", headers, records);
+  }
+  function renderGap(calibration) {
+    const callout = $("gap-callout"); callout.replaceChildren();
+    const gap = calibration?.miscalibration_gap;
+    const noul = calibration?.signals?.noul, choice = calibration?.signals?.choice;
+    callout.append(node("strong", Number.isFinite(Number(gap)) ? percent(gap) : "—"));
+    // The reported failure mode is a choice form that answers further from 0.5 than
+    // the noul form. State it only when this run's numbers actually show it.
+    const noulMean = Number(noul?.mean_predicted), choiceMean = Number(choice?.mean_predicted);
+    const reach = value => Number.isFinite(value) ? Math.abs(value - 0.5) : NaN;
+    let verdict = "compare the two curves above";
+    if (Number.isFinite(reach(noulMean)) && Number.isFinite(reach(choiceMean))) {
+      if (reach(choiceMean) > reach(noulMean)) verdict = "the choice form answers further from 0.5, so it is the less calibrated of the two";
+      else if (reach(choiceMean) < reach(noulMean)) verdict = "the noul form answers further from 0.5 on this run, so the usual ordering is reversed";
+      else verdict = "both forms answer equally far from 0.5 on this run";
+    }
+    callout.append(node("p", Number.isFinite(Number(gap))
+      ? `Paired miscalibration gap: the mean absolute difference between the noul and choice probabilities asked about the same ticker and horizon, over ${plural(calibration.observations, "scored observation")}. `
+        + `Mean predicted noul ${percent(noul?.mean_predicted)} against choice ${percent(choice?.mean_predicted)}: ${verdict}.`
+      : "No paired noul/choice observations were scored in this run."));
+    if (calibration?.note) callout.append(node("p", calibration.note, "caption"));
+  }
   async function selectRun(id) {
-    costContext = null;
     const run = runs.find(row => row.run_id === id);
     if (!run) {$("run-details").hidden = true; $("status").textContent = "That run is not in this catalog."; return;}
     selected = id; const generation = ++loading;
@@ -270,16 +427,23 @@ if (typeof document !== "undefined") {
     try {
       if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$/.test(run.run_id) || run.dir !== `runs/${run.run_id}`) throw new Error("Invalid artifact path");
       const base = `data/${run.dir}/`;
-      const texts = await Promise.all(["run.json", "equity_curve.csv", "decisions.jsonl"].map(name => fetchText(base + name)));
+      const texts = await Promise.all(["run.json", "metrics.json", "equity_curve.csv", "decisions.jsonl"].map(name => fetchText(base + name)));
       if (generation !== loading) return;
-      const meta = JSON.parse(texts[0]), equity = parseCSV(texts[1]), decisions = texts[2].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+      const meta = JSON.parse(texts[0]), metrics = JSON.parse(texts[1]);
+      const equity = parseCSV(texts[2]), decisions = texts[3].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
+      const calibration = metrics.calibration || run.metrics.calibration || {};
       $("run-details").hidden = false;
-      $("run-title").textContent = modelName(run.model);
-      $("run-trust").textContent = TRUST[run.trust] || "Unverified";
-      $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
+      $("run-title").textContent = `${modelName(run.model)} · ${run.question_form} questions`;
+      $("run-trust").textContent = TRUST[run.trust] || "Unrecorded";
+      $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"} · Provider ${run.provider}`;
       $("metrics").replaceChildren();
-      for (const [key, title] of [["total_return", "Portfolio return"], ["spy_total_return", "SPY buy & hold"], ["excess_return_vs_spy", "Excess vs SPY"], ["max_drawdown", "Maximum drawdown"]]) {
-        const tile = node("div", undefined, "metric"); tile.append(node("p", title), node("strong", percent(run.metrics[key]), Number(run.metrics[key]) >= 0 ? "positive" : "negative")); $("metrics").append(tile);
+      for (const [key, title] of [["total_return", "Portfolio return"], ["excess_return_vs_spy", "Excess vs SPY"],
+        ["sharpe", "Sharpe"], ["max_drawdown", "Maximum drawdown"], ["brier", "Brier (noul)"], ["calibration_gap", "Miscalibration gap"]]) {
+        const raw = run[key] ?? run.metrics[key], value = Number(raw);
+        const formatted = key === "sharpe" ? ratio(raw) : key === "brier" ? score(raw) : percent(raw);
+        const tile = node("div", undefined, "metric");
+        tile.append(node("p", title), node("strong", formatted, Number.isFinite(value) ? (value >= 0 ? "positive" : "negative") : ""));
+        $("metrics").append(tile);
       }
       const series = Object.keys(equity[0] || {}).filter(key => key !== "date");
       chart("performance", equity, series, value => `$${value.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
@@ -289,41 +453,35 @@ if (typeof document !== "undefined") {
         return result;
       });
       chart("drawdown", drawdown, series, percent);
-      const allocationRows = decisions.map(allocationRow);
-      const tickers = [...new Set(allocationRows.flatMap(row => Object.keys(row).filter(key => key !== "date")))];
-      allocationRows.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
-      chart("allocations", allocationRows, tickers, percent);
-      const totals = Object.create(null);
-      decisions.forEach(row => Object.entries(row.usage || {}).forEach(([role, usage]) => {
-        totals[role] ||= {input_tokens: 0, output_tokens: 0, requests: 0, tool_calls: 0};
-        for (const key of Object.keys(totals[role])) totals[role][key] += Number(usage[key] || 0);
-      }));
-      table("telemetry", ["Agent", "Input tokens", "Output tokens", "Requests", "Tools"], Object.entries(totals).map(([role, usage]) => [role, ...Object.values(usage).map(value => value.toLocaleString())]));
-      costContext = {run, meta, decisions};
-      const rates = ratesFor(run.model, meta);
-      $("input-price").value = rates?.input ?? ""; $("output-price").value = rates?.output ?? "";
-      const updatePrices = () => {
-        const values = [$("input-price"), $("output-price")].map(input => input.value === "" ? null : input.valueAsNumber);
-        if (values.some(value => value !== null && (!Number.isFinite(value) || value < 0))) {$("price-note").textContent = "Enter nonnegative, finite rates."; return;}
-        priceOverrides.set(run.model, {input: values[0], output: values[1], note: "Custom rates for this visit"});
-        renderCosts(); renderBoard();
-      };
-      $("input-price").oninput = updatePrices; $("output-price").oninput = updatePrices;
-      $("reset-prices").onclick = () => {priceOverrides.delete(run.model); const original = ratesFor(run.model, meta); $("input-price").value = original?.input ?? ""; $("output-price").value = original?.output ?? ""; renderCosts(); renderBoard();};
-      renderCosts();
+      reliabilityChart("reliability", calibration);
+      renderGap(calibration);
+      const allocationRowsData = allocationRows(decisions);
+      const tickers = [...new Set(allocationRowsData.flatMap(row => Object.keys(row).filter(key => key !== "date")))];
+      allocationRowsData.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
+      chart("allocations", allocationRowsData, tickers, percent);
+      const rates = ratesFor(run.model, meta), cost = run.metrics.estimated_cost_usd ?? inputCost(run.metrics, rates);
+      $("run-cost").textContent = `Input-only estimate ${dollars(cost)} · ${count(run.metrics.input_tokens)} input tokens · `
+        + `${count(run.metrics.output_tokens)} output tokens · ${plural(run.metrics.requests, "request")} · `
+        + `mean latency ${FORMAT.seconds(run.metrics.mean_latency_s)} · route ${count(run.policy?.top_n)} names at `
+        + `P ≥ ${run.policy?.min_probability ?? "?"}`;
+      $("price-source").replaceChildren();
+      if (rates?.source) {
+        const link = node("a", "Published pricing ↗"); link.href = rates.source;
+        link.rel = "noreferrer noopener"; link.target = "_blank";
+        $("price-source").append(link);
+      }
       $("settings").textContent = JSON.stringify(meta, null, 2);
-      $("coverage").textContent = `${meta.event_feed?.note || "Curated events are not a complete news history."} Feed through: ${meta.event_feed?.through || "not recorded"}. Signed results come from the trusted runner; older replay-checked results remain unsigned.`;
-      $("verification").textContent = run.verification_id ? `Verification ID: ${run.verification_id}` : "Unsigned result. Request a trusted rerun for signed leaderboard verification.";
-      $("submit-result").href = "https://github.com/kingabzpro/beatspy/issues/new?title=" + encodeURIComponent(`Benchmark verification: ${run.model}`)
-        + "&body=" + encodeURIComponent("Please verify this model on the trusted runner.\n\n```json\n" + JSON.stringify({model: run.model, benchmark: "2026-ytd"}, null, 2) + "\n```\n");
+      $("coverage").textContent = `Scored ${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")} · `
+        + `label coverage ${percent(calibration.coverage)} · decision answer coverage ${percent(run.answer_coverage)}. `
+        + (calibration.note || "");
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {
         const a = node("a", name); a.href = base + name; a.setAttribute("download", name); $("downloads").append(a);
       }
-      if (run.verification_id) {const a = node("a", "Signed verification"); a.href = base + "verification.json"; $("downloads").append(a);}
-      const snapshot = meta.data?.snapshot_id;
-      if (/^[a-f0-9]{64}$/.test(snapshot || "") && run.trust !== "local") {
-        for (const name of ["prices.csv", "MANIFEST.json"]) {const a = node("a", `Snapshot ${name}`); a.href = `data/snapshots/${snapshot}/${name}`; $("downloads").append(a);}
+      if (typeof run.snapshot_dir === "string" && /^[a-z0-9/]+$/.test(run.snapshot_dir)) {
+        for (const name of ["prices.csv", "MANIFEST.json"]) {
+          const a = node("a", `Snapshot ${name}`); a.href = `data/${run.snapshot_dir}/${name}`; $("downloads").append(a);
+        }
       }
     } catch (error) {if (generation === loading) {$("run-details").hidden = true; $("status").textContent = `Unable to load this run: ${error.message}`;}}
   }
@@ -336,8 +494,10 @@ if (typeof document !== "undefined") {
   }
   async function init() {
     try {
+      renderPricing();
       const catalog = JSON.parse(await fetchText("data/index.json"));
-      if (catalog.schema_version !== 1 || !Array.isArray(catalog.runs)) throw new Error("Invalid result catalog");
+      const problems = catalogProblems(catalog);
+      if (problems.length) throw new Error(`Invalid result catalog (${problems[0]})`);
       runs = catalog.runs;
       window.addEventListener("hashchange", hashSelection); renderBoard();
       if (location.hash.startsWith("#run=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);

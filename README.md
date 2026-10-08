@@ -1,128 +1,145 @@
 # BeatSPY
 
-**One model. Five trading agents. Can it beat SPY?**
+**Decision models, not chat models.** Four decision models read the same frozen
+point-in-time market state, answer the same typed questions, and return
+probabilities. This benchmark scores those probabilities twice: were they
+*calibrated*, and did a portfolio built only from them beat SPY?
 
-[Open dashboard →](https://beatspy.vercel.app) · [Contribution guide](CONTRIBUTING.md)
+[Open dashboard →](https://beatspy.vercel.app) · [Architecture](ARCHITECTURE.md) · [Contributing](CONTRIBUTING.md)
 
-Research, analyst, and forecasting agents work in parallel, then a critic and
-portfolio manager make the decision. Python handles trading, risk rules, and scoring.
+There is no agent relay, no tool calling, and no prompt engineering here. A
+decision model returns typed answers, so the input is data and the output is a
+number. That makes the whole thing auditable: every probability the model returns
+is recorded and scored against what actually happened next.
 
-## Run a benchmark
+## The models
 
-Install Python 3.11+ and [uv](https://docs.astral.sh/uv/), then:
+| Model | Provider | Endpoint | Input price |
+| --- | --- | --- | --- |
+| `gpt-6-luna` | OpenAI [Decisions API](https://developers.openai.com/api/docs/guides/decisions) (public beta) | `api.openai.com/v1/responses` | $0.10 / 1M |
+| `jev-latest` | [TypeSafe Jev](https://docs.typesafe.ai/api-reference) | `api.typesafe.ai/v1/systemone` | $0.042 / 1M |
+| `clef` | Cloudflare [Clef](https://developers.cloudflare.com/workers-ai/models/clef/) (27B) | Workers AI | $0.24 / 1M |
+| `clef-flash` | Cloudflare Clef-flash (9B) | Workers AI | $0.09 / 1M |
+
+All four bill **input tokens only** — output is free because there is no output
+text, and none of them offers prompt caching. Pricing verified 2026-10-08.
+
+## Run it
+
+Install [Python 3.11+](https://www.python.org/) and [uv](https://docs.astral.sh/uv/), then:
 
 ```bash
 git clone https://github.com/kingabzpro/beatspy.git
 cd beatspy
-uv sync
-uv run beatspy setup
-uv run beatspy run
-uv run beatspy results
+uv sync --extra dev
+uv run beatspy models       # list the decision models and which keys are configured
+uv run beatspy setup        # pick a model and store its key
+uv run beatspy run --model clef-flash
 uv run beatspy report --open
 ```
 
-The default benchmark is a continuous portfolio from **2026-01-01 through the
-latest completed NYSE session** available at the run's release. Weekly decisions
-are capped at **36 per model** and span the full year-to-date period. Decisions
-use frozen adjusted prices, with extra warmup history excluded from scoring.
-23 large, established companies cover all 11 sectors. TLT and GLD are permitted hedges;
-SPY is comparison-only and cannot be bought by the model portfolio.
-This fixed surviving universe
-has survivorship bias; it is not historical index membership.
+`beatspy run` fetches frozen adjusted prices, walks the decision schedule, asks one
+provider for one decision's probabilities at a time, executes at the next
+session's open, and writes a scored run under `results/`.
 
-Finnhub dated company news activates when its key is available. Olostep is disabled
-for the default benchmark. TimeGPT forecasting is optional: install with
-`uv sync --extra timegpt`, configure `NIXTLA_API_KEY`, and select `timegpt` during setup
-or set `BEATSPY_FORECAST_PROVIDER=timegpt`. Use `FINNHUB_API_KEY`, the `BEATSPY_` equivalents,
-or enter them during setup. Secrets stay in environment variables or
-`~/.beatspy/secrets.env`. The dashboard contains no credentials.
-Current fundamentals and unarchived historical analyst ratings are withheld.
-Date-constrained news is not a complete historical archive, and models
-may already know historical outcomes.
-
-For a local Olostep comparison, set `OLOSTEP_API_KEY` and run:
+Useful flags:
 
 ```bash
-uv run beatspy run --web-research
+uv run beatspy run --model jev-latest --scenario 2026-ytd --freq weekly
+uv run beatspy run --model gpt-6-luna --max-decisions 12
+uv run beatspy run --model clef --form all      # ask every question form
+uv run beatspy calibrate <run-id>               # calibration table for one run
+uv run beatspy verify results/<run-id>          # offline replay of a finished run
+uv run beatspy compare                          # latest run per decision model
 ```
 
-This experimental mode uses Olostep's [Google parser](https://docs.olostep.com/features/structured-content/parsers)
-and [page scrapes](https://docs.olostep.com/api-reference/scrapes/create), with no generated web answers.
-Each decision allows two searches and three scrapes, with cached responses.
-Search snippets are withheld; page text requires a publication date and must not
-be published or updated after the decision date. Publisher metadata is not an
-authenticated historical archive, so these runs are excluded from the official leaderboard.
-Finnhub monthly recommendation trends are analyst sentiment, not weekly forecasts;
-they are unavailable for past decisions without an authenticated archive.
-Its separate price-target endpoint may require a paid entitlement.
+`beatspy demo` generates synthetic runs so you can preview the dashboard with no
+keys and no network.
 
-Any OpenAI-compatible endpoint with tool calling works. To avoid setup prompts:
+## What it asks
 
-```bash
-uv run beatspy setup --model your-model --base-url https://your-endpoint/v1 --api-key-env YOUR_MODEL_KEY
-```
+One typed question per candidate ticker, phrased identically for every provider:
+*will `TICKER` deliver a higher total return than `SPY` over the next N trading
+days?* Three forms, and the benchmark measures them against each other:
 
-`--max-decisions 60` selects 60 decisions across the same period for a local experiment.
-`--scenario`, `--model`, `--jobs`, and `--concurrency` remain available for custom
-experiments. Historical scenarios and 2025/2026 recent windows remain accessible.
-The dashboard has no filters and shows only the latest execution per model, with
-each result's period displayed. The active leaderboard contains only new benchmark results.
+| Form | Primitive | Answer |
+| --- | --- | --- |
+| `noul` | yes/no | P(ticker beats the benchmark) — **the only form that sizes the portfolio** |
+| `choice` | pick one | a distribution over outperform/underperform |
+| `rank` | ordered score | a five-level attractiveness, normalized to 0–1 |
 
-## Submit in one command
+`--form twin` (the default) asks noul and choice for the same ticker in one call.
+`--form all` asks all three. This matters, because the reported failure mode of
+these models is form-dependent: community replication found the `choice` form
+badly miscalibrated — a 70/30 event answered as heads **98%** of the time, with
+probabilities that moved when the options were reordered — while the predicate
+form returned 70% correctly. So the choice form is *measured as a hazard*, not
+trusted as a signal.
 
-```bash
-uv run beatspy submit --send
-# Or run and request verification together:
-uv run beatspy run --submit
-```
+## The sizing policy is fixed
 
-Install and authenticate [GitHub CLI](https://cli.github.com/) first. Submission
-validates the latest real run and sends a verification request; it never shares
-API keys. `beatspy submit` prepares the request locally without sending it.
-The dashboard's **Submit for verification** button opens a prefilled request too.
+Whatever the probabilities are, the mapping to a portfolio is fixed in code before
+any result is seen, so a run cannot be tuned after the fact:
 
-Accepted new leaderboard results come from the trusted main-branch runner using
-approved endpoints and owner-controlled credentials. It reruns the model, checks
-code integrity, replays scores, signs the exact exported artifacts with Ed25519,
-and automatically prepares a results PR. Each accepted run has a unique
-verification ID and downloadable signature. Reruns may differ from local scores.
-Local runs remain unsigned until the trusted workflow reruns and signs them.
+1. only `noul` probabilities are used;
+2. a ticker must exceed **0.5** to be held at all;
+3. the strongest **three** are equal-weighted, capped by the scenario's position limit;
+4. fewer than **two** qualifying names means the book goes fully to **cash**.
+
+An unanswered question is backfilled at the neutral 0.5 — so a provider failure is
+recorded as missing coverage and can never become a directional bet.
+
+## How it is scored
+
+**Calibration.** Every probability is labeled by whether that ticker actually beat
+the benchmark over the horizon — a *relative* outcome, so a rising market cannot
+mark every prediction correct. Reported per form: Brier, Brier skill (versus a
+constant at the sample rate), log loss, AUC with ties handled by the Mann-Whitney
+U statistic, accuracy, and 10-bin reliability with expected and maximum
+calibration error. The headline number is `miscalibration_gap`: the mean absolute
+distance between the noul and choice answers to the same question.
+
+**P&L.** The portfolio runs through the same accounting engine, on the same frozen
+prices, against SPY buy-and-hold and three deterministic references: equal weight,
+60/40, and 12-minus-1 momentum. Results are reported with the observation count
+and answer coverage beside them, because a return without its coverage is not
+interpretable.
+
+## Two things worth knowing before you trust a number
+
+**One window is one draw.** A single deterministic momentum rule swings across a
+~41-point range between sub-windows of one six-month period. Any single-window
+ranking is a sample from a distribution wider than most differences between
+models. Report the dispersion, not the peak.
+
+**Brier alone cannot say which way a model is wrong.** It is invariant under
+flipping both the probability and the outcome distribution. The reliability bins
+and accuracy are what distinguish "confidently wrong" from "hedging".
+
+## Requirements
+
+- Python 3.11+ and `uv`. Dependencies: pydantic, pandas, numpy, httpx,
+  exchange-calendars, yfinance.
+- A key for whichever decision model you run. TypeSafe needs `TYPESAFE_API_KEY`;
+  OpenAI needs `OPENAI_API_KEY`; Cloudflare needs `CLOUDFLARE_ACCOUNT_ID` plus
+  `CLOUDFLARE_AUTH_TOKEN`. Each also has a `BEATSPY_`-prefixed form that wins.
+- Keys live in the environment or `~/.beatspy/secrets.env`. The dashboard contains
+  no credentials.
+
+Everything is HTTP-based, so the Clef path works from Python through the Workers AI
+REST endpoint — no Cloudflare Worker or TypeScript build step is required.
 
 ## Development
 
 ```bash
-uv sync --extra dev --extra browser
+uv sync --extra dev
 uv run --no-sync pytest
 uv run --no-sync ruff check .
-uv run --no-sync ruff format --check .
 node --test tests/dashboard.test.cjs
-uv build
 ```
 
-Browser tests require `uv run playwright install chromium`. Ordinary tests use
-scripted agents; live forecast checks are opt-in. Chronos and TimeGPT remain
-optional extras. [Architecture](ARCHITECTURE.md) · [Apache-2.0](LICENSE)
+The whole test suite is hermetic: no network, no credentials, and no real models.
+A scripted offline client answers every question form, so complete runs are
+executed, scored, replayed, and rendered inside the tests.
 
-## Benchmark stock mix
-
-The fixed universe balances sector coverage with large, established companies.
-It is not a live ranking or a historical reconstruction of index membership.
-
-| Sector | Companies |
-| --- | --- |
-| Technology | Apple (AAPL), Microsoft (MSFT), Nvidia (NVDA) |
-| Communication services | Alphabet (GOOGL), Meta (META) |
-| Consumer discretionary | Amazon (AMZN), Home Depot (HD) |
-| Consumer staples | Walmart (WMT), Procter & Gamble (PG) |
-| Financials | JPMorgan Chase (JPM), Visa (V) |
-| Healthcare | Eli Lilly (LLY), Johnson & Johnson (JNJ) |
-| Energy | ExxonMobil (XOM), Chevron (CVX) |
-| Industrials | Caterpillar (CAT), GE Aerospace (GE) |
-| Utilities | NextEra Energy (NEE), Southern Company (SO) |
-| Materials | Linde (LIN), Sherwin-Williams (SHW) |
-| Real estate | Prologis (PLD), American Tower (AMT) |
-
-TLT and GLD are hedges; cash is allowed. SPY remains in frozen prices, research,
-forecasts, and baseline charts solely for comparison. Protocol 4 separates the
-market-data universe from the investable list, drops forbidden allocations with
-recorded violations, and rejects forbidden orders at execution and offline replay.
+Apache-2.0 · [LICENSE](LICENSE)

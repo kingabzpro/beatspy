@@ -1,3 +1,9 @@
-"""BeatSPY: give any AI model a team of trading agents. Can it beat SPY?"""
+"""BeatSPY: benchmark decision models, not chat models.
 
-__version__ = "0.2.2"
+A decision model reads a point-in-time state plus a schema of typed questions and
+returns probabilities. This package asks those questions about frozen historical
+markets and scores the answers twice: on calibration, and on a portfolio built
+from them.
+"""
+
+__version__ = "0.3.0"

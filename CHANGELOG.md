@@ -1,5 +1,46 @@
 # Changelog
 
+## 0.3.0 — decision-model benchmark
+
+**Breaking: the five-agent pipeline is gone.** This release replaces the chat-model
+agent benchmark with a benchmark for decision models. Nothing from the agent
+harness remains: no agents, no tool calling, no prompts, no news or web-research
+integrations, no forecast providers, and no signed-submission path. `main` and
+`main-backup-2026-10-06` still carry them.
+
+Added
+
+- Four decision models behind one contract: OpenAI Decisions (`gpt-6-luna`),
+  TypeSafe Jev (`jev-latest`), Cloudflare Clef and Clef-flash. All bill input
+  tokens only; pricing recorded in the model registry and cited in the README.
+- A point-in-time state builder that serves only data dated on or before the
+  decision, and stays inside a ~1,800-token budget because Workers AI silently
+  truncates long state at roughly 2K tokens.
+- Three question forms — `noul`, `choice`, `rank` — with a `twin` mode that asks
+  the first two of the same ticker in one call, so the form itself can be measured.
+- Calibration scoring: Brier, Brier skill, log loss, tie-aware AUC, accuracy, and
+  10-bin reliability with expected and maximum calibration error, plus
+  `miscalibration_gap` between the noul and choice answers.
+- Labeling that is *benchmark-relative* — did the ticker beat the benchmark over
+  the same horizon — so a rising market cannot mark every prediction correct.
+- A fixed sizing policy: only noul probabilities, a 0.5 threshold, top three
+  equal-weighted, cash only below two qualifying names. Unanswered questions
+  backfill at the neutral 0.5 and are never scored, so a failure is missing
+  coverage rather than a directional bet.
+- Commands: `models`, `doctor [--probe]`, `run`, `calibrate`, `verify`, `compare`,
+  `demo`, and `report`.
+- Offline replay verification that re-checks artifact hashes and the snapshot
+  manifest, replays recorded weights, and requires an exact metrics match.
+- A reliability-curve chart and per-run calibration columns on the dashboard.
+
+Changed
+
+- Dependencies pruned to pydantic, pandas, numpy, httpx, exchange-calendars and
+  yfinance. Removed: openai-agents, cryptography, and the chronos/timegpt/browser
+  extras.
+- `directional_accuracy` and the agent/tool telemetry are gone from metrics and
+  from the UI.
+
 ## 0.2.1
 
 - Protocol 4 separates tradable assets from benchmark data and blocks non-tradable orders.
