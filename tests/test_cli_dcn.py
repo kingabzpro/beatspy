@@ -9,6 +9,7 @@ runner offline).
 from __future__ import annotations
 
 import json
+import re
 import shutil
 
 import pytest
@@ -67,8 +68,14 @@ def test_doctor_offline_exits_zero_without_network(monkeypatch, capsys):
         assert name in out
         assert spec["label"] in out
         assert spec["base_url"] in out
-        assert spec["api_key_env"] in out
-    assert "No network calls were made" in out
+    # Report every model either way, but never assert WHICH way: whether a key
+    # resolves depends on the machine, and a test that hard-codes the credential
+    # state fails the moment someone configures one. Status lines carry ANSI
+    # colour codes, including inside the brackets, so strip them before matching.
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", out)
+    reported = re.findall(r"\[(?:PASS|WARN)\] model ", plain)
+    assert len(reported) == len(DECISION_MODELS)
+    assert "No network calls were made" in plain
 
 
 def test_doctor_probe_reports_the_probability(monkeypatch, capsys):
