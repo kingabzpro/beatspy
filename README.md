@@ -135,6 +135,18 @@ interpretable. Sharpe ratios use a zero risk-free rate (`risk_free_annual = 0.0`
 in `[bench]`, recorded per run in `run.json`), so they are raw
 return-over-volatility ratios.
 
+**Uncertainty.** The samples are clustered by decision date: the assets inside one
+week move together, so a run's effective sample is closer to its number of decision
+dates than to its number of predictions. `metrics.json` reports two things beside
+the headline numbers. The portfolio return and the paired excess over SPY each
+carry a 95% interval from a block bootstrap that resamples whole decision windows
+(1,000 draws, fixed seed). Each signal's Brier skill and AUC carry a two-sided
+permutation p-value, with outcomes shuffled within decision dates so each date's
+outcome count is held fixed; the null is "the model cannot tell the assets apart
+within a week". A large p-value means the observed statistic is what that null
+produces routinely, which is not evidence of skill and, at these sample sizes, not
+proof of its absence either.
+
 ## Latest benchmark
 
 Rolling six months to the latest completed session (`2026-6m`), weekly decisions,

@@ -236,6 +236,7 @@ async def run_dcn(
             decision_dates,
             decisions,
             observations,
+            clusters=[decision.date.isoformat() for decision in decisions for _ in decision.observed],
         )
 
         stamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
@@ -376,13 +377,16 @@ def calibration_from_decisions(decision_lines: list[dict]) -> CalibrationReport:
     differently from the original run.
     """
     observations: list[Observation] = []
+    clusters: list[str] = []
     for line in decision_lines:
         for row in line.get("observed") or []:
             observations.append(Observation(**row))
+            clusters.append(str(line.get("date")))
     summary = summarize_decisions(decision_lines)
     return build_report(
         observations,
         coverage=summary["coverage"],
         horizons=len(decision_lines),
         note="rebuilt offline from decisions.jsonl",
+        clusters=clusters,
     )

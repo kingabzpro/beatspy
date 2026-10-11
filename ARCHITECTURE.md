@@ -87,6 +87,17 @@ neutral 0.5 so the portfolio can be sized, but `answered_noul` / `answered_choic
 become observations. A test proves that a provider answering half the questions
 produces calibration statistics over exactly half of them.
 
+**Uncertainty is part of the report.** `dcn/statistics.py` supplies two tools,
+both seeded from a fixed constant and drawn a fixed number of times so replay
+reproduces every value exactly. The portfolio return and the paired excess over
+SPY carry a 95% interval from a block bootstrap that resamples whole decision
+windows, because the assets inside one week move together and resampling days
+would understate the interval. Each signal's Brier skill and AUC carry a
+two-sided permutation p-value, with outcomes shuffled within decision dates so
+each date's outcome count is held fixed; the null is "the model cannot tell the
+assets apart within a week, but the week itself may be up or down", which is the
+honest null for a benchmark-relative label.
+
 ## Sizing policy
 
 `dcn/pipeline.py` maps probabilities to a portfolio under fixed rules recorded in

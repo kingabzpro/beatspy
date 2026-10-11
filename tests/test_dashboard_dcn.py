@@ -52,17 +52,23 @@ INDEX_ROW_KEYS = {
     "estimated_cost_usd",
     "brier",
     "brier_skill_score",
+    "brier_skill_p_value",
     "auc",
+    "auc_p_value",
     "ece",
     "max_calibration_error",
     "calibration_gap",
+    "return_ci",
+    "excess_return_ci",
     "metrics",
 }
 
 CALIBRATION_ROW_KEYS = (
     "brier",
     "brier_skill_score",
+    "brier_skill_p_value",
     "auc",
+    "auc_p_value",
     "ece",
     "max_calibration_error",
     "calibration_gap",

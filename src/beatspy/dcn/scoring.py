@@ -11,6 +11,7 @@ returns probabilities, so the run is scored twice:
 
 from __future__ import annotations
 
+import bisect
 import statistics
 from datetime import date
 
@@ -26,8 +27,9 @@ from ..engine.metrics import (
     total_return,
     window_returns,
 )
-from ..schemas import RunMetrics
+from ..schemas import ConfidenceInterval, RunMetrics
 from .calibration import build_report
+from .statistics import BOOTSTRAP_DRAWS, block_bootstrap_excess, block_bootstrap_returns
 
 BASELINES = ("equal_weight", "sixty_forty", "momentum_12_1")
 
@@ -41,8 +43,40 @@ def estimate_cost(settings, input_tokens: int, output_tokens: int) -> float | No
     return round(total / 1e6, 6)
 
 
-async def score_run(data, scenario, settings, result, decision_dates, decisions, observations):
-    """Score one DCN run. `decisions` are DcnDecision records; no model calls here."""
+def decision_blocks(
+    portfolio_daily: pd.Series,
+    spy_daily: pd.Series,
+    decision_dates: list[date],
+) -> tuple[list[list[float]], list[list[float]]]:
+    """Split daily returns into one block per decision window, in schedule order.
+
+    Every trading day belongs to the most recent decision on or before it, so a
+    block spans the days the decision was actually holding. The bootstrap
+    resamples these blocks, which is what keeps the interval honest about
+    within-week correlation.
+    """
+    dates = sorted(decision_dates)
+    portfolio_blocks: list[list[float]] = [[] for _ in range(len(dates) + 1)]
+    spy_blocks: list[list[float]] = [[] for _ in range(len(dates) + 1)]
+    for day, value in portfolio_daily.items():
+        index = bisect.bisect_right(dates, day)
+        portfolio_blocks[index].append(float(value))
+        if day in spy_daily.index:
+            spy_blocks[index].append(float(spy_daily[day]))
+    return portfolio_blocks, spy_blocks
+
+
+def _interval(lower: float, upper: float) -> ConfidenceInterval:
+    return ConfidenceInterval(lower=round(lower, 6), upper=round(upper, 6), draws=BOOTSTRAP_DRAWS)
+
+
+async def score_run(data, scenario, settings, result, decision_dates, decisions, observations, *, clusters=None):
+    """Score one DCN run. `decisions` are DcnDecision records; no model calls here.
+
+    `clusters` is the decision date for each observation, in order, used for the
+    permutation test. Callers that cannot supply it still get a full report, just
+    without p-values.
+    """
     # SPY buy-and-hold from the same start value, through the same price data.
     spy_values: dict[date, float] = {}
     base_close = None
@@ -82,7 +116,21 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
         coverage=statistics.mean(coverages) if coverages else 0.0,
         horizons=len(decisions),
         note="labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+        # One cluster label per observation, in order, so the permutation test can
+        # shuffle within decision dates rather than across the whole run.
+        clusters=list(clusters) if clusters is not None else None,
     )
+
+    portfolio_blocks, spy_blocks = decision_blocks(daily_returns, spy_equity.pct_change().dropna(), decision_dates)
+    portfolio_blocks = [block for block in portfolio_blocks if block]
+    spy_blocks = [block for block in spy_blocks if block]
+    return_ci = None
+    excess_return_ci = None
+    if portfolio_blocks and spy_blocks:
+        lower, upper = block_bootstrap_returns(portfolio_blocks)
+        return_ci = _interval(lower, upper)
+        lower, upper = block_bootstrap_excess(portfolio_blocks, spy_blocks)
+        excess_return_ci = _interval(lower, upper)
 
     metrics = RunMetrics(
         total_return=round(total_return(result.equity), 6),
@@ -106,6 +154,8 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
         mean_latency_s=round(statistics.mean(latencies), 3) if latencies else 0.0,
         estimated_cost_usd=estimate_cost(settings, input_tokens, output_tokens),
         baselines={name: round(total_return(equity), 6) for name, equity in baseline_equity.items()},
+        return_ci=return_ci,
+        excess_return_ci=excess_return_ci,
     )
 
     equity_df = pd.DataFrame(

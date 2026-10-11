@@ -25,6 +25,7 @@ import math
 from dataclasses import dataclass
 
 from ..schemas import CalibrationReport, ReliabilityBin, SignalStats
+from . import statistics as statistics_
 
 CLIP = 1e-15
 BIN_COUNT = 10
@@ -148,18 +149,42 @@ def build_report(
     coverage: float,
     horizons: int,
     note: str = "",
+    clusters: list[str] | None = None,
 ) -> CalibrationReport:
-    """Aggregate every observation in a run into the reported calibration block."""
+    """Aggregate every observation in a run into the reported calibration block.
+
+    `clusters` is the decision date for each observation, in the same order. When
+    given, each signal also carries two-sided permutation p-values for its Brier
+    skill and AUC, with outcomes shuffled within dates so the date-level outcome
+    counts are held fixed.
+    """
     scored = [obs for obs in observations if obs.scored]
+    if clusters is not None and len(clusters) != len(scored):
+        raise ValueError("clusters must be aligned with the scored observations")
     signals: dict[str, SignalStats] = {}
     for name, attr in (("noul", "noul"), ("choice", "choice"), ("rank", "rank")):
-        pairs = [
-            (getattr(obs, attr), int(obs.outcome))
-            for obs in scored
+        selected = [
+            (index, getattr(obs, attr), int(obs.outcome))
+            for index, obs in enumerate(scored)
             if getattr(obs, attr) is not None and obs.outcome is not None
         ]
-        if pairs:
-            signals[name] = signal_stats(name, pairs)
+        if not selected:
+            continue
+        pairs = [(probability, outcome) for _, probability, outcome in selected]
+        stats = signal_stats(name, pairs)
+        if clusters is not None:
+            probabilities = [probability for _, probability, _ in selected]
+            outcomes = [outcome for _, _, outcome in selected]
+            group = [clusters[index] for index, _, _ in selected]
+            stats.brier_skill_p_value = _rounded(
+                statistics_.permutation_p_value(
+                    probabilities, outcomes, group, statistics_.brier_skill_statistic
+                )
+            )
+            stats.auc_p_value = _rounded(
+                statistics_.permutation_p_value(probabilities, outcomes, group, statistics_.auc_statistic)
+            )
+        signals[name] = stats
 
     # Paired form comparison: same ticker, same horizon, one call apart.
     gaps = [
@@ -177,6 +202,10 @@ def build_report(
         miscalibration_gap=miscalibration_gap,
         note=note,
     )
+
+
+def _rounded(value: float | None) -> float | None:
+    return None if value is None else round(value, 6)
 
 
 # Score levels are ordered worst-to-best, so level index / (levels - 1) is a

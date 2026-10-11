@@ -372,7 +372,7 @@ for the sequencing section at the very end.
   cross-model spread was scale, which needs provider credentials.
 
 ### V3. Add the statistical uncertainty layer
-`effort: M` · `status: todo`
+`effort: M` · `status: done`
 - **Why:** there is not a single confidence interval or p-value in the repo, yet
   the headline claim is "no measurable signal". The 625 observations are clustered
   in about 25 decision dates, so the effective sample is far smaller than it
@@ -383,6 +383,16 @@ for the sequencing section at the very end.
   and the dashboard.
 - **Done when:** every headline number ships with an interval, and "no signal" is
   a measured p-value rather than an assertion.
+- **Progress (2026-10-11):** `dcn/statistics.py` implements the decision-window
+  block bootstrap (portfolio return and paired excess over SPY, 95%, 1,000 draws,
+  fixed seed) and the within-date permutation test (Brier skill and AUC, two-sided,
+  1,000 draws). `metrics.json` carries `return_ci`, `excess_return_ci`, and
+  `brier_skill_p_value` / `auc_p_value` per signal; the catalog row flattens them
+  so published data carries them too. Replay reproduces every value exactly
+  (pinned by a test that rebuilds the report from `decisions.jsonl`), the fast
+  rank-based AUC is cross-checked against the Mann-Whitney one, and the README and
+  ARCHITECTURE explain the interpretation. Still open: the dashboard does not yet
+  draw the intervals or p-values, only the JSON payload carries them.
 
 ### V4. Publish the multi-window suite
 `effort: M` · `status: todo`

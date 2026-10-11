@@ -467,6 +467,7 @@ async def replay_run(run_dir: Path) -> dict:
     # ---- rebuild the decision records ------------------------------------ #
     records: list[_ReplayDecision] = []
     observations: list[Observation] = []
+    clusters: list[str] = []
     tradable = {ticker.upper() for ticker in scenario.tradable}
     for line in submitted:
         day = line["date"]
@@ -476,6 +477,7 @@ async def replay_run(run_dir: Path) -> dict:
             raise ValueError(f"{day}: recorded weights hold tickers outside the scenario universe: {outside}")
         records.append(record)
         observations.extend(observed)
+        clusters.extend([day] * len(observed))
 
     by_date = {record.date.isoformat(): record for record in records}
 
@@ -489,7 +491,7 @@ async def replay_run(run_dir: Path) -> dict:
 
     result = await run_backtest(data, decision_dates, replay_weights, scenario, allowed_tickers=scenario.tradable)
     expected_metrics, expected_equity = await score_run(
-        data, scenario, settings, result, decision_dates, records, observations
+        data, scenario, settings, result, decision_dates, records, observations, clusters=clusters
     )
 
     # ---- metrics --------------------------------------------------------- #

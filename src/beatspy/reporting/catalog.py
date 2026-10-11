@@ -99,7 +99,9 @@ def calibration_row(metrics) -> dict:
     row = {
         "brier": primary.get("brier"),
         "brier_skill_score": primary.get("brier_skill_score"),
+        "brier_skill_p_value": primary.get("brier_skill_p_value"),
         "auc": primary.get("auc"),
+        "auc_p_value": primary.get("auc_p_value"),
         "ece": primary.get("expected_calibration_error"),
         "max_calibration_error": primary.get("max_calibration_error"),
         "calibration_gap": calibration.get("miscalibration_gap"),
@@ -144,6 +146,10 @@ def summary(meta, metrics, directory, trust="replayed") -> dict:
         "answer_coverage": metrics.get("answer_coverage"),
         "mean_latency_s": metrics.get("mean_latency_s"),
         "estimated_cost_usd": metrics.get("estimated_cost_usd"),
+        # Uncertainty for the headline numbers, so a published row can show that
+        # a difference is or is not distinguishable from noise.
+        "return_ci": metrics.get("return_ci"),
+        "excess_return_ci": metrics.get("excess_return_ci"),
         "metrics": metrics,
     }
     row.update(calibration_row(metrics))

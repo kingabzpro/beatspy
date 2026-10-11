@@ -190,6 +190,21 @@ class SignalStats(BaseModel):
     expected_calibration_error: float | None = None
     max_calibration_error: float | None = None
     bins: list[ReliabilityBin] = Field(default_factory=list)
+    # Two-sided permutation p-values (outcomes shuffled within decision dates, so
+    # the date-level outcome counts are held fixed). None when there is nothing
+    # to test (no data, a single class, or no clusters recorded).
+    brier_skill_p_value: float | None = None
+    auc_p_value: float | None = None
+
+
+class ConfidenceInterval(BaseModel):
+    """A percentile interval from the decision-window block bootstrap."""
+
+    lower: float
+    upper: float
+    level: float = 0.95
+    draws: int = 0
+    method: str = "decision-window block bootstrap"
 
 
 class CalibrationReport(BaseModel):
@@ -295,6 +310,10 @@ class RunMetrics(BaseModel):
     mean_latency_s: float = 0.0
     estimated_cost_usd: float | None = None
     baselines: dict[str, float] = Field(default_factory=dict)
+    # Uncertainty for the headline return numbers. The samples are clustered by
+    # decision date, so the interval resamples whole decision windows.
+    return_ci: ConfidenceInterval | None = None
+    excess_return_ci: ConfidenceInterval | None = None
 
 
 # --------------------------------------------------------------------------- #
