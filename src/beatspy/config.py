@@ -109,19 +109,27 @@ class DecisionConfig(BaseModel):
     max_retries: int = 4
     # The sizing policy is fixed here so it cannot be tuned after seeing a
     # result. Only noul probabilities enter the portfolio.
-    #   graded_cs (default): fully invested across the whole universe, with the
-    #     conviction share allocated by each probability's distance above the
-    #     decision's own mean. Because the center comes from the decision itself,
-    #     the same ranking produces the same book regardless of a provider's
-    #     probability scale, so providers are compared on discrimination rather
-    #     than on how far their numbers sit from 0.5. A name the provider did
-    #     not answer carries no tilt at all.
+    #   core_satellite (default): `core_weight` of the book holds the benchmark
+    #     itself, and the rest is a satellite sleeve allocated by the
+    #     cross-sectional rule below. The portfolio therefore tracks the index by
+    #     construction, and "excess vs SPY" measures the model's active sleeve
+    #     instead of the cap-weighting drift an equal-weighted book carries. The
+    #     index core is exempt from the per-name position limit: it is not a
+    #     single-name bet.
+    #   graded_cs: fully invested across the whole universe, with the conviction
+    #     share allocated by each probability's distance above the decision's own
+    #     mean. Invariant to a provider's probability scale, so providers are
+    #     compared on discrimination rather than on how far their numbers sit
+    #     from 0.5. Without the index core, this book structurally lags a
+    #     cap-weighted benchmark in a mega-cap-led market.
     #   graded: conviction proportional to the probability above the fixed 0.5
     #     prior. Kept so runs recorded under it stay reproducible.
     #   top_n: the legacy cut: hold only `top_n` names above `min_probability`,
     #     equal-weighted, cash if fewer than `min_names` qualify. Kept so runs
     #     recorded under it stay reproducible.
-    selection: Literal["graded_cs", "graded", "top_n"] = "graded_cs"
+    selection: Literal["core_satellite", "graded_cs", "graded", "top_n"] = "core_satellite"
+    # Share of the book held in the benchmark itself under `core_satellite`.
+    core_weight: float = 0.85
     # Share of the graded book allocated by conviction; the remainder is even.
     base_weight: float = 0.5
     min_probability: float = 0.5
@@ -140,6 +148,8 @@ class DecisionConfig(BaseModel):
             )
         if self.max_retries < 0:
             raise ValueError("max_retries must be >= 0")
+        if not 0.0 <= self.core_weight < 1.0:
+            raise ValueError("core_weight must be in [0, 1)")
         return self
 
     @property
@@ -326,6 +336,9 @@ def render_config(settings: Settings) -> str:
         f"decision_model = {_toml_value(d.decision_model)}",
         f"timeout_s = {_toml_value(d.timeout_s)}",
         f"max_retries = {_toml_value(d.max_retries)}",
+        f"selection = {_toml_value(d.selection)}",
+        f"core_weight = {_toml_value(d.core_weight)}",
+        f"base_weight = {_toml_value(d.base_weight)}",
         f"min_probability = {_toml_value(d.min_probability)}",
         f"top_n = {_toml_value(d.top_n)}",
         f"min_names = {_toml_value(d.min_names)}",

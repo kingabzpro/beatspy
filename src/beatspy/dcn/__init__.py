@@ -22,6 +22,9 @@ from __future__ import annotations
 #    default sizing policy is graded_cs, which is invariant to a provider's
 #    probability scale. Runs recorded under 1 keep their own policy in run.json
 #    and are rejected by `beatspy verify` rather than re-scored under new rules.
-DCN_PROTOCOL = 2
+# 3: the default sizing policy is core_satellite: most of the book holds the
+#    benchmark itself, so the portfolio tracks the index and the excess reports
+#    the model's active sleeve. The index core is exempt from the position cap.
+DCN_PROTOCOL = 3
 
 __all__ = ["DCN_PROTOCOL"]

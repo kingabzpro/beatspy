@@ -90,30 +90,35 @@ choice form is *measured as a hazard*, not trusted as a signal.
 ## How the probabilities become a portfolio
 
 The mapping is fixed in code before any result is seen, so a run cannot be tuned
-after the fact. The default is **graded_cs**, the cross-sectional graded book:
+after the fact. The default is **core_satellite**:
 
 1. only `noul` probabilities are used;
-2. half the book is an even spread across the whole universe, so every asset is
-   always held at some weight;
-3. the other half is allocated in proportion to each asset's probability above
-   the decision's own mean (`base_weight`);
-4. the scenario's position limit applies per asset, and cash absorbs any remainder.
+2. `core_weight` of the book (default 85%) holds the benchmark itself, exempt
+   from the per-name position limit because the index is not a single-name bet;
+3. the remaining sleeve is allocated across the universe: half as an even
+   spread, half in proportion to each asset's probability above the decision's
+   own mean;
+4. the scenario's position limit applies per satellite, and cash absorbs any
+   remainder.
 
-Because the center is the decision itself, the same ranking produces the same
+Two properties matter. The portfolio tracks the index by construction, so
+"excess vs SPY" measures the model's active sleeve rather than the cap-weighting
+drift an equal-weighted book carries in a mega-cap-led market; and because the
+sleeve's center is the decision itself, the same ranking produces the same
 weights under any positive affine transform of a provider's probability scale.
-A provider that ranks the universe correctly but answers in a narrow band around
-0.1 is sized like one that answers in a wide band around 0.6; the comparison
-measures discrimination, while the calibration half of the benchmark scores the
-absolute numbers.
+`--core-weight 0.95` makes the book almost a tracker when that is what you want
+to measure.
 
-Two policies are kept for reproducing earlier runs. `selection = "graded"` measures
-conviction above the fixed 0.5 prior (the original default, scale-dependent), and
-`selection = "top_n"` is the earliest cut, which held only the top three names
-above 0.5, equal-weighted, and could emit nothing but 0% or 33% per position.
+Three policies are kept for comparison and for reproducing earlier runs.
+`selection = "graded_cs"` is the same cross-sectional rule applied to the whole
+book with no index core (the protocol-2 default). `selection = "graded"`
+measures conviction above the fixed 0.5 prior (the original default,
+scale-dependent). `selection = "top_n"` is the earliest cut, which held only the
+top three names above 0.5, equal-weighted.
 
-An unanswered question is backfilled at the neutral, and under every graded policy
-it carries no conviction share, so a provider failure is recorded as missing
-coverage and can never become a directional bet.
+An unanswered question is backfilled at the neutral, and under every graded
+policy it carries no conviction share, so a provider failure is recorded as
+missing coverage and can never become a directional bet.
 
 ## How it is scored
 
@@ -224,10 +229,13 @@ full tables and the assumptions behind them.
 flipping both the probability and the outcome distribution. The reliability bins
 and accuracy are what distinguish "confidently wrong" from "hedging".
 
-**Beating SPY is partly structural.** SPY is cap-weighted; any equal-weighted
-selection of the same universe tends to lag it in a mega-cap-led market. Compare
-against equal weight and momentum on the same universe to isolate what the model
-contributed. The dashboard reports both.
+**Beating SPY is partly structural, and the default policy removes it.** SPY is
+cap-weighted; an equal-weighted selection of the same universe tends to lag it in
+a mega-cap-led market. `core_satellite` holds the benchmark as the core of the
+book, so that drift is gone by construction and the excess over SPY is the
+model's active sleeve, costs included. Compare against equal weight and momentum
+on the same universe to see what the sleeve contributed; the dashboard reports
+both.
 
 ## Requirements
 

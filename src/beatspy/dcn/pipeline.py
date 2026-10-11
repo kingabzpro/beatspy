@@ -82,6 +82,43 @@ class DcnDecision:
         return (len(self.question_ids) - len(self.missing_ids)) / len(self.question_ids)
 
 
+def executable_tickers(scenario, policy) -> list[str]:
+    """The tickers the accounting engine may hold under one policy.
+
+    Every policy may hold the tradable universe. `core_satellite` additionally
+    holds the benchmark itself as the index core, which is what makes the
+    portfolio track the benchmark instead of carrying the drift of an
+    equal-weighted book.
+    """
+    tickers = [ticker.upper() for ticker in scenario.tradable]
+    benchmark = scenario.benchmark.upper()
+    if policy.selection == "core_satellite" and benchmark not in tickers:
+        tickers.append(benchmark)
+    return tickers
+
+
+def _cross_sectional_tilts(
+    probabilities: dict[str, float],
+    answered: dict[str, float] | None,
+    universe: list[str],
+) -> tuple[dict[str, float], float]:
+    """Tilts about the decision's own mean, and that mean.
+
+    Only values the provider actually returned are considered, so a backfilled
+    neutral cannot win the conviction share. Invariant to any positive affine
+    transform of the provider's scale: the center moves with the numbers.
+    """
+    source = probabilities if answered is None else answered
+    values = {
+        ticker: float(value)
+        for ticker, value in source.items()
+        if ticker in universe and value is not None
+    }
+    center = sum(values.values()) / len(values) if values else 0.0
+    tilts = {ticker: max(0.0, value - center) for ticker, value in values.items()}
+    return tilts, center
+
+
 def derive_weights(
     probabilities: dict[str, float],
     policy,
@@ -92,26 +129,60 @@ def derive_weights(
 ) -> ValidatedDecision:
     """Turn probabilities into a portfolio.
 
-    Three fixed policies, selected by `policy.selection`:
+    Four fixed policies, selected by `policy.selection`:
 
-    - **graded_cs** (default): the cross-sectional graded book. Half the book is
-      an even spread over the universe; the other half follows each probability's
-      distance above the decision's own mean. Because the center is the decision
-      itself, the same ranking yields the same weights under any positive affine
-      transform of a provider's scale, so two providers are compared on
-      discrimination rather than on how far their numbers sit from 0.5. Names the
-      provider did not answer (`answered`) carry no tilt at all: an unanswered
-      question must never become a directional bet.
+    - **core_satellite** (default): `policy.core_weight` of the book holds the
+      benchmark itself, and the remaining sleeve is allocated across the
+      universe by the cross-sectional rule below. The portfolio therefore tracks
+      the index by construction, and the excess over SPY measures the model's
+      active sleeve rather than the cap-weighting drift of an equal-weighted
+      book. The core is exempt from the per-name position limit.
+    - **graded_cs**: the cross-sectional graded book. Half the book is an even
+      spread over the universe; the other half follows each probability's
+      distance above the decision's own mean. Invariant to a provider's
+      probability scale.
     - **graded**: the original, conviction measured above the fixed 0.5 prior.
       Kept so runs recorded under it stay reproducible.
     - **top_n**: the legacy cut, kept for the same reason.
 
-    Under every graded policy nothing is chosen and nothing is dropped, so a weak
-    forecast is a mild tilt rather than a binary switch. If no asset has any tilt,
-    the book holds the even spread rather than going to cash, so the portfolio is
-    always comparable.
+    Under every graded policy nothing is chosen and nothing is dropped, so a
+    weak forecast is a mild tilt rather than a binary switch. If no asset has any
+    tilt, the book holds the even spread rather than going to cash, so the
+    portfolio is always comparable. Names the provider did not answer carry no
+    tilt: an unanswered question must never become a directional bet.
     """
-    tradable = [ticker for ticker in scenario.tradable if benchmark is None or ticker != benchmark]
+    benchmark_ticker = (benchmark or scenario.benchmark).upper()
+    tradable = [ticker for ticker in scenario.tradable if ticker.upper() != benchmark_ticker]
+
+    if policy.selection == "core_satellite":
+        core = min(max(float(policy.core_weight), 0.0), 1.0)
+        sleeve = 1.0 - core
+        weights: dict[str, float] = {}
+        if core > 0:
+            weights[benchmark_ticker] = core
+        if sleeve > 0 and tradable:
+            tilts, _ = _cross_sectional_tilts(probabilities, answered, tradable)
+            total = sum(tilts.values())
+            uniform = sleeve / len(tradable)
+            if total <= 1e-12:
+                for ticker in tradable:
+                    weights[ticker] = weights.get(ticker, 0.0) + uniform
+            else:
+                base = sleeve * (1.0 - policy.base_weight)
+                for ticker in tradable:
+                    weights[ticker] = weights.get(ticker, 0.0) + base / len(tradable)
+                for ticker, tilt in tilts.items():
+                    weights[ticker] = weights.get(ticker, 0.0) + sleeve * policy.base_weight * (tilt / total)
+        if not weights:
+            return ValidatedDecision(weights={}, cash=1.0)
+        return validate_weights(
+            weights,
+            None,
+            executable_tickers(scenario, policy),
+            scenario.max_position_weight,
+            exempt={benchmark_ticker},
+        )
+
     if not tradable:
         return ValidatedDecision(weights={}, cash=1.0)
 
@@ -138,14 +209,7 @@ def derive_weights(
     base = 1.0 - policy.base_weight
 
     if policy.selection == "graded_cs":
-        source = probabilities if answered is None else answered
-        values = {
-            ticker: float(value)
-            for ticker, value in source.items()
-            if ticker in tradable and value is not None
-        }
-        center = sum(values.values()) / len(values) if values else 0.0
-        tilts = {ticker: max(0.0, value - center) for ticker, value in values.items()}
+        tilts, _ = _cross_sectional_tilts(probabilities, answered, tradable)
         total = sum(tilts.values())
         if total <= 1e-12:
             # Nothing to distinguish, or a degenerate cross-section: the even

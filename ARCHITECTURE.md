@@ -101,13 +101,20 @@ honest null for a benchmark-relative label.
 ## Sizing policy
 
 `dcn/pipeline.py` maps probabilities to a portfolio under fixed rules recorded in
-`run.json` before any result is seen. The default, `graded_cs`, holds the whole
-universe: half the book is an even spread and half follows each probability's
-distance above the decision's own mean, so the same ranking produces the same
-weights regardless of a provider's probability scale. `graded` (conviction above
-the fixed 0.5 prior) and `top_n` (the earliest top-N cut) are kept so runs
-recorded under them stay reproducible. Under every graded policy a name the
-provider did not answer carries no conviction share.
+`run.json` before any result is seen. The default, `core_satellite`, holds
+`core_weight` of the book in the benchmark itself (exempt from the per-name
+position limit, since holding the index is not a concentration bet) and
+allocates the rest as a satellite sleeve: half an even spread, half in
+proportion to each probability's distance above the decision's own mean. The
+portfolio therefore tracks the index by construction, and the excess over SPY
+measures the active sleeve rather than the drift of an equal-weighted book; the
+sleeve's cross-sectional center makes its weights invariant to a provider's
+probability scale.
+
+`graded_cs` (the whole book, no core), `graded` (conviction above the fixed 0.5
+prior) and `top_n` (the earliest cut) are kept so runs recorded under them stay
+reproducible. Under every graded policy a name the provider did not answer
+carries no conviction share.
 
 `schemas.validate_weights` then clamps to the scenario's position limit and
 records every correction as a violation rather than applying it silently.

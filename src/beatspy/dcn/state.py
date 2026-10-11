@@ -23,7 +23,8 @@ from datetime import date
 
 BENCHMARK_NOTE = (
     "All figures are computed from prices dated on or before as_of. "
-    "The benchmark column is the comparison index itself; it is not investable."
+    "The benchmark column is the comparison index; the sizing policy decides "
+    "whether the portfolio may hold it."
 )
 
 

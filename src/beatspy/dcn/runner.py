@@ -30,7 +30,7 @@ from ..schemas import CalibrationReport
 from . import DCN_PROTOCOL
 from .calibration import Observation, build_report
 from .clients import DcnClient, make_client
-from .pipeline import DcnDecision, DcnPipeline, label_observations
+from .pipeline import DcnDecision, DcnPipeline, executable_tickers, label_observations
 
 log = logging.getLogger(__name__)
 
@@ -225,7 +225,7 @@ async def run_dcn(
             return {"weights": target}
 
         result: BacktestResult = await run_backtest(
-            data, decision_dates, weight_fn, scenario, allowed_tickers=scenario.tradable
+            data, decision_dates, weight_fn, scenario, allowed_tickers=executable_tickers(scenario, settings.decision)
         )
 
         metrics, equity_df = await score_run(
@@ -282,6 +282,7 @@ async def run_dcn(
                 "policy": {
                     "selection": settings.decision.selection,
                     # Recorded in full so the artifact alone explains the weights.
+                    "core_weight": settings.decision.core_weight,
                     "base_weight": settings.decision.base_weight,
                     "min_probability": settings.decision.min_probability,
                     "top_n": settings.decision.top_n,

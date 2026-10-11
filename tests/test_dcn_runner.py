@@ -64,7 +64,8 @@ def test_run_metadata_identifies_the_decision_model_and_policy(per_asset_run_dir
     assert decision["provider"] in ("openai_decisions", "typesafe", "cloudflare")
     assert decision["question_form"] == "per_asset"
     assert decision["policy"] == {
-        "selection": "graded_cs",
+        "selection": "core_satellite",
+        "core_weight": 0.85,
         "base_weight": 0.5,
         "min_probability": 0.5,
         "top_n": 3,
@@ -178,13 +179,18 @@ def test_one_question_per_asset_per_decision_by_default(per_asset_run_dir):
     assert metrics["calibration"]["observations"] == len(lines) * len(universe)
 
 
-def test_the_graded_book_holds_every_asset_and_stays_invested(per_asset_run_dir):
-    """No 0%/33% oscillation: all assets held, always fully invested."""
-    _, metrics, lines = read_run(per_asset_run_dir)
-    assert metrics["policy"]["selection"] == "graded" if "policy" in metrics else True
+def test_the_book_holds_the_index_core_and_every_asset(per_asset_run_dir):
+    """The core_satellite book: the benchmark as core, every asset in the sleeve."""
+    meta, _, lines = read_run(per_asset_run_dir)
+    policy = meta["decision"]["policy"]
+    assert policy["selection"] == "core_satellite"
+    benchmark = meta["scenario"]["benchmark"]
     for line in lines:
         weights = line["validated"]["weights"]
-        assert len(weights) == len(line["tickers"]), "every asset should carry weight"
+        # The index core is exactly the recorded share, exempt from the position
+        # cap, and every asked-about asset sits in the satellite sleeve.
+        assert weights[benchmark] == pytest.approx(policy["core_weight"])
+        assert set(line["tickers"]) <= set(weights), "every asset should carry weight"
         # `cash` is recorded rounded to 4 decimals, so allow for that alone.
         assert sum(weights.values()) + line["validated"]["cash"] == pytest.approx(1.0, abs=1e-3)
         assert all(weight > 0 for weight in weights.values())

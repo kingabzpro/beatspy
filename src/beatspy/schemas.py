@@ -237,6 +237,8 @@ def validate_weights(
     cash: float | None,
     tradable: list[str],
     max_weight: float,
+    *,
+    exempt: frozenset[str] | set[str] = frozenset(),
 ) -> ValidatedDecision:
     """Clamp a weight map to tradable tickers and risk limits.
 
@@ -244,8 +246,13 @@ def validate_weights(
     clamped to max_weight, and exposure is capped at 1.0 with the remainder in
     cash. Every correction is recorded as a violation rather than silently
     applied.
+
+    `exempt` names are held outside the per-name cap. The only user is the
+    `core_satellite` policy's index core: holding the benchmark itself is not a
+    single-name concentration bet, so the position limit does not apply to it.
     """
     violations: list[str] = []
+    exempt_upper = {str(name).upper() for name in exempt}
     cleaned: dict[str, float] = {}
     for ticker, weight in weights.items():
         name = str(ticker).upper().strip()
@@ -269,6 +276,8 @@ def validate_weights(
         violations.append(f"scaled exposure from {total:.1%} to {1.0 - cash:.1%}")
 
     for ticker in list(cleaned):
+        if ticker in exempt_upper:
+            continue
         if cleaned[ticker] > max_weight + 1e-9:
             violations.append(f"clamped {ticker} from {cleaned[ticker]:.1%} to {max_weight:.1%}")
             cleaned[ticker] = max_weight

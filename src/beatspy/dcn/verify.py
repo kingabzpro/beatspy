@@ -39,6 +39,7 @@ from ..engine.backtest import run_backtest
 from ..schemas import RunMetrics, Scenario
 from . import DCN_PROTOCOL
 from .calibration import Observation
+from .pipeline import executable_tickers
 from .scoring import score_run
 
 SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,199}")
@@ -364,6 +365,11 @@ async def replay_run(run_dir: Path) -> dict:
             {
                 "decision": {
                     "decision_model": decision.get("decision_model"),
+                    # The policy decides which tickers the recorded weights may
+                    # legally hold, so it is read back rather than assumed.
+                    "selection": policy.get("selection", "graded"),
+                    "core_weight": policy.get("core_weight", 0.85),
+                    "base_weight": policy.get("base_weight", 0.5),
                     "min_probability": policy.get("min_probability", 0.5),
                     "top_n": policy.get("top_n", 3),
                     "min_names": policy.get("min_names", 2),
@@ -468,11 +474,11 @@ async def replay_run(run_dir: Path) -> dict:
     records: list[_ReplayDecision] = []
     observations: list[Observation] = []
     clusters: list[str] = []
-    tradable = {ticker.upper() for ticker in scenario.tradable}
+    executable = {ticker.upper() for ticker in executable_tickers(scenario, settings.decision)}
     for line in submitted:
         day = line["date"]
         record, weights, observed = _read_decision(day, line)
-        outside = sorted(set(weights) - tradable)
+        outside = sorted(set(weights) - executable)
         if outside:
             raise ValueError(f"{day}: recorded weights hold tickers outside the scenario universe: {outside}")
         records.append(record)
@@ -489,7 +495,9 @@ async def replay_run(run_dir: Path) -> dict:
         target = state.weights(day, data) if (record.validated.invalid or record.error) else record.validated.weights
         return {"weights": dict(target)}
 
-    result = await run_backtest(data, decision_dates, replay_weights, scenario, allowed_tickers=scenario.tradable)
+    result = await run_backtest(
+        data, decision_dates, replay_weights, scenario, allowed_tickers=executable_tickers(scenario, settings.decision)
+    )
     expected_metrics, expected_equity = await score_run(
         data, scenario, settings, result, decision_dates, records, observations, clusters=clusters
     )

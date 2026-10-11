@@ -18,13 +18,18 @@ max_retries = 4
 
 # The sizing policy. Fixed here so a run cannot be tuned after seeing a result.
 # Only noul probabilities enter the portfolio.
-#   graded (default): half the book is an even spread across the whole universe
-#     and half follows conviction, so every asset is always held and a weak
-#     forecast is a mild tilt rather than a binary switch.
-#   top_n: the legacy cut. Hold only `top_n` names above `min_probability`,
-#     equal-weighted, cash when fewer than `min_names` qualify.
-selection = "graded"
-# Share of the graded book allocated by conviction; the remainder is even.
+#   core_satellite (default): `core_weight` of the book holds the benchmark
+#     itself and the rest is a satellite sleeve allocated by cross-sectional
+#     conviction, so the portfolio tracks the index and "excess vs SPY" measures
+#     the model's active sleeve. The index core is exempt from the position cap.
+#   graded_cs: fully invested across the universe, sized by each probability's
+#     distance above the decision's own mean (invariant to a provider's scale).
+#   graded: the original rule, conviction above the fixed 0.5 prior.
+#   top_n: the legacy top-N cut, kept so recorded runs stay reproducible.
+selection = "core_satellite"
+core_weight = 0.85
+# Share of the sleeve (or of the whole book under graded_cs) allocated by
+# conviction; the remainder is an even spread.
 base_weight = 0.5
 min_probability = 0.5
 top_n = 3

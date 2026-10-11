@@ -131,6 +131,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--label", help="free-text label stored in the run record")
     p.add_argument(
+        "--core-weight",
+        type=float,
+        default=None,
+        help="share of the book held in the benchmark itself under the core_satellite policy (default 0.85)",
+    )
+    p.add_argument(
         "--max-cost-usd",
         type=float,
         default=None,
@@ -611,6 +617,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .schemas import Scenario
 
     settings = load_settings()
+    if args.core_weight is not None:
+        # Applies to every model in this invocation, so their books stay
+        # comparable; the value is recorded in each run.json.
+        settings.decision.core_weight = args.core_weight
     # `--model` may name several models. They share nothing but the frozen
     # snapshot, so they run concurrently rather than one after another.
     models = list(dict.fromkeys(args.model or [settings.decision.decision_model]))
