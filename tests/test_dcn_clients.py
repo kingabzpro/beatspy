@@ -541,7 +541,8 @@ class TestRouterProviders:
     @pytest.mark.parametrize(
         "model",
         ["requesty-clef", "openrouter-pplx-decider", "openrouter-solar-decide", "openrouter-mercury-decide",
-         "openrouter-jev-1-13", "openrouter-microsoft-decision-1", "openrouter-liquid-d1"],
+         "openrouter-jev-1-13", "openrouter-microsoft-decision-1", "openrouter-liquid-d1",
+         "openrouter-clef-omni", "openrouter-drex"],
     )
     def test_router_models_parse_a_typed_answer(self, model, monkeypatch):
         key_env = DECISION_MODELS[model]["api_key_env"]

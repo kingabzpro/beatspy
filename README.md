@@ -4,7 +4,7 @@
 
 **Decision models, not chat models.**
 
-Six decision models read one frozen point-in-time market state, answer the same
+Eight decision models read one frozen point-in-time market state, answer the same
 typed probability questions, and are scored twice: were the probabilities
 calibrated, and did the portfolio they built beat SPY?
 
@@ -13,7 +13,7 @@ calibrated, and did the portfolio they built beat SPY?
 [![CI](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml/badge.svg)](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Full 6-model run](https://img.shields.io/badge/full%206--model%20run-%240.11-brightgreen.svg)](#the-models)
+[![Full 8-model run](https://img.shields.io/badge/full%208--model%20run-%240.14-brightgreen.svg)](#the-models)
 
 </div>
 
@@ -42,6 +42,8 @@ rebalance band, so weekly noise does not become fees.
 | `jev-latest` | +8.29% | −0.80% | −6.80% | [−17.42%, +2.83%] | 1.67 | −2.82% | 19.6% | −0.064 | 0.478 | 0.54 |
 | `pplx-decider` | +8.16% | −0.93% | −6.93% | [−19.43%, +4.28%] | 1.64 | −3.32% | 21.3% | −0.195 | 0.476 | 0.51 |
 | `ms-decision-1` | +5.96% | −3.13% | −9.13% | [−21.87%, +2.75%] | 1.21 | −3.32% | 28.4% | −0.642 | 0.472 | 0.74 |
+| `clef-omni` | +7.72% | −1.37% | −7.37% | [−20.85%, +4.03%] | 1.66 | −3.41% | 18.2% | −0.449 | 0.490 | 0.61 |
+| `drex-v1.5` | +7.08% | −2.01% | −8.01% | [−22.63%, +4.28%] | 1.52 | −2.76% | 16.7% | −0.463 | 0.462 | 0.82 |
 | *pool, equal weight* | *+9.09%* | *n/a* | *−6.00%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 | *60/40, benchmark and Treasuries* | *+5.19%* | *n/a* | *−9.90%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 | *12-1 momentum, top 3* | *−0.26%* | *n/a* | *−15.35%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
@@ -115,7 +117,7 @@ its place.
 All four bill **input tokens only**: output is free because there is no output
 text, and none offers prompt caching (pricing checked 2026-10-08). One run asks
 one question per asset and one call answers them all, so a complete 25-week
-benchmark of all six models costs about **$0.11**.
+benchmark of all eight models costs about **$0.14**.
 
 Two routers serve decision models from other providers, and the benchmark speaks
 their contract directly (verified live 2026-10-12):
@@ -129,6 +131,8 @@ their contract directly (verified live 2026-10-12):
 | `openrouter-jev-1-13` | OpenRouter | TypeSafe Jev 1.13, pinned | $0.042 / 1M |
 | `openrouter-microsoft-decision-1` | OpenRouter | Microsoft Decision 1 | $0.042 / 1M |
 | `openrouter-liquid-d1` | OpenRouter | Liquid D1 | $0.04 / 1M |
+| `openrouter-clef-omni` | OpenRouter | Cloudflare Clef Omni | $0.15 / 1M |
+| `openrouter-drex` | OpenRouter | Nace AI Drex v1.5 | $0.04 / 1M |
 
 `openrouter.ai/api/v1/models?output_modalities=decisions` is the live list, and
 on 2026-10-12 it served nineteen decision models, several with free tiers. Two
