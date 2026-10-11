@@ -63,6 +63,8 @@ test('one leaderboard row per decision model, chosen by execution time, never be
   assert.deepEqual(leaderboardRuns([]), []);
   assert.equal(modelName('zai-org/GLM-5.3'), 'GLM-5.3');
   assert.equal(modelName('clef-flash'), 'clef-flash');
+  // Router-served models are presented by model name, not by their route.
+  assert.equal(modelName('openrouter-kev-4b'), 'kev-4b');
   assert.equal(percent(0.1234), '12.34%');
   assert.equal(percent(undefined), 'n/a');
   // An input-only decision-model run costs fractions of a cent, so tiny values keep more digits.
@@ -305,7 +307,7 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   runButton.onclick();  // selects the run
   await settle();
   assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
-  assert.equal($('metrics').children.length, 8);
+  assert.equal($('metrics').children.length, 6);
   const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
   assert.match(metricText, /Excess vs SPY/);
   assert.match(metricText, /95% interval/);

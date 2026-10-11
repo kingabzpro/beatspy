@@ -63,7 +63,9 @@ function parseCSV(text) {
 }
 
 function modelName(model) {
-  return String(model).split("/").at(-1);
+  // Router-served models carry their route as a key prefix ("route-model"); the
+  // board names the model, not the transport that happened to serve it.
+  return String(model).replace(/^openrouter-/, "").split("/").at(-1);
 }
 
 function leaderboardRuns(runs) {
@@ -155,39 +157,18 @@ if (typeof document !== "undefined") {
     for (const [key, value] of Object.entries(attrs || {})) result.setAttribute(key, String(value));
     return result;
   };
-  // [row key, heading, formatter, source of the value]. "vs pool" is the number
-  // that isolates the model: its return minus simply holding the same universe
-  // equally, which is what the scenario hands it.
+  // The board is deliberately short: the return, the two risk numbers, and the
+  // two calibration numbers. Everything else lives in the run's detail panel.
   const COLUMNS = [
     ["model", "Model", "text", "row"],
-    ["provider", "Provider", "text", "row"],
     ["total_return", "Return", "percent", "metrics"],
-    ["return_vs_pool", "vs pool", "signed", "computed"],
     ["excess_return_vs_spy", "vs SPY", "signed", "metrics"],
     ["sharpe", "Sharpe", "ratio", "metrics"],
     ["max_drawdown", "Max DD", "percent", "metrics"],
-    ["avg_turnover", "Turnover", "percent", "metrics"],
-    ["brier", "Brier", "score", "row"],
-    ["brier_skill_score", "Skill", "score", "row"],
+    ["brier_skill_score", "Brier skill", "score", "row"],
     ["auc", "AUC", "score", "row"],
-    ["auc_p_value", "p(AUC)", "score", "row"],
-    ["estimated_cost_usd", "Cost", "money", "row"],
   ];
-  const COMPUTED = {
-    return_vs_pool: run => {
-      const total = run.metrics?.total_return, pool = run.metrics?.baselines?.equal_weight;
-      return Number.isFinite(total) && Number.isFinite(pool) ? total - pool : null;
-    },
-  };
   const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count,
-    // Decision-model costs land in fractions of a cent, so four decimals would
-    // render several providers as the same $0.0000. Show micro-dollars instead.
-    money: value => {
-      const amount = Number(value);
-      if (!Number.isFinite(amount)) return "n/a";
-      if (amount === 0) return "$0";
-      return amount >= 0.01 ? `$${amount.toFixed(4)}` : `$${amount.toFixed(6)}`;
-    },
     // These models answer in tens to hundreds of milliseconds; "0.00 s" hides
     // every difference between them.
     millis: value => {
@@ -197,7 +178,6 @@ if (typeof document !== "undefined") {
     }};
   const rowValue = (run, key, source) => {
     if (key === "model") return modelName(run.model);
-    if (source === "computed") return COMPUTED[key] ? COMPUTED[key](run) : null;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
   let runs = [], visible = [], selected = null, loading = 0;
@@ -222,8 +202,7 @@ if (typeof document !== "undefined") {
   function renderPricing() {
     const records = Object.entries(PRICES).map(([model, rates]) => {
       const row = node("tr");
-      row.append(node("td", model), node("td", rates.provider), node("td", `$${rates.input.toFixed(3)}`, "num"),
-        node("td", `$${rates.output.toFixed(2)}`, "num"), node("td", "None"));
+      row.append(node("td", model), node("td", `$${rates.input.toFixed(3)}`, "num"));
       const cell = node("td"), link = node("a", "Source ↗");
       link.href = rates.source; link.rel = "noreferrer noopener"; link.target = "_blank";
       cell.append(link); row.append(cell);
@@ -231,7 +210,7 @@ if (typeof document !== "undefined") {
       return row;
     });
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
-    for (const title of ["Decision model", "Provider", "Input USD / M", "Output USD / M", "Prompt caching", "Pricing source"]) {
+    for (const title of ["Decision model", "Input USD / M", "Pricing source"]) {
       header.append(node("th", title));
     }
     head.append(header); element.append(head, body);
@@ -240,7 +219,7 @@ if (typeof document !== "undefined") {
   }
   function renderBoard() {
     visible = leaderboardRuns(runs);
-    $("board-window").textContent = "Latest completed result per decision model; every row shows its own evaluation window.";
+    $("board-window").textContent = "Latest completed result per decision model.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
@@ -278,7 +257,7 @@ if (typeof document !== "undefined") {
       button.onclick = () => {descending = sortKey === key ? !descending : true; sortKey = key; renderBoard();};
       th.append(button); header.append(th);
     }
-    header.append(node("th", "Period")); head.append(header); element.append(head, body);
+    head.append(header); element.append(head, body);
     for (const run of visible) {
       const row = node("tr");
       if (run.run_id === selected) row.className = "selected";
@@ -303,7 +282,6 @@ if (typeof document !== "undefined") {
         const tone = Number.isFinite(value) ? (value >= 0 ? "positive" : "negative") : "";
         row.append(node("td", FORMAT[kind](raw), `num ${key === "excess_return_vs_spy" ? tone : ""}`));
       }
-      row.append(node("td", `${run.start} → ${run.end}`));
       body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
@@ -478,7 +456,7 @@ if (typeof document !== "undefined") {
       $("run-details").hidden = false;
       $("run-title").textContent = `${modelName(run.model)} · ${run.question_form} questions`;
       $("run-trust").textContent = TRUST[run.trust] || "Unrecorded";
-      $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"} · Provider ${run.provider}`;
+      $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
       $("metrics").replaceChildren();
       const noulStats = calibration?.signals?.noul || {};
       const excessCi = run.metrics.excess_return_ci;
@@ -493,8 +471,6 @@ if (typeof document !== "undefined") {
         ["Maximum drawdown", percent(run.metrics.max_drawdown), run.metrics.max_drawdown, "peak to trough"],
         ["Brier (noul)", score(noulStats.brier), null, `Brier skill ${score(noulStats.brier_skill_score)}: above 0 beats a constant`],
         ["AUC (noul)", score(noulStats.auc), null, `permutation p = ${score(noulStats.auc_p_value)}: 0.5 is chance`],
-        ["ECE (noul)", score(noulStats.expected_calibration_error), null, "expected calibration error, lower is better"],
-        ["Turnover per decision", percent(run.metrics.avg_turnover), null, "share of the book traded, one-sided"],
       ];
       for (const [title, formatted, value, note] of tiles) {
         const tile = node("div", undefined, "metric");

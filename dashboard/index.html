@@ -82,7 +82,7 @@
       <section id="calibration" aria-labelledby="calibration-title">
         <div class="section-heading"><div><p class="eyebrow">CALIBRATION</p><h2 id="calibration-title">Reliability</h2></div></div>
         <figure class="panel"><h3>Reliability curve</h3>
-          <p class="caption">Each point is one bin of predictions: what the model said on the x-axis, what actually happened on the y-axis. A model whose points sit on the dashed diagonal is honest about its own confidence. Points <em>above</em> the line mean underconfidence, the events happened more often than the model claimed; points <em>below</em> mean overconfidence. Point size grows with the bin count, so a lone point is noise. Brier, Brier skill, log loss, AUC and ECE in the leaderboard all come from these same scored observations.</p>
+          <p class="caption">Each point is one bin of predictions: what the model said on the x-axis, what actually happened on the y-axis. A model whose points sit on the dashed diagonal is honest about its own confidence. Points <em>above</em> the line mean underconfidence, the events happened more often than the model claimed; points <em>below</em> mean overconfidence. Point size grows with the bin count, so a lone point is noise. The Brier skill and AUC on the leaderboard come from these same scored observations.</p>
           <div id="reliability"></div>
           <p class="caption" id="reliability-bins-caption">Every bin, including the empty ones: predicted range, how many answers landed in it, and the observed outcome rate.</p>
           <div id="reliability-bins" class="table-wrap"></div>
