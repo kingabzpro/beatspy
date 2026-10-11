@@ -212,6 +212,9 @@ def _pricing(spec: dict) -> str:
 
 def _key_status(name: str, spec: dict) -> tuple[bool, str]:
     """Whether a model can authenticate, plus a one-line explanation."""
+    if spec["provider"] in ("hf_space", "hf_rest"):
+        # A Space runs on Hugging Face hardware and takes no key.
+        return True, "no key needed"
     if not decision_api_key(name):
         return False, f"missing {spec['api_key_env']}"
     if spec["provider"] == "cloudflare" and not cloudflare_account_id():
