@@ -114,8 +114,10 @@ the benchmark over the horizon — a *relative* outcome, so a rising market cann
 mark every prediction correct. Reported per form: Brier, Brier skill (versus a
 constant at the sample rate), log loss, AUC with ties handled by the Mann-Whitney
 U statistic, accuracy, and 10-bin reliability with expected and maximum
-calibration error. The headline number is `miscalibration_gap`: the mean absolute
-distance between the noul and choice answers to the same question.
+calibration error. The form comparison reports `miscalibration_gap`: the mean
+absolute distance between the noul and choice answers to the same question. It is
+present only when a run asks both forms (`--form twin` or `all`); the default
+`per_asset` runs ask the noul form alone, so their gap is null.
 
 **P&L.** The portfolio runs through the same accounting engine, on the same frozen
 prices, against SPY buy-and-hold and three deterministic references: equal weight,

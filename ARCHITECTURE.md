@@ -18,7 +18,7 @@ single `DcnClient` protocol:
 
 | Provider | Transport |
 | --- | --- |
-| OpenAI Decisions | `POST /v1/responses` with a `decision.questions` block |
+| OpenAI Decisions | `POST /v1/decisions` with a `questions` array (`predicate` for yes/no, plus `choice` and `score`) |
 | TypeSafe Jev | `POST https://api.typesafe.ai/v1/systemone` |
 | Cloudflare Clef | `POST /accounts/{id}/ai/run/@cf/cloudflare/{model}` |
 
@@ -75,7 +75,9 @@ loss (clipped at 1e-15), AUC via the Mann-Whitney U statistic so ties are counte
 as half and never inflate the score, accuracy, and 10-bin reliability with
 expected and maximum calibration error. `miscalibration_gap` is the mean absolute
 difference between the `noul` and `choice` answers to the same question, which is
-the specific failure mode the benchmark exists to measure.
+the specific failure mode the form comparison exists to measure. It is reported
+only when a run asks both forms (`--form twin` or `all`); the default `per_asset`
+runs ask `noul` alone, so their gap is null.
 
 **An inferred number is never scored.** Unanswered questions are backfilled at the
 neutral 0.5 so the portfolio can be sized, but `answered_noul` / `answered_choice`

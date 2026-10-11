@@ -103,7 +103,7 @@ for the sequencing section at the very end.
 ## P3 - Medium (hygiene and robustness)
 
 ### M1. Fix docs drift
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** three known mismatches.
   - `ARCHITECTURE.md:21` says OpenAI uses `POST /v1/responses` with a
     `decision.questions` block. The client posts to `/v1/decisions` with a

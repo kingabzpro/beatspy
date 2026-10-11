@@ -3,9 +3,12 @@
 Two design choices keep this benchmark honest:
 
 - **The sizing policy is fixed and deterministic.** Only noul probabilities enter
-  the portfolio. Names at or below the neutral 0.5 are not held, the strongest
-  `top_n` are equal-weighted, and the portfolio goes fully to cash when fewer
-  than `min_names` clear the bar. Nothing here is tuned after seeing a result.
+  the portfolio, and the rule is recorded in `run.json` before any result is
+  seen. The default (`graded`) holds the whole universe: half the book is an even
+  spread and half follows the probability above the neutral 0.5. The legacy
+  `top_n` cut, which held only the strongest names above `min_probability`, is
+  kept so runs recorded under it stay reproducible. Nothing here is tuned after
+  seeing a result.
 - **Missing answers cannot become trades.** An unanswered ticker is backfilled at
   the neutral 0.5, so a provider failure is recorded as missing coverage rather
   than expressed as a directional bet.
