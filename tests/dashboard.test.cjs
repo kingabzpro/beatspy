@@ -2,7 +2,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
-  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, count, plural, ratio, score, inputCost,
+  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS
 } = require('../dashboard/app.js');
 
@@ -73,6 +73,12 @@ test('one leaderboard row per decision model, chosen by execution time, never be
   assert.equal(dollars(0.000135), '$0.000135');
   assert.equal(dollars(0.5), '$0.5000');
   assert.equal(dollars(undefined), 'n/a');
+  // The pricing column spans two orders of magnitude, so it holds three
+  // significant digits instead of a fixed number of decimals.
+  assert.equal(preciseDollars(0.07924), '$0.0792');
+  assert.equal(preciseDollars(0.004209), '$0.00421');
+  assert.equal(preciseDollars(0), '$0');
+  assert.equal(preciseDollars(undefined), 'n/a');
   assert.equal(ratio(-0.9822), '-0.98');
   assert.equal(score(0.2), '0.200');
   assert.equal(count(9), '9');
@@ -300,9 +306,17 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
   assert.equal($('cost-overview').hidden, false);
-  // The pricing panel is static: three providers, input-only, with cited sources.
+  // The pricing panel lists every model on the board: the rate, the tokens its
+  // run billed for the same frozen state, and the two multiplied.
   const pricing = $('pricing-table').children[0].descendants();
-  assert.deepEqual(pricing.filter(node => node.tagName === 'tr' && node.children.some(cell => cell.textContent === 'gpt-6-luna')).length, 1);
+  const pricingRows = pricing.filter(node => node.tagName === 'tr');
+  assert.equal(pricingRows.length, 3, 'header + one row per model on the board');
+  assert.deepEqual(pricingRows.slice(1).map(row => row.children[0].textContent).sort(), ['clef', 'clef-flash']);
+  for (const row of pricingRows.slice(1)) {
+    assert.match(row.children[1].textContent, /^\$\d+\.\d{3}$/);   // input rate per 1M
+    assert.equal(row.children[2].textContent, '111');              // 1000 tokens over 9 decisions
+    assert.equal(row.children[3].textContent, '$0.000900');        // the run's own recorded cost
+  }
   assert.ok(pricing.filter(node => node.tagName === 'a').every(link => link.href.startsWith('https://')));
   const runButton = table.descendants().find(node => node.className === 'run-button');
   runButton.onclick();  // sets the hash

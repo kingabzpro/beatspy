@@ -38,6 +38,13 @@ const dollars = value => {
   return `$${number.toFixed(Math.abs(number) < 0.01 ? 6 : 4)}`;
 };
 const count = value => !missing(value) && Number.isInteger(Number(value)) ? String(Number(value)) : "n/a";
+// Costs in this section span two orders of magnitude, so those columns keep
+// three significant digits instead of a fixed number of decimals.
+const preciseDollars = value => {
+  if (missing(value) || !Number.isFinite(Number(value))) return "n/a";
+  const number = Number(value);
+  return `$${number === 0 ? "0" : number.toPrecision(3)}`;
+};
 const plural = (value, word) => `${count(value)} ${word}${Number(value) === 1 ? "" : "s"}`;
 
 function parseCSV(text) {
@@ -140,7 +147,7 @@ function catalogProblems(catalog) {
 }
 
 if (typeof module !== "undefined") module.exports = {
-  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, count, plural, ratio, score, inputCost,
+  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
 };
 
@@ -201,22 +208,46 @@ if (typeof document !== "undefined") {
     }
     $(target).replaceChildren(element);
   }
+  const runRates = run => PRICES[modelName(run.model)]
+    || (typeof run.pricing?.cost_per_m_input === "number"
+      ? {input: run.pricing.cost_per_m_input, output: run.pricing.cost_per_m_output ?? 0} : null);
   function renderPricing() {
-    const records = Object.entries(PRICES).map(([model, rates]) => {
-      const row = node("tr");
-      row.append(node("td", model), node("td", `$${rates.input.toFixed(3)}`, "num"));
-      const cell = node("td"), link = node("a", "Source ↗");
-      link.href = rates.source; link.rel = "noreferrer noopener"; link.target = "_blank";
-      cell.append(link); row.append(cell);
-      row.title = rates.note;
-      return row;
-    });
+    // One row per model on the board. The rate is only half the story: a model
+    // bills whatever its runtime reports for the same frozen state, so the
+    // run's own token count sits beside the rate, and the cost beside both.
+    const records = visible.map(run => {
+      const rates = runRates(run);
+      const decisions = Number(run.decisions ?? run.metrics?.decisions);
+      const tokens = Number(run.metrics?.input_tokens);
+      return {
+        run, rates,
+        perDecision: decisions > 0 && Number.isFinite(tokens) ? Math.round(tokens / decisions) : null,
+        cost: run.estimated_cost_usd ?? inputCost(run.metrics, rates),
+      };
+    }).sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
-    for (const title of ["Decision model", "Input USD / M", "Pricing source"]) {
-      header.append(node("th", title));
+    for (const [title, className] of [["Model", ""], ["Input USD / M", "num"], ["Tokens / decision", "num"],
+                                      ["Run cost", "num"], ["Pricing source", ""]]) {
+      header.append(node("th", title, className));
     }
     head.append(header); element.append(head, body);
-    for (const row of records) body.append(row);
+    for (const {run, rates, perDecision, cost} of records) {
+      const row = node("tr");
+      row.append(node("td", modelName(run.model)),
+        node("td", typeof rates?.input === "number" ? `$${rates.input.toFixed(3)}` : "n/a", "num"),
+        node("td", perDecision === null ? "n/a" : perDecision.toLocaleString(), "num"),
+        node("td", preciseDollars(cost), "num"));
+      const cell = node("td");
+      if (rates?.source) {
+        const link = node("a", "Source ↗");
+        link.href = rates.source; link.rel = "noreferrer noopener"; link.target = "_blank";
+        cell.append(link);
+        row.title = rates.note || "";
+      } else {
+        cell.append(node("span", "Recorded in run.json"));
+      }
+      row.append(cell); body.append(row);
+    }
     $("pricing-table").replaceChildren(element);
   }
   function renderBoard() {
@@ -290,11 +321,16 @@ if (typeof document !== "undefined") {
       body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
+    renderPricing();
     $("cost-overview").hidden = !visible.length;
     $("cost-window").textContent = visible.length
-      ? "Published list prices on 2026-10-08. Decision models bill input only: every provider charges $0 for output tokens and none offers prompt caching."
+      ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
+        + "What a run costs is the rate times the tokens the provider reports for the same frozen state, and that count varies by more than "
+        + "twentyfold across these models, so the lowest rate can still be the priciest run."
       : "";
-    runBars("model-costs", visible.map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, PRICES[run.model])})));
+    runBars("model-costs", visible
+      .map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
+      .sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)));
   }
   function runBars(target, rows) {
     const container = $(target); container.replaceChildren();
@@ -308,7 +344,7 @@ if (typeof document !== "undefined") {
         const bar = node("span", undefined, "bar-fill");
         bar.style.width = `${row.cost / max * 100}%`; bar.style.background = COLORS[0]; track.append(bar);
       }
-      line.append(track, node("span", typeof row.cost === "number" ? dollars(row.cost) : "n/a", "bar-value"));
+      line.append(track, node("span", typeof row.cost === "number" ? preciseDollars(row.cost) : "n/a", "bar-value"));
       container.append(line);
     }
   }
@@ -559,7 +595,6 @@ if (typeof document !== "undefined") {
   }
   async function init() {
     try {
-      renderPricing();
       const catalog = JSON.parse(await fetchText("data/index.json"));
       const problems = catalogProblems(catalog);
       if (problems.length) throw new Error(`Invalid result catalog (${problems[0]})`);
