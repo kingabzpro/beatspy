@@ -121,7 +121,9 @@ distance between the noul and choice answers to the same question.
 prices, against SPY buy-and-hold and three deterministic references: equal weight,
 60/40, and 12-minus-1 momentum. Results are reported with the observation count
 and answer coverage beside them, because a return without its coverage is not
-interpretable.
+interpretable. Sharpe ratios use a zero risk-free rate (`risk_free_annual = 0.0`
+in `[bench]`, recorded per run in `run.json`), so they are raw
+return-over-volatility ratios.
 
 ## Latest benchmark
 

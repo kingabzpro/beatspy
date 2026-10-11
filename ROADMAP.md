@@ -90,7 +90,7 @@ for the sequencing section at the very end.
 - **Done when:** every manifest names the versions that produced it.
 
 ### L6. Document the zero risk-free rate
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** `BenchConfig.risk_free_annual` defaults to `0.0`, so the reported Sharpe
   is a raw return-over-volatility ratio. That is a legitimate choice, but it is
   not stated in the README scoring section.
