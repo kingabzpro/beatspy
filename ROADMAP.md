@@ -310,7 +310,7 @@ for the sequencing section at the very end.
 - **Done when:** every run shows how much of its excess came from the tilts.
 
 ### H6. Revive the SPY-core evaluation as a documented series
-`effort: L` · `status: todo`
+`effort: L` · `status: done`
 - **Why:** the deleted spy-core package ran a SPY-core-plus-satellite design
   (80% SPY minimum, 5% satellite cap, 20-session horizon, magnitude buckets,
   frozen gates) and its archived reports concluded that no model cleared the
@@ -322,6 +322,17 @@ for the sequencing section at the very end.
   way.
 - **Done when:** the SPY-core design has a reproducible run or a documented
   decision to drop it.
+- **Progress (2026-10-11):** implemented as the `core_satellite` policy (not a
+  scenario series): `core_weight` of the book holds the benchmark itself, exempt
+  from the per-name cap, and the rest is the cross-sectional sleeve. It is the
+  default under `DCN_PROTOCOL = 3`, `--core-weight` adjusts it per run, and the
+  verifier reads the recorded policy back. Live jev-latest runs on 2026-6m:
+  whole-book graded_cs returned +7.77% against SPY +15.09% (excess -7.33%,
+  turnover 23.3%); core 0.85 returned +13.69% (excess -1.40%, CI [-3.65%,
+  +0.32%], turnover 5.2%); core 0.95 returned +14.33% (excess -0.76%, CI
+  [-2.05%, +0.03%]). The structural cap-weighting gap is now confined to the
+  sleeve, which is what the benchmark should measure. Publishing protocol-3 runs
+  to the dashboard remains part of V4.
 
 ---
 
