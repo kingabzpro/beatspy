@@ -74,8 +74,8 @@ def candidates(data, scenario, as_of: date, *,
                max_candidates: int | None = None) -> list[str]:
     """The tickers a decision asks about: the strongest trailing 90-day movers.
 
-    Deterministic and point-in-time — ranked on data available at `as_of`, ties
-    broken alphabetically — so the candidate set is reproducible and never
+    Deterministic and point-in-time (ranked on data available at `as_of`, ties
+    broken alphabetically), so the candidate set is reproducible and never
     depends on how a previous decision went. Holdings are always included so the
     model can act on what it owns.
     """

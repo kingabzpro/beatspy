@@ -98,8 +98,8 @@ def test_skill_catches_a_predictor_that_is_sharp_and_wrong():
     """Skill is what separates a confident miss from an honest constant.
 
     At a 0.1 base rate the constant predictor's Brier is 0.09. A predictor that
-    says ~0.29 for everything is overconfident — it is wrong about its own
-    certainty — and still scores positive skill, because it sits on the right side
+    says ~0.29 for everything is overconfident (it is wrong about its own
+    certainty) and still scores positive skill, because it sits on the right side
     of 0.5. Sharpening the same predictor to 0.9 collapses Brier to 0.73 with
     negative skill. That is the trap a "same question, sharper answer" comparison
     falls into: the two forms can be compared only against the base rate.

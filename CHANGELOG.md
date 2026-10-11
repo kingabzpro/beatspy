@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 — decision-model benchmark
+## 0.3.0 - decision-model benchmark
 
 **Breaking: the five-agent pipeline is gone.** This release replaces the chat-model
 agent benchmark with a benchmark for decision models. Nothing from the agent
@@ -16,13 +16,13 @@ Added
 - A point-in-time state builder that serves only data dated on or before the
   decision, and stays inside a ~1,800-token budget because Workers AI silently
   truncates long state at roughly 2K tokens.
-- Three question forms — `noul`, `choice`, `rank` — with a `twin` mode that asks
+- Three question forms (`noul`, `choice`, `rank`) with a `twin` mode that asks
   the first two of the same ticker in one call, so the form itself can be measured.
 - Calibration scoring: Brier, Brier skill, log loss, tie-aware AUC, accuracy, and
   10-bin reliability with expected and maximum calibration error, plus
   `miscalibration_gap` between the noul and choice answers.
-- Labeling that is *benchmark-relative* — did the ticker beat the benchmark over
-  the same horizon — so a rising market cannot mark every prediction correct.
+- Labeling that is *benchmark-relative* (did the ticker beat the benchmark over
+  the same horizon), so a rising market cannot mark every prediction correct.
 - A fixed sizing policy: only noul probabilities, a 0.5 threshold, top three
   equal-weighted, cash only below two qualifying names. Unanswered questions
   backfill at the neutral 0.5 and are never scored, so a failure is missing

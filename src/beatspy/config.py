@@ -5,7 +5,7 @@ API keys live in ~/.beatspy/secrets.env (never inside a repository) or in the en
 
 This benchmark talks to *decision models*, not chat models. A decision model
 reads a state plus typed questions and returns probabilities, so there is no
-temperature, no turn budget, and no tool budget to configure — only which
+temperature, no turn budget, and no tool budget to configure, only which
 endpoint to call, how hard to retry it, and how its probabilities become a
 portfolio.
 """
@@ -31,11 +31,11 @@ PROVIDERS = ("openai_decisions", "typesafe", "cloudflare")
 # output charge and no cache charge anywhere in this table, and none of the three
 # providers offers prompt caching.
 #
-# - OpenAI Decisions API (public beta) — gpt-6-luna, $0.10 per 1M input:
+# - OpenAI Decisions API (public beta): gpt-6-luna, $0.10 per 1M input:
 #   https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877
-# - TypeSafe Jev — $42 per 1B input (~$0.042 per 1M), output free:
+# - TypeSafe Jev: $42 per 1B input (~$0.042 per 1M), output free:
 #   https://docs.typesafe.ai/models
-# - Cloudflare Clef / Clef-flash — $0.24 / $0.09 per 1M input:
+# - Cloudflare Clef / Clef-flash: $0.24 / $0.09 per 1M input:
 #   https://developers.cloudflare.com/workers-ai/models/clef/index.md
 DECISION_MODELS: dict[str, dict] = {
     "gpt-6-luna": {
@@ -109,12 +109,12 @@ class DecisionConfig(BaseModel):
     max_retries: int = 4
     # The sizing policy is fixed here so it cannot be tuned after seeing a
     # result. Only noul probabilities enter the portfolio.
-    #   graded (default) — fully invested across the whole universe. `base_weight`
+    #   graded (default): fully invested across the whole universe. `base_weight`
     #     of the book is a uniform spread over every asset and the rest is
     #     allocated in proportion to the probability above the prior, so a weak
     #     forecast becomes a mild tilt instead of a binary switch. Without the
     #     uniform base, one confident asset would take the entire book.
-    #   top_n — the legacy cut: hold only `top_n` names above `min_probability`,
+    #   top_n: the legacy cut: hold only `top_n` names above `min_probability`,
     #     equal-weighted, cash if fewer than `min_names` qualify. Kept so runs
     #     recorded under it stay reproducible.
     selection: Literal["graded", "top_n"] = "graded"

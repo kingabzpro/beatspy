@@ -61,15 +61,15 @@ test('one leaderboard row per decision model, chosen by execution time, never be
   assert.equal(modelName('zai-org/GLM-5.3'), 'GLM-5.3');
   assert.equal(modelName('clef-flash'), 'clef-flash');
   assert.equal(percent(0.1234), '12.34%');
-  assert.equal(percent(undefined), '—');
+  assert.equal(percent(undefined), 'n/a');
   // An input-only decision-model run costs fractions of a cent, so tiny values keep more digits.
   assert.equal(dollars(0.000135), '$0.000135');
   assert.equal(dollars(0.5), '$0.5000');
-  assert.equal(dollars(undefined), '—');
+  assert.equal(dollars(undefined), 'n/a');
   assert.equal(ratio(-0.9822), '-0.98');
   assert.equal(score(0.2), '0.200');
   assert.equal(count(9), '9');
-  assert.equal(count(undefined), '—');
+  assert.equal(count(undefined), 'n/a');
   assert.equal(plural(1, 'request'), '1 request');
   assert.equal(plural(3, 'observation'), '3 observations');
   assert.equal(plural(1, 'horizon'), '1 horizon');

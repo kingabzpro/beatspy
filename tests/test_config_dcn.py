@@ -1,6 +1,6 @@
 """Credentials: where they come from, and the fact that `.env` is honoured.
 
-A `.env` in the working directory is what people expect to work, so it is read —
+A `.env` in the working directory is what people expect to work, so it is read,
 but only after a real exported variable, and nothing here may raise when it is
 missing or malformed.
 """

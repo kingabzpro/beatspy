@@ -3,9 +3,9 @@
 Half of what this benchmark measures is not a return at all. The decision model
 returns probabilities, so the run is scored twice:
 
-- **Portfolio** — the usual accounting engine, against SPY and three deterministic
+- **Portfolio**: the usual accounting engine, against SPY and three deterministic
   references on the same frozen prices.
-- **Calibration** — Brier, log loss, AUC, and reliability bins over every
+- **Calibration**: Brier, log loss, AUC, and reliability bins over every
   probability the model produced, labeled by what actually happened.
 """
 

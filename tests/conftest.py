@@ -6,7 +6,7 @@ be executed, scored, replayed, and rendered offline.
 
 `frozen_data` writes a real content-addressed snapshot (valid `prices_sha256`,
 row count and coverage) so a run can copy it into its artifact directory exactly
-as a live run does — without touching the network.
+as a live run does, without touching the network.
 """
 
 from __future__ import annotations

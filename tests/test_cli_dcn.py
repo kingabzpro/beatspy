@@ -1,7 +1,7 @@
 """CLI tests for the DCN benchmark.
 
 Every test here is hermetic: no network, no live provider. Two arguments make
-that possible — `--offline-fixture` (a scripted client plus generated prices) and
+that possible: `--offline-fixture` (a scripted client plus generated prices) and
 the `dcn_run_dir` fixture from conftest.py (a complete run produced by the real
 runner offline).
 """

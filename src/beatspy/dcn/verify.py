@@ -3,12 +3,12 @@
 A DCN run records everything needed to re-derive its own result: the frozen
 snapshot it was priced from, the decision schedule, and the weights each decision
 produced. This module re-reads those artifacts and re-runs the accounting engine
-over the *recorded* weights — no network, no model call — then demands the same
+over the *recorded* weights (no network, no model call), then demands the same
 metrics, equity curve, and trade blotter the run published.
 
 This is an integrity check, not an identity check. It does not claim to know
 which model produced a run, and it deliberately has no notion of signatures,
-public keys, or trust: what it proves is narrower and still useful — that the
+public keys, or trust: what it proves is narrower and still useful: that the
 numbers in ``metrics.json`` follow from the recorded decisions and the frozen
 prices, so a run cannot ship a result its own artifacts do not support.
 

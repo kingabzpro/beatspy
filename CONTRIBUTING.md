@@ -30,7 +30,7 @@ what each provider returns, including its question limits and latency. Without
 - **Do not reach forward from state construction.** Only `DataService.close_on_offset`
   may look past the decision date, and only for labeling. A test builds the same
   decision from two price series that diverge after the decision date and requires
-  identical state — keep it passing.
+  identical state; keep it passing.
 - **Do not let the state grow.** Workers AI truncates long text state at roughly
   2K tokens, which would give Clef a different question from everyone else. The
   state budget is enforced by tests for both a small and a 23-name universe.
@@ -54,14 +54,14 @@ rather than raising the line limit. Commit `uv.lock` with dependency changes.
 No network, no credentials, no real models, and no live price downloads. Build
 runs with the fixtures in `tests/conftest.py`:
 
-- `scenario`, `data_service`, `settings` — a dated scenario over synthetic prices;
-- `frozen_data` — a real content-addressed snapshot on disk (valid
+- `scenario`, `data_service`, `settings`: a dated scenario over synthetic prices;
+- `frozen_data`: a real content-addressed snapshot on disk (valid
   `prices_sha256`, row count and coverage) so a run copies it exactly as a live
   run would, without the network;
-- `offline_client` — a deterministic decision model that answers all three forms;
-- `dcn_run_dir` — a complete run produced by the real runner, for report,
+- `offline_client`: a deterministic decision model that answers all three forms;
+- `dcn_run_dir`: a complete run produced by the real runner, for report,
   catalog and verification tests;
-- `run_offline(...)` — the helper behind them.
+- `run_offline(...)`: the helper behind them.
 
 Calibration constants are verified against hand-computed values, so a change to
 `dcn/calibration.py` that silently shifts Brier, log loss, AUC or the reliability

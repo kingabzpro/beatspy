@@ -23,16 +23,16 @@ const PRICES = {
     note: "Workers AI list price, input only."},
 };
 const SIGNALS = ["noul", "choice", "rank"];
-const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "—";
-const ratio = value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "—";
-const score = value => Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "—";
+const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "n/a";
+const ratio = value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "n/a";
+const score = value => Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "n/a";
 // Decision-model runs cost fractions of a cent, so small values keep more digits.
 const dollars = value => {
   const number = Number(value);
-  if (!Number.isFinite(number)) return "—";
+  if (!Number.isFinite(number)) return "n/a";
   return `$${number.toFixed(Math.abs(number) < 0.01 ? 6 : 4)}`;
 };
-const count = value => Number.isInteger(Number(value)) ? String(Number(value)) : "—";
+const count = value => Number.isInteger(Number(value)) ? String(Number(value)) : "n/a";
 const plural = (value, word) => `${count(value)} ${word}${Number(value) === 1 ? "" : "s"}`;
 
 function parseCSV(text) {
@@ -167,12 +167,12 @@ if (typeof document !== "undefined") {
     ["decisions", "Decisions", "count", "row"],
     ["invalid_outputs", "Invalid", "count", "row"],
   ];
-  const FORMAT = {text: value => value ?? "—", percent, signed: percent, ratio, score, dollars, count,
+  const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count,
     // Decision-model costs land in fractions of a cent, so four decimals would
     // render several providers as the same $0.0000. Show micro-dollars instead.
     money: value => {
       const amount = Number(value);
-      if (!Number.isFinite(amount)) return "—";
+      if (!Number.isFinite(amount)) return "n/a";
       if (amount === 0) return "$0";
       return amount >= 0.01 ? `$${amount.toFixed(4)}` : `$${amount.toFixed(6)}`;
     },
@@ -180,7 +180,7 @@ if (typeof document !== "undefined") {
     // every difference between them.
     millis: value => {
       const ms = Number(value) * 1000;
-      if (!Number.isFinite(ms)) return "—";
+      if (!Number.isFinite(ms)) return "n/a";
       return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
     }};
   const rowValue = (run, key, source) => key === "model" ? modelName(run.model) : source === "metrics" ? run.metrics?.[key] : run[key];
@@ -246,8 +246,8 @@ if (typeof document !== "undefined") {
     $("demo-banner").hidden = syntheticCount === 0;
     if (syntheticCount) {
       $("demo-banner").textContent = syntheticCount === visible.length
-        ? `Synthetic demo data — all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
-        : `Synthetic demo data — ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`;
+        ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
+        : `Synthetic demo data: ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`;
     }
     $("run-count").className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
     $("status").textContent = visible.length ? "" : (runs.length
@@ -309,7 +309,7 @@ if (typeof document !== "undefined") {
         const bar = node("span", undefined, "bar-fill");
         bar.style.width = `${row.cost / max * 100}%`; bar.style.background = COLORS[0]; track.append(bar);
       }
-      line.append(track, node("span", typeof row.cost === "number" ? dollars(row.cost) : "—", "bar-value"));
+      line.append(track, node("span", typeof row.cost === "number" ? dollars(row.cost) : "n/a", "bar-value"));
       container.append(line);
     }
   }
@@ -432,7 +432,7 @@ if (typeof document !== "undefined") {
     const records = bins.map((bin, i) => [
       `${Number(bin.lower).toFixed(1)}–${Number(bin.upper).toFixed(1)}`,
       ...series.map(item => count(item.bins?.[i]?.count)),
-      ...series.map(item => item.bins?.[i]?.observed_rate == null ? "—" : percent(item.bins[i].observed_rate)),
+      ...series.map(item => item.bins?.[i]?.observed_rate == null ? "n/a" : percent(item.bins[i].observed_rate)),
     ]);
     table("reliability-bins", headers, records);
   }
@@ -440,7 +440,7 @@ if (typeof document !== "undefined") {
     const callout = $("gap-callout"); callout.replaceChildren();
     const gap = calibration?.miscalibration_gap;
     const noul = calibration?.signals?.noul, choice = calibration?.signals?.choice;
-    callout.append(node("strong", Number.isFinite(Number(gap)) ? percent(gap) : "—"));
+    callout.append(node("strong", Number.isFinite(Number(gap)) ? percent(gap) : "n/a"));
     // The reported failure mode is a choice form that answers further from 0.5 than
     // the noul form. State it only when this run's numbers actually show it.
     const noulMean = Number(noul?.mean_predicted), choiceMean = Number(choice?.mean_predicted);

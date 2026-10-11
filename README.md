@@ -21,7 +21,7 @@ is recorded and scored against what actually happened next.
 | `clef` | Cloudflare [Clef](https://developers.cloudflare.com/workers-ai/models/clef/) (27B) | Workers AI | $0.24 / 1M |
 | `clef-flash` | Cloudflare Clef-flash (9B) | Workers AI | $0.09 / 1M |
 
-All four bill **input tokens only** — output is free because there is no output
+All four bill **input tokens only**: output is free because there is no output
 text, and none of them offers prompt caching. Pricing verified 2026-10-08.
 
 Because a run asks one question per asset and one model call answers them all, a
@@ -74,15 +74,15 @@ keys and no network.
 ## What it asks
 
 `--form per_asset` (the default) asks **one question per investable asset, for
-every asset, every decision** — 25 assets means 25 independent predictions each
+every asset, every decision**: 25 assets means 25 independent predictions each
 week, and each asset's answer stands on its own. `--form twin` or `all` add the
 choice and rank forms for the same ticker in the same request, which is how the
 form itself gets measured.
 
 This matters, because the reported failure mode of these models is form-dependent:
-community replication found the `choice` form badly miscalibrated — a 70/30 event
+community replication found the `choice` form badly miscalibrated (a 70/30 event
 answered as heads **98%** of the time, with probabilities that moved when the
-options were reordered — while the predicate form returned 70% correctly. So the
+options were reordered), while the predicate form returned 70% correctly. So the
 choice form is *measured as a hazard*, not trusted as a signal.
 
 ## How the probabilities become a portfolio
@@ -110,7 +110,7 @@ recorded as missing coverage and can never become a directional bet.
 ## How it is scored
 
 **Calibration.** Every probability is labeled by whether that ticker actually beat
-the benchmark over the horizon — a *relative* outcome, so a rising market cannot
+the benchmark over the horizon, a *relative* outcome, so a rising market cannot
 mark every prediction correct. Reported per form: Brier, Brier skill (versus a
 constant at the sample rate), log loss, AUC with ties handled by the Mann-Whitney
 U statistic, accuracy, and 10-bin reliability with expected and maximum
@@ -130,7 +130,7 @@ return-over-volatility ratios.
 ## Latest benchmark
 
 Rolling six months to the latest completed session (`2026-6m`), weekly decisions,
-25 stocks and ETFs, one probability question per asset per week — 625 predictions
+25 stocks and ETFs, one probability question per asset per week, 625 predictions
 per model. Frozen adjusted prices throughout.
 
 | Decision model | Return | vs SPY | vs equal weight | Sharpe | Max DD | Brier skill | AUC |
@@ -139,8 +139,8 @@ per model. Frozen adjusted prices throughout.
 | `gpt-6-luna` | +8.67% | −9.83% | −0.71% | 1.63 | −4.04% | −0.022 | 0.474 |
 | `clef` | +7.28% | −11.22% | −2.11% | 1.30 | −5.32% | −0.301 | 0.499 |
 | `jev-latest` | +7.01% | −11.49% | −2.38% | 1.28 | −6.06% | −0.077 | 0.490 |
-| *SPY buy-and-hold* | *+18.50%* | — | — | — | — | — | — |
-| *equal weight, same 25* | *+9.39%* | — | — | — | — | — | — |
+| *SPY buy-and-hold* | *+18.50%* | n/a | n/a | n/a | n/a | n/a | n/a |
+| *equal weight, same 25* | *+9.39%* | n/a | n/a | n/a | n/a | n/a | n/a |
 
 Read this carefully, because the honest conclusion is narrower than the returns
 suggest:
@@ -152,7 +152,7 @@ suggest:
   is the comparison that isolates the model, and one window is not enough to call
   it skill.
 - **The probabilities carry no measurable signal.** Every model has *negative*
-  Brier skill — worse than predicting the sample average — and an AUC of 0.474 to
+  Brier skill, worse than predicting the sample average, and an AUC of 0.474 to
   0.499, i.e. chance or slightly below. The returns come from diversifying across
   25 names and trading rarely, not from forecasting.
 - Two providers are markedly underconfident: `clef` answered a mean 0.29 where the
@@ -162,7 +162,7 @@ An earlier configuration asked about 10 momentum-ranked candidates and held only
 the top three above 0.5, equal-weighted. Because that can emit nothing but 0% or
 33% per position, it rewrote the whole book weekly at ~50% turnover, and returned
 −9.3% to +0.7%. One decision per asset with graded sizing roughly halved turnover
-and added 8 to 17 points of return — a portfolio-construction gain, not a
+and added 8 to 17 points of return, a portfolio-construction gain, not a
 forecasting one.
 
 ## Two things worth knowing before you trust a number
@@ -192,7 +192,7 @@ contributed. The dashboard reports both.
   The dashboard contains no credentials, and `.env` is git-ignored.
 
 Everything is HTTP-based, so the Clef path works from Python through the Workers AI
-REST endpoint — no Cloudflare Worker or TypeScript build step is required.
+REST endpoint; no Cloudflare Worker or TypeScript build step is required.
 
 ## Development
 

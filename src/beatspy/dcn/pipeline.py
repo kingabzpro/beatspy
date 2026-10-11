@@ -150,8 +150,8 @@ def derive_weights(
 def label_observations(data, scenario, decision: DcnDecision) -> list[cal.Observation]:
     """Score one decision's probabilities against what actually happened.
 
-    The realized label is a *relative* outcome — did the ticker beat the
-    benchmark over the same horizon — so a rising tide cannot make every
+    The realized label is a *relative* outcome (did the ticker beat the
+    benchmark over the same horizon), so a rising tide cannot make every
     prediction correct. Both legs are measured close-to-close strictly after the
     decision date, on frozen prices only.
     """

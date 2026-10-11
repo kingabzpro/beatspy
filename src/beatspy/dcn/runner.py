@@ -1,7 +1,7 @@
 """End-to-end DCN runs: decision loop, execution, calibration, metrics, artifacts.
 
-The loop is the same one the benchmark has always used — resolve dates, walk them
-in order, execute at the next session's open, score through the cutoff — with the
+The loop is the same one the benchmark has always used (resolve dates, walk them
+in order, execute at the next session's open, score through the cutoff), with the
 five-agent relay replaced by a single decision-model call per decision.
 """
 

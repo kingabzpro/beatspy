@@ -8,10 +8,11 @@ adapter surface is deliberately thin:
 
 Transport, auth, and the response envelope differ:
 
-- OpenAI Decisions API — Responses API, `Authorization: Bearer`, answers under
-  `output[].content[].json.answers`, usage under `usage.input_tokens`.
-- TypeSafe Jev — a single POST to https://api.typesafe.ai/v1/systemone.
-- Cloudflare Clef — POST to /accounts/{id}/ai/run/@cf/cloudflare/{model} with the
+- OpenAI Decisions API: `POST /v1/decisions` with `Authorization: Bearer`, a
+  `questions` array (`predicate`, `choice`, `score`), and `answers` keyed by
+  question name; usage arrives as `usage.input_tokens`.
+- TypeSafe Jev: a single POST to https://api.typesafe.ai/v1/systemone.
+- Cloudflare Clef: POST to /accounts/{id}/ai/run/@cf/cloudflare/{model} with the
   account id in the path. Workers AI truncates long text state to roughly its
   first 2K tokens, so state is sent as a compact JSON *object* (the API accepts
   structured state) and the client flags it when the budget is at risk.

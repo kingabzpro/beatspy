@@ -49,8 +49,8 @@ serves a bar later than `as_of`. Two rules are load-bearing:
 - **A hard token budget.** Workers AI silently truncates long text state to
   roughly its first 2K tokens, which would quietly give Clef a different question
   from the one the other providers read. The state is therefore budgeted to stay
-  inside `DecisionConfig.max_state_tokens` (~1,800) for *every* provider — the
-  full 23-name universe is covered by a test — and the size is recorded on each
+  inside `DecisionConfig.max_state_tokens` (~1,800) for *every* provider (the
+  full 23-name universe is covered by a test), and the size is recorded on each
   decision as `state_chars` plus a `state_sha256`.
 
 The state describes the market; it never states an allocation. Allocation rules
@@ -64,7 +64,7 @@ hash resolves to a document an auditor can read. Each decision records its own
 ## Calibration is half the benchmark
 
 `dcn/calibration.py` is provider-independent and deterministic. Labels are
-*relative* — did the ticker beat the benchmark over the same horizon — so a rising
+*relative* (did the ticker beat the benchmark over the same horizon), so a rising
 market cannot make every prediction correct. Both legs are measured
 close-to-close strictly after the decision date, through
 `DataService.close_on_offset`, which is the only accessor that deliberately looks
@@ -95,7 +95,7 @@ limit and records every correction as a violation rather than applying it
 silently.
 
 A provider failure yields `invalid = True` and no weights, which the run loop
-treats as **hold** — a model failure must never become a liquidation.
+treats as **hold**: a model failure must never become a liquidation.
 
 ## Scoring and replay
 

@@ -100,7 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["per_asset", "noul", "choice", "rank", "twin", "all"],
         default="per_asset",
         help=(
-            "question form (default: per_asset — one question for every investable asset, "
+            "question form (default: per_asset, one question for every investable asset, "
             "which is what makes a single asset's answer mean something on its own). "
             "twin/all ask extra forms for the same ticker to measure the form itself."
         ),
@@ -194,7 +194,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
 
     model = args.model
     if not model:
-        print("BeatSPY setup — choose the decision model to benchmark.")
+        print("BeatSPY setup: choose the decision model to benchmark.")
         print("Decision models return typed probabilities; this benchmark scores them, not their prose.\n")
         names = list(DECISION_MODELS)
         for index, name in enumerate(names, 1):
@@ -734,7 +734,7 @@ def cmd_verify(args: argparse.Namespace) -> int:
     except Exception as exc:
         print(f"FAIL: {directory.name}: {exc}", file=sys.stderr)
         return 1
-    print(f"PASS: {meta.get('run_id', directory.name)} — artifacts, decisions, and metrics replay exactly.")
+    print(f"PASS: {meta.get('run_id', directory.name)}: artifacts, decisions, and metrics replay exactly.")
     return 0
 
 
@@ -798,7 +798,7 @@ def _local_verify(directory: Path) -> int:
         for problem in problems:
             print(f"FAIL: {problem}", file=sys.stderr)
         return 1
-    print(f"PASS: {meta.get('run_id', directory.name)} — artifacts, decisions, and calibration replay exactly.")
+    print(f"PASS: {meta.get('run_id', directory.name)}: artifacts, decisions, and calibration replay exactly.")
     return 0
 
 
@@ -957,7 +957,7 @@ def _write_demo_runs(seed: int = 42, out_root: Path | None = None) -> list[Path]
 
     The dashboard and `compare` then have something to render on a machine with
     no credentials. Every run is marked synthetic=true, and the probabilities and
-    outcomes are fabricated by construction — which is exactly why demo runs are
+    outcomes are fabricated by construction, which is exactly why demo runs are
     excluded from `compare` unless `--include-synthetic` is passed.
     """
     import hashlib

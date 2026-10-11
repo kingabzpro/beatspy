@@ -5,8 +5,8 @@ a probability for every allowed answer. There is no text, no tool calling, and n
 conversation. This package builds the historical state, asks the questions, and
 scores both halves of the result:
 
-- `calibration` — were the probabilities right, on the frozen outcomes?
-- P&L — what did a portfolio built only from those probabilities earn, scored by
+- `calibration`: were the probabilities right, on the frozen outcomes?
+- P&L: what did a portfolio built only from those probabilities earn, scored by
   the same accounting engine and against the same deterministic baselines?
 
 The benchmark is deliberately tool-free: evidence reaches the model only through

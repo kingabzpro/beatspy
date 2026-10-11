@@ -4,14 +4,14 @@ The decision models return a probability per question, so the natural question
 is not "did the portfolio go up" but "were the probabilities right". Everything
 here is standard and deterministic:
 
-- **Brier score** — mean squared error of the probability. Lower is better.
-- **Brier skill score** — 1 - brier/brier_base, where the base model always
+- **Brier score**: mean squared error of the probability. Lower is better.
+- **Brier skill score**: 1 - brier/brier_base, where the base model always
   predicts the sample rate. 0 means "no better than a constant"; negative is
   worse than a constant.
-- **Log loss** — clipped at 1e-15 so a confident miss is expensive but finite.
-- **AUC** — rank-based discrimination via the Mann-Whitney U statistic, so large
+- **Log loss**: clipped at 1e-15 so a confident miss is expensive but finite.
+- **AUC**: rank-based discrimination via the Mann-Whitney U statistic, so large
   numbers of tied probabilities are handled correctly instead of inflating AUC.
-- **Reliability bins** — 10 equal-width bins with observed rates and counts, plus
+- **Reliability bins**: 10 equal-width bins with observed rates and counts, plus
   the count-weighted expected and maximum calibration error.
 
 `miscalibration_gap` compares the noul and choice forms of the same question,

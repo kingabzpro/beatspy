@@ -4,19 +4,19 @@ One question per candidate ticker, phrased identically across providers. Three
 answer forms are available, and the benchmark measures them against each other
 because the reported failure mode of these models is form-dependent:
 
-- `noul`  — "will this beat the benchmark?" as a yes/no probability. The primary
+- `noul`: "will this beat the benchmark?" as a yes/no probability. The primary
   signal, and the only one that can size a portfolio.
-- `choice` — the same question as an option pick with a distribution. Community
+- `choice`: the same question as an option pick with a distribution. Community
   replication found this form badly miscalibrated (a 70/30 event answered as
   heads 98% of the time, with probabilities that moved when the options were
   reordered), so it is measured, not trusted.
-- `rank`  — a five-level score per ticker, normalized into a probability so it is
+- `rank`: a five-level score per ticker, normalized into a probability so it is
   comparable with the other two.
-- `twin`  — asks the noul and choice forms for the same ticker in one call, which
+- `twin`: asks the noul and choice forms for the same ticker in one call, which
   is the cheapest way to quantify that form gap inside one provider.
-- `all`   — asks all three forms for every ticker, so one run produces the full
+- `all`: asks all three forms for every ticker, so one run produces the full
   calibration picture (noul, choice and rank) for the same decisions.
-- `per_asset` — ONE question per investable asset, every asset, every decision.
+- `per_asset`: ONE question per investable asset, every asset, every decision.
   This is the benchmark's default: 25 assets means 25 independent decisions each
   week. One question per stock is what makes a single asset's answer mean
   something on its own, instead of being read only through a top-N cut.
