@@ -540,7 +540,7 @@ class TestRouterProviders:
 
     @pytest.mark.parametrize(
         "model",
-        ["requesty-clef", "requesty-pplx-decider", "openrouter-solar-decide", "openrouter-mercury-decide",
+        ["requesty-clef", "openrouter-pplx-decider", "openrouter-solar-decide", "openrouter-mercury-decide",
          "openrouter-jev-1-13", "openrouter-microsoft-decision-1", "openrouter-liquid-d1"],
     )
     def test_router_models_parse_a_typed_answer(self, model, monkeypatch):

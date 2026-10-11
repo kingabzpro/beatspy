@@ -92,17 +92,20 @@ DECISION_MODELS: dict[str, dict] = {
         "max_questions": 64,
         "state_note": "Routed by Requesty; same typed-questions contract",
     },
-    "requesty-pplx-decider": {
-        "provider": "requesty",
-        "model": "perplexity/pplx-decider-v1-27b",
-        "label": "Perplexity Decider 27B via Requesty",
-        "base_url": "https://router.requesty.ai/v1/decisions",
-        "api_key_env": "REQUESTY_API_KEY",
+    "openrouter-pplx-decider": {
+        "provider": "openrouter",
+        "model": "perplexity/pplx-decider-v1.1-27b",
+        # Requesty's library lists the v1 id but its router answers 404 for it, so
+        # this route is OpenRouter's, which resolves the model and returns the
+        # pinned version it served.
+        "label": "Perplexity Decider 27B v1.1 via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
         "cost_per_m_input": 0.02,
         "cost_per_m_output": 0.0,
         "context_window": 262_144,
         "max_questions": 64,
-        "state_note": "Routed by Requesty; same typed-questions contract",
+        "state_note": "Routed by OpenRouter; returns the resolved model version",
     },
     "openrouter-solar-decide": {
         "provider": "openrouter",

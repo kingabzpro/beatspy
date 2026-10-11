@@ -121,7 +121,7 @@ their contract directly (verified live 2026-10-12):
 | Model | Route | Upstream | Input price |
 | --- | --- | --- | --- |
 | `requesty-clef` | Requesty `/v1/decisions` | Sference Clef | $0.24 / 1M |
-| `requesty-pplx-decider` | Requesty | Perplexity Decider 27B | $0.02 / 1M |
+| `openrouter-pplx-decider` | OpenRouter | Perplexity Decider 27B v1.1 | $0.02 / 1M |
 | `openrouter-solar-decide` | OpenRouter `/api/alpha/decisions` | Upstage Solar Decide | $0.05 / 1M |
 | `openrouter-mercury-decide` | OpenRouter | Inception Mercury Decide | $0.02 / 1M |
 | `openrouter-jev-1-13` | OpenRouter | TypeSafe Jev 1.13, pinned | $0.042 / 1M |
