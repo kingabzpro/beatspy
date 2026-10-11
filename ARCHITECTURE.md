@@ -101,20 +101,24 @@ honest null for a benchmark-relative label.
 ## Sizing policy
 
 `dcn/pipeline.py` maps probabilities to a portfolio under fixed rules recorded in
-`run.json` before any result is seen. The default, `core_satellite`, holds
-`core_weight` of the book in the benchmark itself (exempt from the per-name
-position limit, since holding the index is not a concentration bet) and
-allocates the rest as a satellite sleeve: half an even spread, half in
+`run.json` before any result is seen. The default, `graded_cs`, spreads the whole
+book across the decision's investable set: half an even spread, half in
 proportion to each probability's distance above the decision's own mean. The
-portfolio therefore tracks the index by construction, and the excess over SPY
-measures the active sleeve rather than the drift of an equal-weighted book; the
-sleeve's cross-sectional center makes its weights invariant to a provider's
-probability scale.
+cross-sectional center makes the weights invariant to a provider's probability
+scale, so providers are compared on discrimination.
 
-`graded_cs` (the whole book, no core), `graded` (conviction above the fixed 0.5
-prior) and `top_n` (the earliest cut) are kept so runs recorded under them stay
-reproducible. Under every graded policy a name the provider did not answer
-carries no conviction share.
+A scenario may narrow the investable set with `selection_top` and
+`selection_lookback_days`: each decision then trades only the strongest trailing
+performers in its pool, ranked against the benchmark from prices dated on or
+before the decision date (`dcn/state.py::select_universe`). The engine's
+allowlist stays the pool, so the book can rotate, and scoring adds
+`selection_equal_weight`, the same set held evenly, so the selection rule's own
+return is reported beside the model's.
+
+The benchmark index is never investable under any policy. `graded` (conviction
+above the fixed 0.5 prior) and `top_n` (the earliest cut) are kept so runs
+recorded under them stay reproducible. A name the provider did not answer carries
+no conviction share.
 
 `schemas.validate_weights` then clamps to the scenario's position limit and
 records every correction as a violation rather than applying it silently.

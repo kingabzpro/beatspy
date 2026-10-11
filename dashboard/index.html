@@ -40,7 +40,7 @@
     <noscript><p class="caption">Enable JavaScript to explore the leaderboard and charts, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
     <section class="hero"><p class="eyebrow">OPEN BENCHMARK / TYPED QUESTIONS / FROZEN DATA</p>
       <h1>Can a decision model<br><span>beat the market?</span></h1>
-      <p class="lede">One frozen market state per decision. Typed probability questions. Every answer is scored twice: for calibration, and for the portfolio its probabilities build. The book holds the benchmark as its core, so the comparison against SPY is the model's active sleeve.</p>
+      <p class="lede">One frozen market state per decision. Typed probability questions. Every answer is scored twice: for calibration, and for the portfolio its probabilities build. The book buys the investable universe only; SPY is the yardstick, never a holding.</p>
       <div class="hero-meta"><span id="hero-scope">Latest 6 months · weekly decisions · 25 stocks and ETFs</span><span>Probabilities, not prose</span><span>Open results</span></div>
     </section>
     <section id="leaderboard" aria-labelledby="board-title">
@@ -61,8 +61,9 @@
           <ol class="how-steps">
             <li><strong>Freeze the market.</strong> Prices are downloaded once into a content-addressed snapshot, and every run re-uses the same bytes.</li>
             <li><strong>Build the state.</strong> One compact JSON object per decision, containing only data dated on or before that decision date.</li>
-            <li><strong>Ask typed questions.</strong> One probability question per asset, phrased identically for every provider: will it beat SPY over the next few sessions?</li>
-            <li><strong>Size the book.</strong> A fixed policy holds the benchmark as the core and allocates the rest across the universe by conviction. It is recorded in the run before any result is seen.</li>
+            <li><strong>Narrow the field.</strong> Each decision may trade only the pool's strongest trailing performers, ranked against SPY using prices up to that date, so no name is chosen with hindsight.</li>
+            <li><strong>Ask typed questions.</strong> One probability question per investable asset, phrased identically for every provider: will it beat SPY over the next few sessions?</li>
+            <li><strong>Size the book.</strong> A fixed policy spreads the whole book across those assets by conviction. The index is never bought, and the rule is recorded before any result is seen.</li>
             <li><strong>Execute and score.</strong> Orders fill at the next session's open. Every answer is scored twice, for calibration and for the return of the portfolio its probabilities built.</li>
           </ol>
           <p class="caption">Every run can be replayed offline from its own artifacts, and an adversarial audit checks that data after a decision date can never change that decision. No prompts, no tools, no hidden state.</p>
@@ -79,12 +80,11 @@
       <p id="run-meta" class="caption"></p>
       <div id="metrics" class="metric-grid"></div>
       <section id="calibration" aria-labelledby="calibration-title">
-        <div class="section-heading"><div><p class="eyebrow">THE HEADLINE MEASUREMENT</p><h2 id="calibration-title">Reliability</h2></div></div>
-        <div class="callout" id="gap-callout"></div>
+        <div class="section-heading"><div><p class="eyebrow">CALIBRATION</p><h2 id="calibration-title">Reliability</h2></div></div>
         <figure class="panel"><h3>Reliability curve</h3>
-          <p class="caption">Predicted probability against the observed outcome rate in each bin. The dashed diagonal is perfect calibration. Brier, Brier skill, log loss, AUC and ECE in the leaderboard come from these same scored observations. <code>noul</code> answers are a single probability; <code>choice</code> answers are the same question asked as a two-way bet. Point size grows with the bin count.</p>
+          <p class="caption">Each point is one bin of predictions: what the model said on the x-axis, what actually happened on the y-axis. A model whose points sit on the dashed diagonal is honest about its own confidence. Points <em>above</em> the line mean underconfidence, the events happened more often than the model claimed; points <em>below</em> mean overconfidence. Point size grows with the bin count, so a lone point is noise. Brier, Brier skill, log loss, AUC and ECE in the leaderboard all come from these same scored observations.</p>
           <div id="reliability"></div>
-          <p class="caption" id="reliability-bins-caption">Bin counts and observed rate for every bin, empty bins included.</p>
+          <p class="caption" id="reliability-bins-caption">Every bin, including the empty ones: predicted range, how many answers landed in it, and the observed outcome rate.</p>
           <div id="reliability-bins" class="table-wrap"></div>
         </figure>
       </section>

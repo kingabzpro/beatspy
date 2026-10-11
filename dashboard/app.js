@@ -318,6 +318,16 @@ if (typeof document !== "undefined") {
       container.append(line);
     }
   }
+  // Equity columns arrive as snake_case keys; the legend should read like prose.
+  const SERIES_LABELS = {
+    portfolio: "decision model",
+    spy_buy_hold: "SPY buy-and-hold",
+    equal_weight: "whole pool, equal weight",
+    selection_equal_weight: "its investable set, equal weight",
+    sixty_forty: "60/40, benchmark and Treasuries",
+    momentum_12_1: "12-1 momentum, top 3",
+  };
+  const seriesLabel = key => SERIES_LABELS[key] || String(key).replaceAll("_", " ");
   function chart(target, rows, series, format) {
     const container = $(target); container.replaceChildren();
     if (!rows.length) {container.append(node("p", "No chart data", "caption")); return;}
@@ -360,13 +370,13 @@ if (typeof document !== "undefined") {
         const px = (event.clientX - box.left) * W / box.width;
         const i = Math.max(0, Math.min(rows.length - 1, Math.round((px - L) * (rows.length - 1) / (W - L - R))));
         cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
-        tooltip.textContent = `${rows[i].date} · ${keys.map(key => `${key}: ${format(Number(rows[i][key]))}`).join(" · ")}`;
+        tooltip.textContent = `${rows[i].date} · ${keys.map(key => `${seriesLabel(key)}: ${format(Number(rows[i][key]))}`).join(" · ")}`;
       };
       svg.onpointerleave = () => cross.setAttribute("visibility", "hidden");
       plot.append(svg);
     }
     series.forEach((key, i) => {
-      const button = node("button", `● ${key}`); button.style.color = COLORS[i % COLORS.length];
+      const button = node("button", `● ${seriesLabel(key)}`); button.style.color = COLORS[i % COLORS.length];
       button.setAttribute("aria-pressed", "true");
       button.onclick = () => {if (hidden.has(key)) hidden.delete(key); else hidden.add(key); button.setAttribute("aria-pressed", !hidden.has(key)); draw();};
       labels.append(button);
@@ -441,28 +451,6 @@ if (typeof document !== "undefined") {
     ]);
     table("reliability-bins", headers, records);
   }
-  function renderGap(calibration) {
-    const callout = $("gap-callout"); callout.replaceChildren();
-    const gap = calibration?.miscalibration_gap;
-    const hasGap = !missing(gap) && Number.isFinite(Number(gap));
-    const noul = calibration?.signals?.noul, choice = calibration?.signals?.choice;
-    callout.append(node("strong", hasGap ? percent(gap) : "n/a"));
-    // The reported failure mode is a choice form that answers further from 0.5 than
-    // the noul form. State it only when this run's numbers actually show it.
-    const noulMean = Number(noul?.mean_predicted), choiceMean = Number(choice?.mean_predicted);
-    const reach = value => Number.isFinite(value) ? Math.abs(value - 0.5) : NaN;
-    let verdict = "compare the two curves above";
-    if (Number.isFinite(reach(noulMean)) && Number.isFinite(reach(choiceMean))) {
-      if (reach(choiceMean) > reach(noulMean)) verdict = "the choice form answers further from 0.5, so it is the less calibrated of the two";
-      else if (reach(choiceMean) < reach(noulMean)) verdict = "the noul form answers further from 0.5 on this run, so the usual ordering is reversed";
-      else verdict = "both forms answer equally far from 0.5 on this run";
-    }
-    callout.append(node("p", hasGap
-      ? `Paired miscalibration gap: the mean absolute difference between the noul and choice probabilities asked about the same ticker and horizon, over ${plural(calibration.observations, "scored observation")}. `
-        + `Mean predicted noul ${percent(noul?.mean_predicted)} against choice ${percent(choice?.mean_predicted)}: ${verdict}.`
-      : "No paired noul/choice observations were scored in this run."));
-    if (calibration?.note) callout.append(node("p", calibration.note, "caption"));
-  }
   async function selectRun(id) {
     const run = runs.find(row => row.run_id === id);
     if (!run) {$("run-details").hidden = true; $("status").textContent = "That run is not in this catalog."; return;}
@@ -481,12 +469,27 @@ if (typeof document !== "undefined") {
       $("run-trust").textContent = TRUST[run.trust] || "Unrecorded";
       $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"} · Provider ${run.provider}`;
       $("metrics").replaceChildren();
-      for (const [key, title] of [["total_return", "Portfolio return"], ["excess_return_vs_spy", "Excess vs SPY"],
-        ["sharpe", "Sharpe"], ["max_drawdown", "Maximum drawdown"], ["brier", "Brier (noul)"], ["calibration_gap", "Miscalibration gap"]]) {
-        const raw = run[key] ?? run.metrics[key], value = Number(raw);
-        const formatted = key === "sharpe" ? ratio(raw) : key === "brier" ? score(raw) : percent(raw);
+      const noulStats = calibration?.signals?.noul || {};
+      const excessCi = run.metrics.excess_return_ci;
+      const ciNote = excessCi && !missing(excessCi.lower) && !missing(excessCi.upper)
+        ? `95% interval ${percent(excessCi.lower)} to ${percent(excessCi.upper)}`
+        : "interval unavailable";
+      // [heading, formatted value, signed?, sub-note]
+      const tiles = [
+        ["Portfolio return", percent(run.metrics.total_return), run.metrics.total_return, "vs the benchmark's " + percent(run.metrics.spy_total_return)],
+        ["Excess vs SPY", percent(run.metrics.excess_return_vs_spy), run.metrics.excess_return_vs_spy, ciNote],
+        ["Sharpe", ratio(run.metrics.sharpe), run.metrics.sharpe, "zero risk-free rate"],
+        ["Maximum drawdown", percent(run.metrics.max_drawdown), run.metrics.max_drawdown, "peak to trough"],
+        ["Brier (noul)", score(noulStats.brier), null, `Brier skill ${score(noulStats.brier_skill_score)}: above 0 beats a constant`],
+        ["AUC (noul)", score(noulStats.auc), null, `permutation p = ${score(noulStats.auc_p_value)}: 0.5 is chance`],
+        ["ECE (noul)", score(noulStats.expected_calibration_error), null, "expected calibration error, lower is better"],
+        ["Turnover per decision", percent(run.metrics.avg_turnover), null, "share of the book traded, one-sided"],
+      ];
+      for (const [title, formatted, value, note] of tiles) {
         const tile = node("div", undefined, "metric");
-        tile.append(node("p", title), node("strong", formatted, Number.isFinite(value) ? (value >= 0 ? "positive" : "negative") : ""));
+        tile.append(node("p", title), node("strong", formatted,
+          Number.isFinite(Number(value)) ? (Number(value) >= 0 ? "positive" : "negative") : ""));
+        if (note) tile.append(node("p", note, "metric-note"));
         $("metrics").append(tile);
       }
       const series = Object.keys(equity[0] || {}).filter(key => key !== "date");
@@ -498,7 +501,6 @@ if (typeof document !== "undefined") {
       });
       chart("drawdown", drawdown, series, percent);
       reliabilityChart("reliability", calibration);
-      renderGap(calibration);
       const allocationRowsData = allocationRows(decisions);
       const tickers = [...new Set(allocationRowsData.flatMap(row => Object.keys(row).filter(key => key !== "date")))];
       allocationRowsData.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
@@ -506,13 +508,17 @@ if (typeof document !== "undefined") {
       const rates = ratesFor(run.model, meta), cost = run.metrics.estimated_cost_usd ?? inputCost(run.metrics, rates);
       const policy = run.policy || {};
       const policyText = policy.selection === "core_satellite"
+        // Recorded under protocol 3; kept so those runs still render their own rule.
         ? `core ${percent(policy.core_weight)} in the benchmark, ${percent(1 - (policy.core_weight ?? 0))} active sleeve`
         : (policy.selection === "graded_cs" || policy.selection === "graded")
-          ? `whole book across the universe, neutral P = ${policy.min_probability ?? "?"}`
+          ? `whole book across the investable set, neutral P = ${policy.min_probability ?? "?"}`
           : `route ${count(policy.top_n)} names at P ≥ ${policy.min_probability ?? "?"}`;
+      const selectionText = meta.scenario?.selection_top
+        ? ` · trades the top ${count(meta.scenario.selection_top)} trailing performers, ranked point-in-time`
+        : "";
       $("run-cost").textContent = `Input-only estimate ${dollars(cost)} · ${count(run.metrics.input_tokens)} input tokens · `
         + `${count(run.metrics.output_tokens)} output tokens · ${plural(run.metrics.requests, "request")} · `
-        + `mean latency ${FORMAT.millis(run.metrics.mean_latency_s)} · ${policyText}`;
+        + `mean latency ${FORMAT.millis(run.metrics.mean_latency_s)} · ${policyText}${selectionText}`;
       $("price-source").replaceChildren();
       if (rates?.source) {
         const link = node("a", "Published pricing ↗"); link.href = rates.source;

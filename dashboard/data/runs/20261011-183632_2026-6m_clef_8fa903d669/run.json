@@ -1,12 +1,12 @@
 {
   "artifact_hashes": {
-    "decisions.jsonl": "29d85b8213ef7619e9b10377050ff05ffcb2bfa1ab178f10cf5d6e045dee5fe1",
-    "equity_curve.csv": "606023c5220860270d389c775ff1efa2949d4da4b6dbad087a67803276e4a0b4",
-    "events.jsonl": "f846dd7b7ea62010a6d6aa2a845dd2477ab5250d2cd7c25dfed23cdf1bc65ccf",
-    "metrics.json": "30a2ad88fa09fc0ee56651d3a994af3f3d1a098c29a4a52c1f83bb0af99432f1",
+    "decisions.jsonl": "8b124bb7d1d92c0d2f3534fc3d5c9a2cedbc2b79ed05742970cdd03f32045594",
+    "equity_curve.csv": "b39b9f6c14e8e648449a38106c47e6b82925a8a1ac635d61bf5ada1f145ebe2c",
+    "events.jsonl": "65c579011cfa8f373668a878597a6269b529bae6f501fd36502c376203fde1e6",
+    "metrics.json": "1ed81a460d59aab1920bc6532b36ba947c2aa5734dba257ffe31ba7d133e888b",
     "snapshot/MANIFEST.json": "5788ebd51e6d12c5d2a55d0b06ba8c79d8e5590502174e1a6739068f461ff138",
     "snapshot/prices.csv": "d5b1dfa939e5672617313c7e9e6c27eb72625cd0c308cd3b5e1b303cfac46b6e",
-    "trades.csv": "1d8cc5dc61d2bb328dd42c050e0fd1036f2eb0ad5d5c3d34c28c62fea847b267"
+    "trades.csv": "4aa5ee8c0f6b5ce3ee7873fae0bfca6f6c496aa391c2b026c181b40ce89d6602"
   },
   "beatspy_version": "0.3.0",
   "bench": {
@@ -17,7 +17,7 @@
     "slippage_bps": 5.0
   },
   "benchmark": "dcn",
-  "created_utc": "2026-10-11T17:45:50+00:00",
+  "created_utc": "2026-10-11T18:36:32+00:00",
   "data": {
     "end": "2026-10-09",
     "fetched_at_utc": "2026-10-11T17:33:39+00:00",
@@ -55,17 +55,16 @@
       "SPY"
     ]
   },
-  "dcn_protocol": 3,
+  "dcn_protocol": 4,
   "decision": {
     "decision_model": "clef",
     "endpoint": "https://api.cloudflare.com/client/v4/accounts",
     "label": "Cloudflare Clef (27B)",
     "policy": {
       "base_weight": 0.5,
-      "core_weight": 0.85,
       "min_names": 2,
       "min_probability": 0.5,
-      "selection": "core_satellite",
+      "selection": "graded_cs",
       "top_n": 3
     },
     "pricing": {
@@ -86,7 +85,7 @@
     "frequency": "weekly",
     "start": "2026-04-09"
   },
-  "run_id": "20261011-174550_2026-6m_clef_0243acea80",
+  "run_id": "20261011-183632_2026-6m_clef_8fa903d669",
   "scenario": {
     "benchmark": "SPY",
     "cash": true,
@@ -101,6 +100,8 @@
     "max_position_weight": 0.35,
     "name": "2026-6m",
     "recent_months": 6,
+    "selection_lookback_days": 126,
+    "selection_top": 12,
     "slippage_bps": 5.0,
     "start": "2026-04-09",
     "through_latest": false,
@@ -136,11 +137,11 @@
     "year": null
   },
   "schema_version": 3,
-  "source_revision": "777b0fcd80ae04d46404abe912c968e44e534c05",
+  "source_revision": "f0f732360dac5213d63af7485ce12facf78e9119",
   "state_sample": {
-    "chars": 4282,
+    "chars": 4173,
     "decision_date": "2026-04-09",
-    "sha256": "abd7067b14e37178878176084d371e215605b38dfd4fea6ecaf2ac7ffa728107"
+    "sha256": "26afb13b5562fca7a716adda77cb053e3e724ce6c00f62b9b06076d18a68cfd5"
   },
   "synthetic": false
 }

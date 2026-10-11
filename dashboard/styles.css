@@ -38,3 +38,6 @@ tr.synthetic td{background:#1a1610}
 .how-steps strong{display:block;color:var(--text);margin-bottom:6px;font-size:13px}
 .how-links{display:flex;gap:22px;flex-wrap:wrap;font-size:12px}
 .how-links a{color:var(--accent)}
+
+.metric strong + p{margin-top:10px;line-height:1.6}
+.metric p.metric-note{font-size:11px;color:var(--muted)}

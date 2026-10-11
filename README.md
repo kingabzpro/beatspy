@@ -18,42 +18,92 @@ calibrated, and did the portfolio they built beat SPY?
 </div>
 
 > [!IMPORTANT]
-> **The honest result.** No model's active sleeve beat SPY in the published window,
-> and no model's probabilities show measurable skill: every Brier skill is negative
-> and every AUC permutation p-value is far from significant. The portfolio tracks
-> SPY because it holds the index as its core, not because of forecasting.
+> **The honest result.** In the published window no model beat SPY, and no model's
+> probabilities show measurable skill: every Brier skill is negative and every AUC
+> permutation p-value is far from significant. That window also punished the
+> scenario's own momentum selection, so the table's most useful line is the one
+> that compares each model against simply holding the names it was given.
 
 ## Latest benchmark
 
 Rolling six months to the latest completed session (`2026-6m`), weekly decisions,
-25 stocks and ETFs, one probability question per asset per week, 625 predictions
-per model. Frozen adjusted prices throughout. Window 2026-04-09 to 2026-10-09;
-every run holds an 85% SPY core and a 15% active sleeve, so "vs SPY" is the
-sleeve's contribution, not an asset-allocation difference.
+frozen adjusted prices, window 2026-04-09 to 2026-10-09. The pool is 25 assets:
+large companies across all 11 sectors, plus broad equities and long Treasuries.
+Each decision may trade **only the pool's twelve strongest trailing six-month
+performers versus SPY**, ranked point-in-time from prices up to that date, so the
+book is the model's choice among real assets. SPY is the yardstick and is never
+held. That narrowing is itself a momentum rule, and this window punished it: its
+own equal-weight return is the reference line below.
 
-| Decision model | Return | vs SPY | Excess 95% CI | Sharpe | Max DD | Turnover | Brier skill | AUC |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `clef-flash` | **+14.06%** | −1.03% | [−3.23%, +0.67%] | 2.37 | −3.95% | 5.0% | −0.293 | 0.498 |
-| `clef` | +13.95% | −1.14% | [−3.71%, +0.75%] | 2.37 | −3.87% | 5.2% | −0.242 | 0.501 |
-| `gpt-6-luna` | +13.76% | −1.33% | [−3.83%, +0.56%] | 2.34 | −3.94% | 4.4% | −0.023 | 0.471 |
-| `jev-latest` | +13.69% | −1.40% | [−3.65%, +0.32%] | 2.32 | −3.93% | 5.2% | −0.085 | 0.481 |
-| *SPY buy-and-hold* | *+15.09%* | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| Decision model | Return | vs its own set | vs SPY | Sharpe | Max DD | Turnover | Brier skill | AUC | p(AUC) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `clef-flash` | **+0.46%** | **+0.84%** | −14.63% | 0.13 | −10.26% | 31.1% | −0.289 | 0.460 | 0.91 |
+| `gpt-6-luna` | +0.36% | +0.74% | −14.73% | 0.12 | −9.24% | 32.0% | −0.050 | 0.428 | 0.96 |
+| `clef` | −0.54% | −0.16% | −15.63% | −0.02 | −11.15% | 33.1% | −0.245 | 0.477 | 0.83 |
+| `jev-latest` | −0.60% | −0.22% | −15.69% | −0.04 | −10.79% | 34.8% | −0.078 | 0.478 | 0.76 |
+| *its investable set, equal weight* | *−0.38%* | *n/a* | *−15.47%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| *whole pool, equal weight* | *+9.09%* | *n/a* | *−6.00%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| *SPY buy-and-hold* | *+15.09%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 
-Every excess interval includes zero, so at 25 decisions none of the four
-differences is distinguishable from noise. Two providers stay underconfident:
-`clef` and `clef-flash` answered a mean 0.30 where the realized rate was 0.45.
+Read this carefully, because the story is in the reference lines, not the models:
+
+- **The selection rule lost the money, not the models.** Holding the same twelve
+  names equally, with no model input at all, returned −0.38% while the full pool
+  made +9.09% and SPY +15.09%. Trailing six-month winners gave back most of
+  their lead in this window, at every setting tested (3, 6 and 9-month
+  lookbacks, top 8 to 20).
+- **Two models beat the set they were given, barely.** `clef-flash` (+0.84) and
+  `gpt-6-luna` (+0.74) added less than a point over equal weight of the same
+  names; `clef` and `jev-latest` were slightly behind. With no measurable
+  signal, that is what the numbers should look like.
+- **Turnover is the visible cost of a rotating universe**: 31 to 35% per
+  decision, against 5% for a fixed pool, because names enter and leave the
+  top twelve every week.
+- **The probabilities still carry no measurable signal**: every Brier skill is
+  negative and every AUC permutation p-value is far from significant
+  (0.76 to 0.96).
 
 <details>
-<summary><b>Why the numbers moved from −11 points behind SPY to −1</b></summary>
+<summary><b>Universe and policy history, and why the numbers moved</b></summary>
 
-The policy history is the same story told three times. The earliest cut held only
-the top three names above 0.5, rewrote the whole book weekly at ~50% turnover, and
-returned −9.3% to +0.7%. Graded sizing over the whole book roughly halved
-turnover and added 8 to 17 points. The SPY core removed the remaining structural
-gap: the same model over the same window returned +7.77% (23.3% turnover, −7.33
-points behind SPY) with the whole-book policy and +13.69% (5.2% turnover, −1.40)
-with an 85% core. Every one of those gains is portfolio construction, not
-forecasting; the calibration columns are unchanged by them.
+Four configurations have been published, and only one of them was ever about
+forecasting:
+
+1. **Top three above 0.5** (the earliest cut): rewrote the whole book weekly at
+   ~50% turnover and returned −9.3% to +0.7%.
+2. **Graded over the whole pool** (protocol 2): halved turnover, added 8 to 17
+   points, and left the book about 7 points behind SPY, because an equal-weighted
+   selection of a mega-cap-led market lags the cap-weighted index itself.
+3. **SPY core plus sleeve** (protocol 3, withdrawn): tracked SPY to within a
+   point, but 85% of the book was the index, so the score stopped measuring the
+   model's choices.
+4. **Trailing-performer pool** (protocol 4, current): no index, the model
+   chooses among real assets, and the report adds the reference line that
+   isolates the rule's own return. In this window the rule was the problem,
+   which is a result worth publishing rather than tuning away.
+
+Every gain in that list is portfolio construction or universe selection, not
+forecasting: the calibration columns are unmoved by all of it.
+
+</details>
+
+<details>
+<summary><b>Is the momentum selection worth keeping?</b></summary>
+
+The scenario makes it a one-line change, and the offline sweep (no model calls,
+equal weight so the rule is measured on its own) says:
+
+| Lookback | Top N | Rule's own return | Turnover |
+| --- | --- | --- | --- |
+| 63 days | 12 | +6.75% | 18.2% |
+| 126 days | 12 | −0.38% | 14.6% |
+| 189 days | 20 | +7.48% | 6.4% |
+| none, whole pool | 25 | +9.09% | 3.3% |
+
+One window is one draw, so this is not proof that momentum loses. It is proof
+that the rule can dominate the result, which is why the model-vs-its-own-set
+column exists. Widen `selection_top`, lengthen `selection_lookback_days`, or drop
+`selection_top` to measure the models over the whole pool.
 
 </details>
 
@@ -119,18 +169,19 @@ flowchart LR
 <details>
 <summary><b>How probabilities become a portfolio</b></summary>
 
-The default policy is **core_satellite**: `core_weight` of the book (85%) holds
-the benchmark itself, exempt from the position limit because the index is not a
-single-name bet. The remaining sleeve spreads across the universe, half evenly
-and half by each probability's distance above the decision's own mean, so the
-same ranking produces the same weights under any scale a provider answers on.
-`--core-weight 0.95` makes the book almost a tracker.
+The default policy is **graded_cs**: the whole book spreads across the
+investable set, half evenly and half by each probability's distance above the
+decision's own mean, so the same ranking produces the same weights under any
+scale a provider answers on. A scenario may narrow the investable set to its
+strongest trailing performers (`selection_top`); the ranking is point-in-time and
+the report adds an equal-weight line for that same set, so the rule's own return
+stays visible instead of being credited to the model.
 
-Three earlier policies stay selectable so recorded runs remain reproducible:
-`graded_cs` (the same rule over the whole book, no core), `graded` (conviction
-above a fixed 0.5 prior), and `top_n` (the earliest top-three cut). Under every
-graded policy an unanswered question carries no conviction share, so a provider
-failure can never become a directional bet.
+The index is never investable under any policy: SPY is the yardstick the labels
+and the comparison are measured against. `graded` (conviction above a fixed 0.5
+prior) and `top_n` (the earliest top-three cut) stay selectable so recorded runs
+remain reproducible, and under every graded policy an unanswered question carries
+no conviction share, so a provider failure can never become a directional bet.
 
 </details>
 
