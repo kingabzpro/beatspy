@@ -61,9 +61,9 @@
           <ol class="how-steps">
             <li><strong>Freeze the market.</strong> Prices are downloaded once into a content-addressed snapshot, and every run re-uses the same bytes.</li>
             <li><strong>Build the state.</strong> One compact JSON object per decision, containing only data dated on or before that decision date.</li>
-            <li><strong>Narrow the field.</strong> Each decision may trade only the pool's strongest trailing performers, ranked against SPY using prices up to that date, so no name is chosen with hindsight.</li>
+            <li><strong>Anchor the probabilities.</strong> The state carries the pool's trailing hit rate against SPY, so a model can see when 0.5 is an optimistic answer for a typical name.</li>
             <li><strong>Ask typed questions.</strong> One probability question per investable asset, phrased identically for every provider: will it beat SPY over the next few sessions?</li>
-            <li><strong>Size the book.</strong> A fixed policy spreads the whole book across those assets by conviction. The index is never bought, and the rule is recorded before any result is seen.</li>
+            <li><strong>Size the book.</strong> A fixed policy spreads the whole book across the pool by conviction, and only trades a name when its weight moves more than the rebalance band. The index is never bought, and the rule is recorded before any result is seen.</li>
             <li><strong>Execute and score.</strong> Orders fill at the next session's open. Every answer is scored twice, for calibration and for the return of the portfolio its probabilities built.</li>
           </ol>
           <p class="caption">Every run can be replayed offline from its own artifacts, and an adversarial audit checks that data after a decision date can never change that decision. No prompts, no tools, no hidden state.</p>
