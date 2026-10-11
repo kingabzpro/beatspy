@@ -102,8 +102,8 @@
     <section id="cost-overview" hidden aria-labelledby="pricing-table-title"><div class="section-heading"><div><p class="eyebrow">WHAT THE MODELS CHARGE</p><h2 id="pricing-table-title">Pricing</h2></div></div>
       <p id="cost-window" class="caption"></p>
       <div class="chart-grid">
-        <figure class="panel"><h3>What each model charges</h3><p class="caption">One row per model on the board, sorted by what its run cost. Rates are list prices, tokens are what the provider reported for the same frozen state, and the cost is the two multiplied.</p><div id="pricing-table" class="table-wrap"></div></figure>
-        <figure class="panel"><h3>Estimated cost per run</h3><p class="caption">The same numbers as bars, so the spread is visible at a glance: a run's bill is its rate times the tokens its runtime reports, not the rate alone.</p><div id="model-costs"></div></figure>
+        <figure class="panel"><h3>What each model charges</h3><p class="caption">One row per model on the board, sorted by cost per decision. A rate on its own does not predict the bill: what you pay is the rate times the tokens the provider counts for the same frozen state.</p><div id="pricing-table" class="table-wrap"></div></figure>
+        <figure class="panel"><h3>Cost per run</h3><p class="caption">The same bills as bars, over the published 25-decision window, so the spread is visible at a glance.</p><div id="model-costs"></div></figure>
       </div>
     </section>
     <section id="contribute" class="contribute"><div><p class="eyebrow">MAKE THE BENCHMARK BETTER</p><h2>Run it. Share the evidence.</h2><p>Decision models are scored from frozen snapshots, so any recorded run can be replayed and re-scored offline. Record a run, then render this same dashboard from your own results.</p></div>

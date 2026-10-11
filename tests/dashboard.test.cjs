@@ -306,18 +306,22 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
   assert.equal($('cost-overview').hidden, false);
-  // The pricing panel lists every model on the board: the rate, the tokens its
-  // run billed for the same frozen state, and the two multiplied.
+  // The pricing panel standardizes every model on the same units: rate, billed
+  // tokens and cost for one decision, and the run total.
   const pricing = $('pricing-table').children[0].descendants();
   const pricingRows = pricing.filter(node => node.tagName === 'tr');
   assert.equal(pricingRows.length, 3, 'header + one row per model on the board');
+  assert.deepEqual(pricingRows[0].children.map(cell => cell.textContent),
+    ['Model', 'Input $ / 1M', 'Tokens / decision', 'Cost / decision', 'Run cost', 'Source']);
   assert.deepEqual(pricingRows.slice(1).map(row => row.children[0].textContent).sort(), ['clef', 'clef-flash']);
   for (const row of pricingRows.slice(1)) {
-    assert.match(row.children[1].textContent, /^\$\d+\.\d{3}$/);   // input rate per 1M
-    assert.equal(row.children[2].textContent, '111');              // 1000 tokens over 9 decisions
-    assert.equal(row.children[3].textContent, '$0.000900');        // the run's own recorded cost
+    assert.match(row.children[1].textContent, /^\$\d+\.\d{3}$/);   // list rate per 1M input tokens
+    assert.equal(row.children[2].textContent, '111');              // 1000 billed tokens over 9 decisions
+    assert.equal(row.children[3].textContent, '$0.000100');        // $0.0009 spread over 9 decisions
+    assert.equal(row.children[4].textContent, '$0.000900');        // the run's own recorded cost
   }
   assert.ok(pricing.filter(node => node.tagName === 'a').every(link => link.href.startsWith('https://')));
+  assert.match($('cost-window').textContent, /bill it once per question/);
   const runButton = table.descendants().find(node => node.className === 'run-button');
   runButton.onclick();  // sets the hash
   runButton.onclick();  // selects the run

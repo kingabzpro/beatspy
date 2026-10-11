@@ -212,30 +212,35 @@ if (typeof document !== "undefined") {
     || (typeof run.pricing?.cost_per_m_input === "number"
       ? {input: run.pricing.cost_per_m_input, output: run.pricing.cost_per_m_output ?? 0} : null);
   function renderPricing() {
-    // One row per model on the board. The rate is only half the story: a model
-    // bills whatever its runtime reports for the same frozen state, so the
-    // run's own token count sits beside the rate, and the cost beside both.
+    // One row per model on the board, on units that compare. Rates are per
+    // million tokens, so a run's bill is its rate times the tokens the provider
+    // billed; the columns standardize that to one decision (the unit the board
+    // is scored in) and to the run, and the caption explains why two providers
+    // report far more tokens than the rest for the same frozen state.
     const records = visible.map(run => {
       const rates = runRates(run);
       const decisions = Number(run.decisions ?? run.metrics?.decisions);
       const tokens = Number(run.metrics?.input_tokens);
+      const cost = run.estimated_cost_usd ?? inputCost(run.metrics, rates);
       return {
         run, rates,
-        perDecision: decisions > 0 && Number.isFinite(tokens) ? Math.round(tokens / decisions) : null,
-        cost: run.estimated_cost_usd ?? inputCost(run.metrics, rates),
+        tokens: decisions > 0 && Number.isFinite(tokens) ? Math.round(tokens / decisions) : null,
+        perDecision: Number.isFinite(Number(cost)) && decisions > 0 ? Number(cost) / decisions : null,
+        cost,
       };
-    }).sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0));
+    }).sort((a, b) => (Number(b.perDecision) || 0) - (Number(a.perDecision) || 0));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
-    for (const [title, className] of [["Model", ""], ["Input USD / M", "num"], ["Tokens / decision", "num"],
-                                      ["Run cost", "num"], ["Pricing source", ""]]) {
+    for (const [title, className] of [["Model", ""], ["Input $ / 1M", "num"], ["Tokens / decision", "num"],
+                                      ["Cost / decision", "num"], ["Run cost", "num"], ["Source", ""]]) {
       header.append(node("th", title, className));
     }
     head.append(header); element.append(head, body);
-    for (const {run, rates, perDecision, cost} of records) {
+    for (const {run, rates, tokens, perDecision, cost} of records) {
       const row = node("tr");
       row.append(node("td", modelName(run.model)),
         node("td", typeof rates?.input === "number" ? `$${rates.input.toFixed(3)}` : "n/a", "num"),
-        node("td", perDecision === null ? "n/a" : perDecision.toLocaleString(), "num"),
+        node("td", tokens === null ? "n/a" : tokens.toLocaleString(), "num"),
+        node("td", preciseDollars(perDecision), "num"),
         node("td", preciseDollars(cost), "num"));
       const cell = node("td");
       if (rates?.source) {
@@ -244,7 +249,7 @@ if (typeof document !== "undefined") {
         cell.append(link);
         row.title = rates.note || "";
       } else {
-        cell.append(node("span", "Recorded in run.json"));
+        cell.append(node("span", "Run record"));
       }
       row.append(cell); body.append(row);
     }
@@ -325,8 +330,10 @@ if (typeof document !== "undefined") {
     $("cost-overview").hidden = !visible.length;
     $("cost-window").textContent = visible.length
       ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
-        + "What a run costs is the rate times the tokens the provider reports for the same frozen state, and that count varies by more than "
-        + "twentyfold across these models, so the lowest rate can still be the priciest run."
+        + "A run's bill is its rate times the tokens the provider counts, and providers count the same frozen state very differently: most "
+        + "bill the shared state once per request, while d1 and pplx-decider bill it once per question, so a decision that asks 25 questions "
+        + "is billed as 25 passes over the same state. Compare models on tokens per decision and cost per decision; the run cost is the total "
+        + "for the published 25-decision window."
       : "";
     runBars("model-costs", visible
       .map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
