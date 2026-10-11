@@ -224,6 +224,17 @@ async def run_dcn(
             "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
             "synthetic": False,
             "disclaimer": DISCLAIMER,
+            # One full state sample, so an auditor can read exactly what the model
+            # saw. Every decision still records its own hash and size.
+            "state_sample": (
+                {
+                    "decision_date": decisions[0].date.isoformat(),
+                    "sha256": decisions[0].state_sha256,
+                    "chars": len(decisions[0].state_text),
+                }
+                if decisions
+                else None
+            ),
             "decision": {
                 "decision_model": settings.decision.decision_model,
                 "provider": settings.decision.provider,
@@ -269,6 +280,10 @@ async def run_dcn(
             [decision_line(decision) for decision in decisions],
             event_lines,
         )
+        if decisions:
+            # The exact rendered state of the first decision, byte for byte, so its
+            # recorded hash can be checked against a readable document.
+            (out_dir / "state-sample.json").write_text(decisions[0].state_text, encoding="utf-8")
         import shutil
 
         shutil.copytree(Path(manifest["path"]), out_dir / "snapshot")

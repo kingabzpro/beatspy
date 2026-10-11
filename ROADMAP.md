@@ -68,7 +68,7 @@ for the sequencing section at the very end.
   they wait for an explicit go-ahead.
 
 ### L4. Record one full state sample per run
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** `decisions.jsonl` stores `state_sha256` and `state_chars` but never the
   state text, so after a run you can prove the input never changed, but you cannot
   read what the model actually saw. External audit and debugging (especially the

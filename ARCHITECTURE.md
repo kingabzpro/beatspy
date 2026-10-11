@@ -56,6 +56,11 @@ serves a bar later than `as_of`. Two rules are load-bearing:
 The state describes the market; it never states an allocation. Allocation rules
 live in the question set and the sizing policy, where they can be audited.
 
+Every run also writes `state-sample.json`: the first decision's exact rendered
+state, byte for byte, with its `sha256` recorded in `run.json`, so a recorded
+hash resolves to a document an auditor can read. Each decision records its own
+`state_sha256` and `state_chars` alongside it.
+
 ## Calibration is half the benchmark
 
 `dcn/calibration.py` is provider-independent and deterministic. Labels are

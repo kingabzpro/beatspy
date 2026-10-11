@@ -21,6 +21,20 @@ def test_a_run_writes_the_complete_artifact_set(dcn_run_dir):
     assert (dcn_run_dir / "snapshot" / "MANIFEST.json").is_file()
 
 
+def test_a_state_sample_is_recorded_and_readable(dcn_run_dir):
+    """One exact state text per run, so the recorded hash resolves to a document."""
+    import hashlib
+
+    meta, _, lines = read_run(dcn_run_dir)
+    sample = meta["state_sample"]
+    assert sample["decision_date"] == lines[0]["date"]
+    text = (dcn_run_dir / "state-sample.json").read_text(encoding="utf-8")
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sample["sha256"]
+    assert sample["sha256"] == lines[0]["state_sha256"]
+    assert len(text) == sample["chars"] == lines[0]["state_chars"]
+    assert json.loads(text)["as_of"] == lines[0]["date"]
+
+
 def test_every_question_form_is_scored_per_form(tmp_path, scenario, frozen_data):
     """One run per form, and only the forms actually asked appear in the report."""
     twin = run_offline(tmp_path, scenario, frozen_data, OfflineDcnClient(), question_form="twin")
