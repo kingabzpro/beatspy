@@ -174,31 +174,33 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
 
 test('the frontend uses safe text rendering, keeps the design, and never mentions agents', () => {
   const js = readFileSync('dashboard/app.js', 'utf8');
-  const html = readFileSync('dashboard/index.html', 'utf8');
   const css = readFileSync('dashboard/styles.css', 'utf8');
+  const pages = Object.fromEntries(['index.html', 'run.html', 'pricing.html', 'method.html', 'contribute.html']
+    .map(name => [name, readFileSync(`dashboard/${name}`, 'utf8')]));
+  const html = Object.values(pages).join('\n');
   assert.doesNotMatch(js, /innerHTML|outerHTML|document\.write|eval\(/);
   assert.match(js, /textContent/);
-  assert.match(html, /aria-live="polite"/);
-  assert.match(html, /styles\.css/);
-  assert.match(html, /app\.js/);
+  assert.match(pages['index.html'], /aria-live="polite"/);
+  assert.match(pages['index.html'], /styles\.css/);
+  assert.match(pages['index.html'], /app\.js/);
   // Design language kept: the same dark palette and panel classes.
   assert.match(css, /--accent:#b4f272/);
   assert.match(css, /\.panel\{/);
   assert.match(html, /class="eyebrow"/);
   assert.match(html, /class="brandmark"/);
-  for (const [name, text] of [['index.html', html], ['app.js', js], ['styles.css', css]]) {
+  for (const [name, text] of [...Object.entries(pages), ['app.js', js], ['styles.css', css]]) {
     for (const word of ['agent', 'pipeline', 'critic', 'reasoning effort', 'telemetry', 'tool call', 'tool_call']) {
       assert.doesNotMatch(text.toLowerCase(), new RegExp(word), `${name} mentions ${word}`);
     }
   }
-  // The reliability section is part of the site.
+  // Every widget the script binds to exists somewhere in the site, and the
+  // reliability chart and per-run statistics live in the script.
   for (const anchor of ['leaderboard', 'calibration', 'reliability', 'reliability-bins',
     'pricing-table', 'model-costs', 'run-cost', 'performance', 'drawdown', 'allocations']) {
     assert.match(html, new RegExp(`id="${anchor}"`), anchor);
   }
   assert.match(html, /Reliability/);
   assert.match(html, /Brier/);
-  // The reliability chart and the per-run statistics live in the script.
   assert.match(js, /reliabilityChart/);
   assert.match(js, /excess_return_ci/);
   assert.match(js, /auc_p_value/);
@@ -242,31 +244,30 @@ function fakeElement(tag) {
   return element;
 }
 
-// Every element id the page declares, so the render path never trips over a
-// missing node. Kept in sync with dashboard/index.html; a stale entry only means
-// an unused stub, and a missing one surfaces as a failing test.
-const PAGE_IDS = [
-  'leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'cost-overview', 'cost-window',
-  'pricing-table', 'model-costs', 'price-source', 'price-note', 'input-price', 'output-price', 'reset-rates',
-  'run-details', 'run-trust', 'run-title', 'run-meta', 'metrics', 'calibration', 'reliability',
-  'reliability-bins', 'reliability-bins-caption', 'performance', 'run-cost', 'coverage', 'settings', 'downloads',
-  'contribute',
-];
+// The site is several pages sharing one script, so each page's element ids are
+// listed separately: a page only gets the nodes its own HTML declares, which is
+// what the renderers guard on. Kept in sync with the dashboard/*.html files.
+const PAGE_IDS = {
+  'index.html': ['leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'summary', 'hero-scope'],
+  'run.html': ['run-details', 'run-trust', 'run-title', 'run-meta', 'status', 'metrics', 'calibration', 'reliability',
+    'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
+    'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
+  'pricing.html': ['cost-overview', 'cost-window', 'status', 'pricing-table', 'model-costs'],
+};
 
-// Stand up the page against an in-memory site: no network, no files, no browser.
-function mountSite(site) {
+// Stand up one page against an in-memory site: no network, no files, no browser.
+function mountSite(site, page = 'index.html', search = '') {
   const elements = new Map();
-  for (const id of PAGE_IDS) {const element = fakeElement('div'); element.id = id; elements.set(id, element);}
+  for (const id of PAGE_IDS[page] || []) {const element = fakeElement('div'); element.id = id; elements.set(id, element);}
   global.document = {
-    getElementById(id) {
-      if (!elements.has(id)) {const element = fakeElement('div'); element.id = id; elements.set(id, element);}
-      return elements.get(id);
-    },
+    // Absent ids are genuinely absent: that is how the script knows which page
+    // it is on and which widgets to render.
+    getElementById(id) {return elements.get(id) || null;},
     createElement: fakeElement,
     createElementNS: (_namespace, tag) => fakeElement(tag),
   };
   global.window = {addEventListener() {}};
-  global.location = {hash: ''};
+  global.location = {hash: '', search};
   global.fetch = async path => ({
     ok: path in site, status: path in site ? 200 : 404,
     text: async () => {if (!(path in site)) throw new Error(`missing ${path}`); return site[path];},
@@ -278,7 +279,9 @@ function mountSite(site) {
 
 const settle = async () => {for (let i = 0; i < 50; i++) await new Promise(resolve => setTimeout(resolve, 0));};
 
-test('the payload actually drives the page: leaderboard, equity, reliability and the run statistics', async () => {
+// Two runs, artifacts present for the first: enough to exercise the board, the
+// run page and the pricing page against one payload.
+function siteFixture() {
   const first = catalogRun();
   const second = catalogRun({run_id: 'run-b', dir: 'runs/run-b', model: 'clef', provider: 'cloudflare',
     question_form: 'noul', created_utc: '2026-10-08T09:00:00+00:00'});
@@ -297,7 +300,12 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
     [`data/${first.dir}/decisions.jsonl`]: JSON.stringify(
       {date: '2026-01-02', validated: {weights: {AAPL: 0.5}, cash: 0.5, invalid: false}}) + '\n',
   };
-  const elements = mountSite(site);
+  return {site, first, second};
+}
+
+test('the leaderboard page renders the board and links each row to its run page', async () => {
+  const {site, first} = siteFixture();
+  const elements = mountSite(site, 'index.html');
   await settle();
   const $ = id => elements.get(id);
   assert.equal($('run-count').textContent, '2 results');
@@ -309,45 +317,34 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   assert.match($('summary').textContent, /2 models, 9 weekly decisions\./);
   assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, clef-flash, returned \+5\.00%\./);
   assert.match($('summary').textContent, /Every Brier skill is negative/);
-  assert.equal($('cost-overview').hidden, false);
-  // The pricing panel standardizes every model on the same units: rate, billed
-  // tokens and cost for one decision, and the run total.
-  const pricing = $('pricing-table').children[0].descendants();
-  const pricingRows = pricing.filter(node => node.tagName === 'tr');
-  assert.equal(pricingRows.length, 3, 'header + one row per model on the board');
-  assert.deepEqual(pricingRows[0].children.map(cell => cell.textContent),
-    ['Model', 'Input $ / 1M', 'Tokens / decision', 'Cost / decision', 'Run cost', 'Source']);
-  assert.deepEqual(pricingRows.slice(1).map(row => row.children[0].textContent).sort(), ['clef', 'clef-flash']);
-  for (const row of pricingRows.slice(1)) {
-    assert.match(row.children[1].textContent, /^\$\d+\.\d{3}$/);   // list rate per 1M input tokens
-    assert.equal(row.children[2].textContent, '111');              // 1000 billed tokens over 9 decisions
-    assert.equal(row.children[3].textContent, '$0.000100');        // $0.0009 spread over 9 decisions
-    assert.equal(row.children[4].textContent, '$0.000900');        // the run's own recorded cost
-  }
-  assert.ok(pricing.filter(node => node.tagName === 'a').every(link => link.href.startsWith('https://')));
-  assert.match($('cost-window').textContent, /bill it once per question/);
-  const runButton = table.descendants().find(node => node.className === 'run-button');
-  runButton.onclick();  // sets the hash
-  runButton.onclick();  // selects the run
-  await settle();
-  assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
-  // The board carries the headline metrics; the summary below carries the rest.
+  // The board carries the headline metrics only.
   const headers = table.children[0].descendants()
     .filter(node => node.tagName === 'th')
     .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
   assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'vs SPY', 'Sharpe', 'Max DD', 'Brier skill', 'AUC']);
-  // Every other metric is reviewed in the run summary, each with its reading.
+  // A row is a real link to the run page, so it opens in a new tab and shares well.
+  const runLink = table.descendants().find(node => node.className === 'run-button');
+  assert.equal(runLink.tagName, 'a');
+  assert.equal(runLink.href, `run.html?run=${first.run_id}`);
+  // Widgets that belong to other pages are absent here, and the script must cope.
+  assert.equal($('run-details'), undefined);
+  assert.equal($('pricing-table'), undefined);
+});
+
+test('the run page loads one run from the query string', async () => {
+  const {site, first} = siteFixture();
+  const elements = mountSite(site, 'run.html', `?run=${encodeURIComponent(first.run_id)}`);
+  await settle();
+  const $ = id => elements.get(id);
+  assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
+  assert.match($('run-title').textContent, /clef-flash/);
+  // The run summary: sixteen tiles, each with the line that reads it.
   assert.equal($('metrics').children.length, 16);
   const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
-  assert.match(metricText, /Excess vs SPY/);
-  assert.match(metricText, /Excess vs pool/);
-  assert.match(metricText, /Turnover per decision/);
-  assert.match(metricText, /Decisions ahead of SPY/);
-  assert.match(metricText, /Log loss/);
-  assert.match(metricText, /ECE \(noul\)/);
-  assert.match(metricText, /Answer coverage/);
-  assert.match(metricText, /95% interval/);
-  assert.match(metricText, /permutation p =/);
+  for (const label of ['Excess vs SPY', 'Excess vs pool', 'Turnover per decision', 'Decisions ahead of SPY',
+                       'Log loss', 'ECE (noul)', 'Answer coverage', '95% interval', 'permutation p =']) {
+    assert.match(metricText, new RegExp(label.replace(/[()]/g, '\\$&')));
+  }
   assert.equal($('reliability').children[0].descendants().filter(node => node.tagName === 'svg').length, 1);
   const circles = $('reliability').children[0].descendants().filter(node => node.tagName === 'circle');
   assert.equal(circles.length, 4);
@@ -368,6 +365,32 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   assert.equal($('reliability-bins').children[0].descendants().filter(node => node.tagName === 'tr').length, 4);
   assert.match($('settings').textContent, /"decision"/);
   assert.equal($('downloads').children.length, 6);
+  // No board on this page: the script must not require it.
+  assert.equal($('leaderboard-table'), undefined);
+});
+
+test('the pricing page renders the standardized table', async () => {
+  const {site} = siteFixture();
+  const elements = mountSite(site, 'pricing.html');
+  await settle();
+  const $ = id => elements.get(id);
+  assert.equal($('cost-overview').hidden, false);
+  const pricing = $('pricing-table').children[0].descendants();
+  const pricingRows = pricing.filter(node => node.tagName === 'tr');
+  assert.equal(pricingRows.length, 3, 'header + one row per model on the board');
+  assert.deepEqual(pricingRows[0].children.map(cell => cell.textContent),
+    ['Model', 'Input $ / 1M', 'Tokens / decision', 'Cost / decision', 'Run cost', 'Source']);
+  assert.deepEqual(pricingRows.slice(1).map(row => row.children[0].textContent).sort(), ['clef', 'clef-flash']);
+  for (const row of pricingRows.slice(1)) {
+    assert.match(row.children[1].textContent, /^\$\d+\.\d{3}$/);   // list rate per 1M input tokens
+    assert.equal(row.children[2].textContent, '111');              // 1000 billed tokens over 9 decisions
+    assert.equal(row.children[3].textContent, '$0.000100');        // $0.0009 spread over 9 decisions
+    assert.equal(row.children[4].textContent, '$0.000900');        // the run's own recorded cost
+  }
+  assert.ok(pricing.filter(node => node.tagName === 'a').every(link => link.href.startsWith('https://')));
+  assert.match($('cost-window').textContent, /bill it once per question/);
+  assert.equal($('model-costs').children.length, 2, 'one bar per model');
+  assert.equal($('leaderboard-table'), undefined);
 });
 
 // A DOM `hidden` property is invisible to a fake DOM, so this checks the

@@ -23,7 +23,7 @@ from beatspy.reporting.catalog import (
     summary,
     validate_run_meta,
 )
-from beatspy.reporting.dashboard import collect_runs, render_dashboard, static_dir
+from beatspy.reporting.dashboard import PAGES, collect_runs, render_dashboard, static_dir
 
 INDEX_ROW_KEYS = {
     "run_id",
@@ -241,7 +241,7 @@ def test_render_dashboard_writes_the_dcn_payload(results_root: Path, dcn_run_dir
     written = render_dashboard(results_root, out_path=out)
     assert written == out
     assert written.is_file()
-    for name in ("styles.css", "app.js", "favicon.ico", "site.webmanifest", "robots.txt", "sitemap.xml"):
+    for name in (*PAGES, "styles.css", "app.js", "favicon.ico", "site.webmanifest", "robots.txt", "sitemap.xml"):
         assert (out.parent / name).is_file(), name
     assert (out.parent / "assets" / "favicon.svg").is_file()
     catalog = read_json(out.parent / "data" / "index.json")
@@ -316,32 +316,51 @@ def test_committed_public_catalog_matches_the_dcn_shape():
 
 
 def test_public_site_assets_have_no_agent_wording():
-    html = (static_dir() / "index.html").read_text(encoding="utf-8")
+    pages = {name: (static_dir() / name).read_text(encoding="utf-8") for name in PAGES}
     js = (static_dir() / "app.js").read_text(encoding="utf-8")
     css = (static_dir() / "styles.css").read_text(encoding="utf-8")
     banned = ("agent", "pipeline", "critic", "reasoning effort", "reasoning_effort", "tool call", "tool_call",
               "telemetry", "five trading", "max turns", "max_turns", "web search", "web_search", "read_file",
               "shell command")
-    for name, text in (("index.html", html), ("app.js", js), ("styles.css", css)):
+    for name, text in (*pages.items(), ("app.js", js), ("styles.css", css)):
         lowered = text.lower()
         for word in banned:
             assert word not in lowered, f"{name} mentions {word!r}"
-    # The DCN payload is what the site renders.
+    # The DCN payload is what the site renders, wherever a token lives.
     for token in ("reliability", "brier", "decision model", "calibration", "provider"):
-        assert token in html.lower(), token
+        assert any(token in text.lower() for text in pages.values()), token
 
 
 def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
-    html = (static_dir() / "index.html").read_text(encoding="utf-8")
+    pages = {name: (static_dir() / name).read_text(encoding="utf-8") for name in PAGES}
     js = (static_dir() / "app.js").read_text(encoding="utf-8")
     assert not any(bad in js for bad in ("innerHTML", "outerHTML", "document.write", "eval("))
     assert "textContent" in js
-    for anchor in ("leaderboard", "how", "calibration", "reliability", "reliability-bins", "pricing-table",
-                   "model-costs", "run-cost", "performance", "drawdown", "allocations", "status", "run-count"):
-        assert f'id="{anchor}"' in html, anchor
-    assert 'aria-live="polite"' in html
-    assert "styles.css" in html and "app.js" in html
-    assert "Reliability" in html
+    # Each widget lives on the page that owns it; the ids are what app.js binds to.
+    owners = {
+        "index.html": ("leaderboard", "leaderboard-table", "status", "run-count", "summary", "hero-scope"),
+        "run.html": ("run-details", "calibration", "reliability", "reliability-bins", "performance", "drawdown",
+                     "allocations", "run-cost", "metrics", "downloads"),
+        "pricing.html": ("pricing-table", "model-costs", "cost-window"),
+        "method.html": ("how",),
+        "contribute.html": ("contribute",),
+    }
+    for page, anchors in owners.items():
+        for anchor in anchors:
+            assert f'id="{anchor}"' in pages[page], f"{anchor} should live in {page}"
+    for name, html in pages.items():
+        assert "styles.css" in html
+        # Only the pages that show results load the data script; the method and
+        # contribute pages are static text.
+        if name in ("index.html", "run.html", "pricing.html"):
+            assert "app.js" in html, name
+            assert 'aria-live="polite"' in html, name
+        # Every page links the others in the nav, so no page is a dead end.
+        for href in ("index.html", "pricing.html", "method.html", "contribute.html"):
+            assert f'href="{href}"' in html, f"{name} does not link {href}"
+    assert "Reliability" in pages["run.html"]
+    # A row opens the run page rather than a section of this one.
+    assert "run.html?run=" in js
 
 
 def test_pricing_table_covers_the_four_decision_models():

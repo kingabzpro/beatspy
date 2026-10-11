@@ -33,15 +33,15 @@
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
-  <header class="topbar"><a class="brand" href="#"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
-    <nav aria-label="Main navigation"><a href="#leaderboard">Results</a><a href="#cost-overview">Pricing</a><a href="#how">How it works</a><a href="#contribute">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+  <header class="topbar"><a class="brand" href="index.html"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
+    <nav aria-label="Main navigation"><a href="index.html" aria-current="page">Results</a><a href="pricing.html">Pricing</a><a href="method.html">Method</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
   </header>
   <main id="main-content" tabindex="-1">
-    <noscript><p class="caption">Enable JavaScript to explore the leaderboard and charts, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
-    <section class="hero"><p class="eyebrow">OPEN BENCHMARK / TYPED QUESTIONS / FROZEN DATA</p>
+    <noscript><p class="caption">Enable JavaScript to explore the leaderboard, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
+    <section class="hero">
       <h1>Can a decision model<br><span>beat the market?</span></h1>
-      <p class="lede">One frozen state per decision, the same typed questions for every model, scored on calibration and on the portfolio the answers build. SPY is the yardstick, never a holding.</p>
-      <div class="hero-meta"><span id="hero-scope">Latest 6 months · weekly decisions · 25 stocks and ETFs</span><span>Probabilities, not prose</span><span>Open results</span></div>
+      <p class="lede">Frozen state, typed questions, fixed rules. SPY is the yardstick, never a holding.</p>
+      <p class="hero-meta"><span id="hero-scope">Latest 6 months · weekly decisions · 25 assets</span></p>
     </section>
     <section id="leaderboard" aria-labelledby="board-title">
       <div class="section-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div><span id="run-count" class="pill">Loading</span></div>
@@ -50,66 +50,7 @@
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap"></div>
       <p id="summary" class="summary"></p>
-    </section>
-    <section id="run-details" hidden aria-labelledby="run-title">
-      <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>
-      <p id="run-meta" class="caption"></p>
-      <div id="metrics" class="metric-grid"></div>
-      <section id="calibration" aria-labelledby="calibration-title">
-        <div class="section-heading"><div><p class="eyebrow">CALIBRATION</p><h2 id="calibration-title">Reliability</h2></div></div>
-        <figure class="panel"><h3>Reliability curve</h3>
-          <p class="caption">Each point is one bin of predictions: what the model said on the x-axis, what actually happened on the y-axis. A model whose points sit on the dashed diagonal is honest about its own confidence. Points <em>above</em> the line mean underconfidence, the events happened more often than the model claimed; points <em>below</em> mean overconfidence. Point size grows with the bin count, so a lone point is noise. The Brier skill and AUC on the leaderboard come from these same scored observations.</p>
-          <div id="reliability"></div>
-          <p class="caption" id="reliability-bins-caption">Every bin, including the empty ones: predicted range, how many answers landed in it, and the observed outcome rate.</p>
-          <div id="reliability-bins" class="table-wrap"></div>
-        </figure>
-      </section>
-      <div class="chart-grid"><figure class="panel"><h3>Performance</h3><p class="caption">Hover for exact values. Toggle series with the legend.</p><div id="performance"></div></figure>
-        <figure class="panel"><h3>Drawdown</h3><p class="caption">Decline from each portfolio’s running peak.</p><div id="drawdown"></div></figure></div>
-      <figure class="panel"><h3>Allocations over time</h3><p class="caption">Weights after each decision. An invalid answer set holds the previous portfolio rather than liquidating.</p><div id="allocations"></div></figure>
-      <section id="pricing" class="panel" aria-labelledby="pricing-title"><h3 id="pricing-title">What this run costs</h3>
-        <p id="run-cost" class="cost-summary"></p>
-        <p id="price-note" class="caption">Every decision model here bills input only: output tokens are free and no provider offers prompt caching. Estimates are API-equivalent list prices, not invoices.</p>
-        <p id="price-source" class="caption"></p>
-      </section>
-      <section class="panel"><h3>Settings &amp; provenance</h3><p id="coverage" class="caption"></p><details><summary>Full run record</summary><pre id="settings"></pre></details><div id="downloads" class="downloads"></div></section>
-    </section>
-    <section id="cost-overview" hidden aria-labelledby="pricing-table-title"><div class="section-heading"><div><p class="eyebrow">WHAT THE MODELS CHARGE</p><h2 id="pricing-table-title">Pricing</h2></div></div>
-      <p id="cost-window" class="caption"></p>
-      <div class="chart-grid">
-        <figure class="panel"><h3>What each model charges</h3><p class="caption">One row per model on the board, sorted by cost per decision. A rate on its own does not predict the bill: what you pay is the rate times the tokens the provider counts for the same frozen state.</p><div id="pricing-table" class="table-wrap"></div></figure>
-        <figure class="panel"><h3>Cost per run</h3><p class="caption">The same bills as bars, over the published 25-decision window, so the spread is visible at a glance.</p><div id="model-costs"></div></figure>
-      </div>
-    </section>
-    <section id="how" class="how" aria-labelledby="how-title">
-      <div class="section-heading"><div><p class="eyebrow">METHOD</p><h2 id="how-title">How this benchmark works</h2></div></div>
-      <p class="how-lede">Six steps run identically for every model. Fixing them is the point: a difference on the board is then a difference between models, not between setups, and any run can be replayed from its own artifacts.</p>
-      <p class="how-hint">Frozen data · typed questions · fixed policy · replayable scores</p>
-      <ol class="how-steps">
-        <li><strong>Freeze the market.</strong>Prices are downloaded once into a content-addressed snapshot. Every run over that window re-uses the same bytes, so a score can never change because the data did.</li>
-        <li><strong>Build the state.</strong>One compact JSON per decision date, holding only data dated on or before it, with the token budget enforced before anything is sent. It carries the pool's trailing hit rate against SPY, so a model can see when 0.5 is an optimistic answer for a typical name.</li>
-        <li><strong>Ask typed questions.</strong>One probability question per investable asset, phrased identically for every model: will it beat SPY over the next few sessions? The optional forms ask the same name as a two-way choice and a five-level rank. Answers must be typed probabilities; a refusal is recorded as missing coverage, never invented.</li>
-        <li><strong>Size the book.</strong>A fixed, deterministic policy turns probabilities into target weights: the book spreads across the pool by conviction, a trade fires only when a weight moves past the rebalance band, and the index is never bought. The rule was written down before results were seen and is recorded in every run.</li>
-        <li><strong>Fill the orders.</strong>Only weights that moved past the band become orders, and they fill at the next session's open with fees and slippage applied. No decision can trade on a price it has already seen.</li>
-        <li><strong>Score it twice.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built: return, Sharpe and drawdown against SPY and deterministic baselines such as equal weight and 60/40.</li>
-      </ol>
-      <h3 class="how-sub">What keeps it honest</h3>
-      <div class="how-notes">
-        <p><strong>No look-ahead.</strong>The state holds only data dated on or before the decision date. The adversarial audit tampers with every later price and requires the earlier decisions to come out byte-identical.</p>
-        <p><strong>Missing stays missing.</strong>An unanswered question is never scored and carries no conviction, so a provider failure cannot become a trade. Coverage is printed on every run.</p>
-        <p><strong>Replayable.</strong>Each run ships its state hash, decisions, fills and metrics, and <code>beatspy verify</code> re-derives the scores offline, requiring exact agreement.</p>
-        <p><strong>Uncertainty is reported.</strong>Returns and excess carry block-bootstrap intervals clustered by decision date, and every calibration score carries a permutation p-value: one six-month window cannot prove an edge.</p>
-      </div>
-      <div class="how-links">
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/examples/leakage_audit.py">Leakage audit ↗</a>
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/CONTRIBUTING.md">Contributing ↗</a>
-      </div>
-    </section>
-    <section id="contribute" class="contribute"><div><p class="eyebrow">MAKE THE BENCHMARK BETTER</p><h2>Run it. Share the evidence.</h2><p>Decision models are scored from frozen snapshots, so any recorded run can be replayed and re-scored offline. Record a run, then render this same dashboard from your own results.</p></div>
-      <ol><li><strong>Point at a provider</strong><code>uv run beatspy setup</code></li><li><strong>Record a run</strong><code>uv run beatspy run</code></li><li><strong>Render the report</strong><code>uv run beatspy report</code></li></ol>
-      <a class="button" href="https://github.com/kingabzpro/beatspy/blob/main/CONTRIBUTING.md">Contribution guide ↗</a>
+      <p class="caption">Open a model for its full run, or read <a href="method.html">how the benchmark works</a> and <a href="pricing.html">what the models charge</a>.</p>
     </section>
   </main>
   <footer><span>BeatSPY · Apache-2.0</span><span>Frozen data · Replayable scores</span><a href="https://github.com/kingabzpro/beatspy">Source ↗</a></footer>

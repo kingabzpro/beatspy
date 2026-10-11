@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How the benchmark works: frozen snapshots, typed questions, a fixed sizing policy, and two scores per run.">
+  <meta name="theme-color" content="#101214">
+  <meta name="color-scheme" content="dark">
+  <meta name="application-name" content="BeatSPY">
+  <title>Method · BeatSPY</title>
+  <link rel="canonical" href="https://beatspy.vercel.app/method.html">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" sizes="any">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="topbar"><a class="brand" href="index.html"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
+    <nav aria-label="Main navigation"><a href="index.html">Results</a><a href="pricing.html">Pricing</a><a href="method.html" aria-current="page">Method</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+  </header>
+  <main id="main-content" tabindex="-1">
+    <section id="how" class="how" aria-labelledby="how-title">
+      <div class="section-heading"><div><p class="eyebrow">METHOD</p><h2 id="how-title">How this benchmark works</h2></div></div>
+      <p class="how-lede">Six steps run identically for every model, so a difference on the board is a difference between models, not between setups.</p>
+      <ol class="how-steps">
+        <li><strong>Freeze the market.</strong>Prices are downloaded once into a content-addressed snapshot; every run re-uses those bytes.</li>
+        <li><strong>Build the state.</strong>One compact JSON per decision date, holding only data dated on or before it, with the token budget enforced before it is sent.</li>
+        <li><strong>Ask typed questions.</strong>One probability question per asset, phrased identically for every model. Answers must be typed probabilities; a refusal counts as missing coverage, never invented.</li>
+        <li><strong>Size the book.</strong>A fixed policy turns probabilities into weights. The index is never bought, and the rule was recorded before any result was seen.</li>
+        <li><strong>Fill the orders.</strong>Trades fire only when a weight moves past the rebalance band, and fill at the next session's open with fees and slippage.</li>
+        <li><strong>Score it twice.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built, against SPY and fixed baselines.</li>
+      </ol>
+      <h3 class="how-sub">What keeps it honest</h3>
+      <div class="how-notes">
+        <p><strong>No look-ahead.</strong>The state holds only past data, and an audit tampers with every later price to prove earlier decisions cannot change.</p>
+        <p><strong>Missing stays missing.</strong>An unanswered question is never scored and carries no conviction, so a provider failure cannot become a trade.</p>
+        <p><strong>Replayable.</strong>Each run ships its state hash, decisions, fills and metrics; <code>beatspy verify</code> re-derives the scores offline.</p>
+        <p><strong>Uncertainty is reported.</strong>Returns carry block-bootstrap intervals and every calibration score a permutation p-value: one window cannot prove an edge.</p>
+      </div>
+      <div class="how-links">
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/examples/leakage_audit.py">Leakage audit ↗</a>
+        <a href="pricing.html">Pricing →</a>
+      </div>
+    </section>
+  </main>
+  <footer><span>BeatSPY · Apache-2.0</span><span>Frozen data · Replayable scores</span><a href="https://github.com/kingabzpro/beatspy">Source ↗</a></footer>
+</body>
+</html>

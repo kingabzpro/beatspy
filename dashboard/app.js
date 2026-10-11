@@ -153,6 +153,10 @@ if (typeof module !== "undefined") module.exports = {
 
 if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
+  // Each page renders only the widgets it carries, so every renderer checks for
+  // its own container first and never assumes the rest of the site is present.
+  const setText = (id, text) => { const element = $(id); if (element) element.textContent = text; };
+  const setHidden = (id, hidden) => { const element = $(id); if (element) element.hidden = hidden; };
   const node = (tag, text, className) => {
     const result = document.createElement(tag);
     if (text !== undefined) result.textContent = String(text);
@@ -212,12 +216,14 @@ if (typeof document !== "undefined") {
     || (typeof run.pricing?.cost_per_m_input === "number"
       ? {input: run.pricing.cost_per_m_input, output: run.pricing.cost_per_m_output ?? 0} : null);
   function renderPricing() {
+    if (!$("pricing-table")) return;
     // One row per model on the board, on units that compare. Rates are per
     // million tokens, so a run's bill is its rate times the tokens the provider
     // billed; the columns standardize that to one decision (the unit the board
     // is scored in) and to the run, and the caption explains why two providers
     // report far more tokens than the rest for the same frozen state.
-    const records = visible.map(run => {
+    const onBoard = leaderboardRuns(runs);
+    const records = onBoard.map(run => {
       const rates = runRates(run);
       const decisions = Number(run.decisions ?? run.metrics?.decisions);
       const tokens = Number(run.metrics?.input_tokens);
@@ -254,10 +260,22 @@ if (typeof document !== "undefined") {
       row.append(cell); body.append(row);
     }
     $("pricing-table").replaceChildren(element);
+    setHidden("cost-overview", !onBoard.length);
+    setText("cost-window", onBoard.length
+      ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
+        + "A run's bill is its rate times the tokens the provider counts, and providers count the same frozen state very differently: most "
+        + "bill the shared state once per request, while d1 and pplx-decider bill it once per question, so a decision that asks 25 questions "
+        + "is billed as 25 passes over the same state. Compare models on tokens per decision and cost per decision; the run cost is the total "
+        + "for the published 25-decision window."
+      : "");
+    runBars("model-costs", onBoard
+      .map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
+      .sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)));
   }
   function renderBoard() {
+    if (!$("leaderboard-table")) return;
     visible = leaderboardRuns(runs);
-    $("board-window").textContent = "One row per model, latest completed result; open a row for its full summary.";
+    setText("board-window", "One row per model, latest completed result; open a model for its full run.");
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
@@ -266,23 +284,24 @@ if (typeof document !== "undefined") {
       if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
       return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
     });
-    $("run-count").textContent = `${visible.length} result${visible.length === 1 ? "" : "s"}`;
+    setText("run-count", `${visible.length} result${visible.length === 1 ? "" : "s"}`);
     // Keep the banner honest about scope, derived from the runs rather than a
     // hardcoded sentence that drifts the moment the benchmark changes.
     if (visible.length) {
       const first = visible.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
       const last = visible.reduce((a, b) => (String(a.end) >= String(b.end) ? a : b));
       const decisions = visible[0].decisions ?? visible[0].metrics?.decisions;
-      $("hero-scope").textContent = `${first.start} → ${last.end} · ${plural(decisions, "decision")}`;
+      setText("hero-scope", `${first.start} → ${last.end} · ${plural(decisions, "decision")}`);
     }
     const syntheticCount = visible.filter(run => run.synthetic).length;
-    $("demo-banner").hidden = syntheticCount === 0;
+    setHidden("demo-banner", syntheticCount === 0);
     if (syntheticCount) {
-      $("demo-banner").textContent = syntheticCount === visible.length
+      setText("demo-banner", syntheticCount === visible.length
         ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
-        : `Synthetic demo data: ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`;
+        : `Synthetic demo data: ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
     }
-    $("run-count").className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
+    const runCount = $("run-count");
+    if (runCount) runCount.className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
     // The front page is the board plus one paragraph that says what it means;
     // the method, the caveats and the pricing live in the sections below it.
     const signedPercent = value => Number.isFinite(value) && value > 0 ? `+${percent(value)}` : percent(value);
@@ -299,7 +318,7 @@ if (typeof document !== "undefined") {
       const skills = scored.map(row => row.skill).filter(Number.isFinite);
       const bestSkill = skills.length ? Math.max(...skills) : null;
       const decisions = Number(visible[0].decisions ?? visible[0].metrics?.decisions);
-      $("summary").textContent = [
+      setText("summary", [
         `${count(visible.length)} models${Number.isFinite(decisions) && decisions > 0 ? `, ${plural(decisions, "weekly decision")}` : ""}.`,
         beat === 0
           ? `None beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`
@@ -309,13 +328,13 @@ if (typeof document !== "undefined") {
             ? `Best Brier skill ${score(bestSkill)}.`
             : `Every Brier skill is negative, best ${score(bestSkill)}: none shows measurable probability skill.`)
           : "",
-      ].filter(Boolean).join(" ");
+      ].filter(Boolean).join(" "));
     } else {
-      $("summary").textContent = "";
+      setText("summary", "");
     }
-    $("status").textContent = visible.length ? "" : (runs.length
+    setText("status", visible.length ? "" : (runs.length
       ? "No completed results yet."
-      : "No results yet. Record a decision-model run and re-render this page.");
+      : "No results yet. Record a decision-model run and re-render this page."));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank"));
     for (const [key, title, kind] of COLUMNS) {
@@ -331,12 +350,11 @@ if (typeof document !== "undefined") {
       if (run.run_id === selected) row.className = "selected";
       if (run.synthetic) row.classList.add("synthetic");
       row.append(node("td", ranks.get(run.run_id)));
-      const td = node("td"), button = node("button", modelName(run.model), "run-button");
-      button.onclick = () => {
-        const hash = `#run=${encodeURIComponent(run.run_id)}`;
-        if (location.hash === hash) selectRun(run.run_id); else location.hash = hash;
-      };
-      td.append(button);
+      // A real link: the run detail is its own page, so a row can be opened in a
+      // new tab and shared as a URL.
+      const td = node("td"), link = node("a", modelName(run.model), "run-button");
+      link.href = `run.html?run=${encodeURIComponent(run.run_id)}`;
+      td.append(link);
       if (run.synthetic) {
         // Mark the row itself: the details panel is one click away, and a
         // fabricated number must not read as a real result before that click.
@@ -356,18 +374,6 @@ if (typeof document !== "undefined") {
       body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
-    renderPricing();
-    $("cost-overview").hidden = !visible.length;
-    $("cost-window").textContent = visible.length
-      ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
-        + "A run's bill is its rate times the tokens the provider counts, and providers count the same frozen state very differently: most "
-        + "bill the shared state once per request, while d1 and pplx-decider bill it once per question, so a decision that asks 25 questions "
-        + "is billed as 25 passes over the same state. Compare models on tokens per decision and cost per decision; the run cost is the total "
-        + "for the published 25-decision window."
-      : "";
-    runBars("model-costs", visible
-      .map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
-      .sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)));
   }
   function runBars(target, rows) {
     const container = $(target); container.replaceChildren();
@@ -519,10 +525,11 @@ if (typeof document !== "undefined") {
     table("reliability-bins", headers, records);
   }
   async function selectRun(id) {
+    if (!$("run-details")) return;
     const run = runs.find(row => row.run_id === id);
-    if (!run) {$("run-details").hidden = true; $("status").textContent = "That run is not in this catalog."; return;}
+    if (!run) {setHidden("run-details", true); setText("status", "That run is not in this catalog."); return;}
     selected = id; const generation = ++loading;
-    $("run-details").hidden = true; renderBoard();
+    setHidden("run-details", true);
     try {
       if (!/^[A-Za-z0-9][A-Za-z0-9_.-]{0,199}$/.test(run.run_id) || run.dir !== `runs/${run.run_id}`) throw new Error("Invalid artifact path");
       const base = `data/${run.dir}/`;
@@ -531,7 +538,8 @@ if (typeof document !== "undefined") {
       const meta = JSON.parse(texts[0]), metrics = JSON.parse(texts[1]);
       const equity = parseCSV(texts[2]), decisions = texts[3].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
       const calibration = metrics.calibration || run.metrics.calibration || {};
-      $("run-details").hidden = false;
+      setHidden("run-details", false);
+      setText("status", "");
       $("run-title").textContent = `${modelName(run.model)} · ${run.question_form} questions`;
       $("run-trust").textContent = TRUST[run.trust] || "Unrecorded";
       $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
@@ -621,14 +629,28 @@ if (typeof document !== "undefined") {
           const a = node("a", `Snapshot ${name}`); a.href = `data/${run.snapshot_dir}/${name}`; $("downloads").append(a);
         }
       }
-    } catch (error) {if (generation === loading) {$("run-details").hidden = true; $("status").textContent = `Unable to load this run: ${error.message}`;}}
+    } catch (error) {if (generation === loading) {setHidden("run-details", true); setText("status", `Unable to load this run: ${error.message}`);}}
+  }
+  // The run page carries one run, named in the query string (`run.html?run=<id>`).
+  // The `#run=` form still works, and with neither the page opens the top of the
+  // board so a bare run.html link is useful on its own.
+  function wantedRunId() {
+    try {
+      const id = new URLSearchParams(location.search || "").get("run");
+      if (id) return id;
+    } catch (error) { /* no URLSearchParams: fall through to the hash */ }
+    if ((location.hash || "").startsWith("#run=")) return decodeURIComponent(location.hash.slice(5));
+    return null;
+  }
+  function renderRun() {
+    if (!$("run-details")) return;
+    const id = wantedRunId() || (leaderboardRuns(runs)[0] || {}).run_id;
+    if (!id) {setText("status", "No recorded runs yet."); return;}
+    selectRun(id);
   }
   function hashSelection() {
-    if (!location.hash.startsWith("#run=")) return;
-    try {
-      const id = decodeURIComponent(location.hash.slice(5));
-      selectRun(id);
-    } catch (error) {$("status").textContent = `Invalid run link: ${error.message}`;}
+    const id = wantedRunId();
+    if (id) selectRun(id);
   }
   async function init() {
     try {
@@ -636,9 +658,14 @@ if (typeof document !== "undefined") {
       const problems = catalogProblems(catalog);
       if (problems.length) throw new Error(`Invalid result catalog (${problems[0]})`);
       runs = catalog.runs;
-      window.addEventListener("hashchange", hashSelection); renderBoard();
-      if (location.hash.startsWith("#run=")) hashSelection(); else if (catalog.selected) selectRun(catalog.selected);
-    } catch (error) {$("run-count").textContent = "Unavailable"; $("status").textContent = `Results unavailable: ${error.message}. Try reloading the page.`;}
+      window.addEventListener("hashchange", hashSelection);
+      renderBoard();
+      renderPricing();
+      renderRun();
+    } catch (error) {
+      setText("run-count", "Unavailable");
+      setText("status", `Results unavailable: ${error.message}. Try reloading the page.`);
+    }
   }
   init();
 }

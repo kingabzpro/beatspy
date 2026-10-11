@@ -20,6 +20,9 @@ log = logging.getLogger(__name__)
 
 SNAPSHOT_ID = re.compile(r"[a-f0-9]{64}")
 COPIED_FILES = ("run.json", *RUN_FILES)
+# The site is a handful of static pages that share one stylesheet and script:
+# results on the front page, one run per detail page, then pricing and method.
+PAGES = ("index.html", "run.html", "pricing.html", "method.html", "contribute.html")
 
 
 def static_dir() -> Path:
@@ -84,7 +87,7 @@ def render_dashboard(results_root: Path, run_id: str | None = None, out_path: Pa
     # site, which is exactly how a superseded result survives a "clear the old
     # results" pass.
     shutil.rmtree(destination / "data", ignore_errors=True)
-    for name in ("index.html", "styles.css", "app.js"):
+    for name in (*PAGES, "styles.css", "app.js"):
         shutil.copyfile(static_dir() / name, destination / name)
     for name in ("favicon.ico", "site.webmanifest", "robots.txt", "sitemap.xml"):
         shutil.copyfile(static_dir() / name, destination / name)
