@@ -64,7 +64,7 @@ def test_latest_six_month_scenario_is_weekly_over_25_assets():
     assert len(scenario.tradable) == 25
     assert len(set(scenario.tradable)) == 25
     assert scenario.benchmark == "SPY"
-    assert scenario.benchmark not in scenario.tradable, "SPY is comparison-only, never investable"
+    assert scenario.benchmark not in scenario.tradable, "SPY is never a satellite; the policy may hold it only as the index core"
     # A weekly cadence caps decisions by default rather than running hundreds.
     assert scenario.max_decisions and scenario.max_decisions <= 30
 

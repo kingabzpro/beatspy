@@ -230,7 +230,8 @@ def test_graded_scores_only_the_scenario_universe(graded):
 
 
 def test_graded_never_buys_the_benchmark(graded):
-    """SPY is comparison-only. It is not in `tradable`, so it can never be held."""
+    """Under a graded policy the benchmark is comparison-only: the policy holds
+    the tradable universe, so SPY can never be a satellite."""
     scenario = _scenario(tradable=["AAPL", "MSFT"])
     decision = derive_weights({"AAPL": 0.9, "MSFT": 0.6}, graded, scenario, benchmark="SPY")
     assert "SPY" not in decision.weights

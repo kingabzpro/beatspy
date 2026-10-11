@@ -7,7 +7,8 @@ frequency = "weekly"
 max_decisions = 26
 benchmark = "SPY"
 # 25 investable assets: large companies across all 11 sectors, plus three ETFs.
-# SPY is comparison-only and is added to the universe by the scenario, not here.
+# SPY is not listed here: the scenario adds it to the state universe for
+# comparison, and the sizing policy decides whether the book holds it.
 tradable = [
   "AAPL", "MSFT", "NVDA", "GOOGL", "META",
   "AMZN", "HD", "WMT", "PG", "COST",

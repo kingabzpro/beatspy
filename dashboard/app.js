@@ -23,16 +23,21 @@ const PRICES = {
     note: "Workers AI list price, input only."},
 };
 const SIGNALS = ["noul", "choice", "rank"];
-const percent = value => Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "n/a";
-const ratio = value => Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "n/a";
-const score = value => Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "n/a";
+// A JSON null (or an empty string) is "not measured", not zero: Number(null) is
+// 0, so without this guard a missing miscalibration gap rendered as "0.00%",
+// which reads as perfect agreement.
+const missing = value => value === null || value === undefined || value === "";
+const percent = value => !missing(value) && Number.isFinite(Number(value)) ? `${(Number(value) * 100).toFixed(2)}%` : "n/a";
+const ratio = value => !missing(value) && Number.isFinite(Number(value)) ? Number(value).toFixed(2) : "n/a";
+const score = value => !missing(value) && Number.isFinite(Number(value)) ? Number(value).toFixed(3) : "n/a";
 // Decision-model runs cost fractions of a cent, so small values keep more digits.
 const dollars = value => {
+  if (missing(value)) return "n/a";
   const number = Number(value);
   if (!Number.isFinite(number)) return "n/a";
   return `$${number.toFixed(Math.abs(number) < 0.01 ? 6 : 4)}`;
 };
-const count = value => Number.isInteger(Number(value)) ? String(Number(value)) : "n/a";
+const count = value => !missing(value) && Number.isInteger(Number(value)) ? String(Number(value)) : "n/a";
 const plural = (value, word) => `${count(value)} ${word}${Number(value) === 1 ? "" : "s"}`;
 
 function parseCSV(text) {
@@ -439,8 +444,9 @@ if (typeof document !== "undefined") {
   function renderGap(calibration) {
     const callout = $("gap-callout"); callout.replaceChildren();
     const gap = calibration?.miscalibration_gap;
+    const hasGap = !missing(gap) && Number.isFinite(Number(gap));
     const noul = calibration?.signals?.noul, choice = calibration?.signals?.choice;
-    callout.append(node("strong", Number.isFinite(Number(gap)) ? percent(gap) : "n/a"));
+    callout.append(node("strong", hasGap ? percent(gap) : "n/a"));
     // The reported failure mode is a choice form that answers further from 0.5 than
     // the noul form. State it only when this run's numbers actually show it.
     const noulMean = Number(noul?.mean_predicted), choiceMean = Number(choice?.mean_predicted);
@@ -451,7 +457,7 @@ if (typeof document !== "undefined") {
       else if (reach(choiceMean) < reach(noulMean)) verdict = "the noul form answers further from 0.5 on this run, so the usual ordering is reversed";
       else verdict = "both forms answer equally far from 0.5 on this run";
     }
-    callout.append(node("p", Number.isFinite(Number(gap))
+    callout.append(node("p", hasGap
       ? `Paired miscalibration gap: the mean absolute difference between the noul and choice probabilities asked about the same ticker and horizon, over ${plural(calibration.observations, "scored observation")}. `
         + `Mean predicted noul ${percent(noul?.mean_predicted)} against choice ${percent(choice?.mean_predicted)}: ${verdict}.`
       : "No paired noul/choice observations were scored in this run."));
