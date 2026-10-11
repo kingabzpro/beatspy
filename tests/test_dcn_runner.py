@@ -64,7 +64,7 @@ def test_run_metadata_identifies_the_decision_model_and_policy(per_asset_run_dir
     assert decision["provider"] in ("openai_decisions", "typesafe", "cloudflare")
     assert decision["question_form"] == "per_asset"
     assert decision["policy"] == {
-        "selection": "graded",
+        "selection": "graded_cs",
         "base_weight": 0.5,
         "min_probability": 0.5,
         "top_n": 3,

@@ -340,7 +340,7 @@ for the sequencing section at the very end.
   configured budget.
 
 ### V2. Make the sizing policy scale-invariant
-`effort: M` · `status: todo`
+`effort: M` · `status: done`
 - **Why:** tilt is `max(0, p - 0.5)` (`pipeline.py:132-136`), so the portfolio
   depends on each provider's absolute probability scale, not just its ranking.
   Measured across the published runs: probability standard deviation is 0.047
@@ -355,6 +355,17 @@ for the sequencing section at the very end.
   quantify how much of the spread was scale.
 - **Done when:** a property test proves the same ranking at different scales
   yields the same weights.
+- **Progress (2026-10-11):** `graded_cs` is the new default: the conviction share
+  follows each probability's distance above the decision's own mean, which makes
+  the book invariant to any positive affine transform of a provider's scale. A
+  name the provider did not answer carries no conviction share, preserving the
+  never-bet-on-a-backfill invariant. `graded` and `top_n` remain selectable for
+  reproducing recorded runs. Property tests cover four scales of the same
+  ranking, the below-0.5 case the old policy discarded, and the unanswered-name
+  rule. `DCN_PROTOCOL` is bumped to 2 (V1 and V2 both change recorded rules), so
+  `beatspy verify` refuses old runs instead of re-scoring them under new rules.
+  Still open: the live 2026-6m re-run to quantify how much of the former
+  cross-model spread was scale, which needs provider credentials.
 
 ### V3. Add the statistical uncertainty layer
 `effort: M` · `status: todo`

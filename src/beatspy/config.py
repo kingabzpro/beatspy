@@ -109,15 +109,19 @@ class DecisionConfig(BaseModel):
     max_retries: int = 4
     # The sizing policy is fixed here so it cannot be tuned after seeing a
     # result. Only noul probabilities enter the portfolio.
-    #   graded (default): fully invested across the whole universe. `base_weight`
-    #     of the book is a uniform spread over every asset and the rest is
-    #     allocated in proportion to the probability above the prior, so a weak
-    #     forecast becomes a mild tilt instead of a binary switch. Without the
-    #     uniform base, one confident asset would take the entire book.
+    #   graded_cs (default): fully invested across the whole universe, with the
+    #     conviction share allocated by each probability's distance above the
+    #     decision's own mean. Because the center comes from the decision itself,
+    #     the same ranking produces the same book regardless of a provider's
+    #     probability scale, so providers are compared on discrimination rather
+    #     than on how far their numbers sit from 0.5. A name the provider did
+    #     not answer carries no tilt at all.
+    #   graded: conviction proportional to the probability above the fixed 0.5
+    #     prior. Kept so runs recorded under it stay reproducible.
     #   top_n: the legacy cut: hold only `top_n` names above `min_probability`,
     #     equal-weighted, cash if fewer than `min_names` qualify. Kept so runs
     #     recorded under it stay reproducible.
-    selection: Literal["graded", "top_n"] = "graded"
+    selection: Literal["graded_cs", "graded", "top_n"] = "graded_cs"
     # Share of the graded book allocated by conviction; the remainder is even.
     base_weight: float = 0.5
     min_probability: float = 0.5

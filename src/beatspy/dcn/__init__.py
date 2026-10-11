@@ -17,6 +17,11 @@ from __future__ import annotations
 
 # Bump when the question set, state layout, or sizing policy changes: recorded
 # runs must never be silently reinterpreted under new rules.
-DCN_PROTOCOL = 1
+#
+# 2: the state budget is enforced (recent history may be trimmed), and the
+#    default sizing policy is graded_cs, which is invariant to a provider's
+#    probability scale. Runs recorded under 1 keep their own policy in run.json
+#    and are rejected by `beatspy verify` rather than re-scored under new rules.
+DCN_PROTOCOL = 2
 
 __all__ = ["DCN_PROTOCOL"]

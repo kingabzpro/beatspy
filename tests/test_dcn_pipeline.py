@@ -1,11 +1,13 @@
 """The sizing policy and the neutrality of missing answers.
 
-Two policies are tested here.
+Three policies are tested here.
 
-- **graded** (the default): fully invested across the whole universe, each weight
-  proportional to the probability above the prior. A weak forecast becomes a mild
-  tilt instead of a binary switch. This replaced a top-N cut that could only emit
-  0% or 1/top_n%, which rewrote the whole book every week.
+- **graded_cs** (the default): fully invested across the whole universe, with the
+  conviction share allocated by each probability's distance above the decision's
+  own mean. Invariant to a provider's probability scale: the same ranking
+  produces the same book.
+- **graded**: the original, conviction measured above the fixed 0.5 prior. Kept
+  because earlier runs recorded it.
 - **top_n** (legacy): hold only `top_n` names above `min_probability`, cash if
   fewer than `min_names` qualify. Kept because earlier runs recorded it.
 
@@ -62,12 +64,83 @@ def graded() -> DecisionConfig:
 
 
 @pytest.fixture
+def graded_cs() -> DecisionConfig:
+    return DecisionConfig(selection="graded_cs", min_probability=0.5)
+
+
+@pytest.fixture
 def legacy() -> DecisionConfig:
     return DecisionConfig(selection="top_n", min_probability=0.5, top_n=3, min_names=2)
 
 
 # --------------------------------------------------------------------------- #
-# Graded (default)
+# Graded cross-sectional (default)
+# --------------------------------------------------------------------------- #
+
+
+def test_graded_cs_is_invariant_to_the_provider_scale(graded_cs):
+    """The property the policy exists for: same ranking, same book, any scale.
+
+    Two providers that rank the six assets identically must be sized
+    identically, no matter whether their numbers sit near 0.5 or far from it.
+    """
+    scenario = _scenario()
+    view = {"AAPL": 0.60, "MSFT": 0.54}
+    reference = None
+    for factor in (0.5, 1.0, 2.0, 3.0):
+        # p' = 0.5 + factor * (p - 0.5): same ranking, different spread.
+        scaled = {ticker: 0.5 + factor * (value - 0.5) for ticker, value in view.items()}
+        assert all(0.0 <= value <= 1.0 for value in scaled.values())
+        decision = derive_weights(_six({}), graded_cs, scenario, answered=scaled)
+        if reference is None:
+            reference = decision.weights
+        assert decision.weights == pytest.approx(reference)
+    assert sum(reference.values()) == pytest.approx(1.0)
+
+
+def test_graded_cs_uses_below_half_answers_that_graded_would_discard(graded_cs, graded):
+    """A provider answering entirely below 0.5 still gets a differentiated book.
+
+    The fixed 0.5 prior zeroes every one of these tilts, so the old policy saw
+    no view at all and fell back to the even spread.
+    """
+    scenario = _scenario()
+    answers = {"AAPL": 0.44, "MSFT": 0.30}
+    cross_sectional = derive_weights(_six({}), graded_cs, scenario, answered=answers)
+    fixed_prior = derive_weights(_six(answers), graded, scenario)
+    assert fixed_prior.weights["AAPL"] == pytest.approx(1 / 6)  # no view, even spread
+    assert cross_sectional.weights["AAPL"] > 1 / 6
+    # MSFT sits at the decision mean, so it keeps the even base only.
+    assert cross_sectional.weights["MSFT"] == pytest.approx(0.5 / 6)
+
+
+def test_graded_cs_gives_no_tilt_to_unanswered_names(graded_cs):
+    """A backfilled 0.5 above a low decision mean must not become a bet."""
+    scenario = _scenario()
+    decision = derive_weights(_six({}), graded_cs, scenario, answered={"AAPL": 0.30, "MSFT": 0.26})
+    for ticker in ("TLT", "GOOGL", "AMZN", "JPM"):
+        assert decision.weights[ticker] == pytest.approx(0.5 / 6)
+    assert decision.weights["AAPL"] > 0.5 / 6  # the answered name carries the conviction
+
+
+def test_graded_cs_spreads_evenly_when_there_is_no_dispersion(graded_cs):
+    scenario = _scenario()
+    decision = derive_weights(_six({}), graded_cs, scenario, answered={t: 0.4 for t in _six({})})
+    assert decision.weights == pytest.approx({ticker: 1 / 6 for ticker in _six({})})
+    assert decision.cash == pytest.approx(0.0)
+
+
+def test_graded_cs_keeps_every_asset_in_play(graded_cs):
+    scenario = _scenario()
+    answers = {"AAPL": 0.9, "MSFT": 0.8, "TLT": 0.7, "GOOGL": 0.6}
+    decision = derive_weights(_six({}), graded_cs, scenario, answered=answers)
+    assert set(decision.weights) == set(_six({}))
+    assert sum(decision.weights.values()) == pytest.approx(1.0)
+    assert decision.weights["AMZN"] > 0
+
+
+# --------------------------------------------------------------------------- #
+# Graded (fixed prior, kept for recorded runs)
 # --------------------------------------------------------------------------- #
 
 
@@ -192,8 +265,8 @@ def test_legacy_holds_only_top_n(legacy):
     assert set(decision.weights) == {"MSFT", "GOOGL", "TLT"}
 
 
-def test_defaults_are_graded_and_recorded():
-    assert DecisionConfig().selection == "graded"
+def test_defaults_are_graded_cs_and_recorded():
+    assert DecisionConfig().selection == "graded_cs"
     assert DecisionConfig().min_probability == 0.5
 
 
@@ -257,7 +330,14 @@ def test_missing_answers_backfill_to_neutral_and_only_the_answered_name_gets_wei
         if ticker not in answered:
             assert probability == NEUTRAL
 
-    if settings.decision.selection == "graded":
+    if settings.decision.selection == "graded_cs":
+        # One answered name is a degenerate cross-section, so the book is the even
+        # spread. The invariant that matters: no unanswered name is ever given
+        # the conviction share, and the book still participates.
+        assert decision.validated.weights == pytest.approx(
+            {ticker: 1.0 / len(scenario.tradable) for ticker in scenario.tradable}
+        )
+    elif settings.decision.selection == "graded":
         # The unanswered names keep the even base; the answered name also carries
         # the conviction share and hits the position limit.
         assert answered <= set(decision.validated.weights)

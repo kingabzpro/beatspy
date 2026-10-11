@@ -89,24 +89,30 @@ choice form is *measured as a hazard*, not trusted as a signal.
 ## How the probabilities become a portfolio
 
 The mapping is fixed in code before any result is seen, so a run cannot be tuned
-after the fact. The default is **graded**:
+after the fact. The default is **graded_cs**, the cross-sectional graded book:
 
 1. only `noul` probabilities are used;
 2. half the book is an even spread across the whole universe, so every asset is
    always held at some weight;
 3. the other half is allocated in proportion to each asset's probability above
-   the prior (`base_weight`);
+   the decision's own mean (`base_weight`);
 4. the scenario's position limit applies per asset, and cash absorbs any remainder.
 
-An earlier policy held only the top three names above 0.5, equal-weighted. It could
-emit nothing but 0% or 33% per position, rewrote the entire book every week
-(~50% turnover), and left a single confident asset taking the whole book. `graded`
-exists to remove that: a weak forecast becomes a mild tilt rather than a binary
-switch. `selection = "top_n"` restores the old behaviour for reproducing runs
-recorded under it.
+Because the center is the decision itself, the same ranking produces the same
+weights under any positive affine transform of a provider's probability scale.
+A provider that ranks the universe correctly but answers in a narrow band around
+0.1 is sized like one that answers in a wide band around 0.6; the comparison
+measures discrimination, while the calibration half of the benchmark scores the
+absolute numbers.
 
-An unanswered question is backfilled at the neutral, so a provider failure is
-recorded as missing coverage and can never become a directional bet.
+Two policies are kept for reproducing earlier runs. `selection = "graded"` measures
+conviction above the fixed 0.5 prior (the original default, scale-dependent), and
+`selection = "top_n"` is the earliest cut, which held only the top three names
+above 0.5, equal-weighted, and could emit nothing but 0% or 33% per position.
+
+An unanswered question is backfilled at the neutral, and under every graded policy
+it carries no conviction share, so a provider failure is recorded as missing
+coverage and can never become a directional bet.
 
 ## How it is scored
 

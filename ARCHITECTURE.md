@@ -89,12 +89,17 @@ produces calibration statistics over exactly half of them.
 
 ## Sizing policy
 
-`dcn/pipeline.py` maps probabilities to a portfolio under fixed rules: only `noul`
-probabilities are used, a name must exceed `min_probability` (0.5) to be held, the
-strongest `top_n` are equal-weighted, and fewer than `min_names` qualifying names
-means cash only. `schemas.validate_weights` then clamps to the scenario's position
-limit and records every correction as a violation rather than applying it
-silently.
+`dcn/pipeline.py` maps probabilities to a portfolio under fixed rules recorded in
+`run.json` before any result is seen. The default, `graded_cs`, holds the whole
+universe: half the book is an even spread and half follows each probability's
+distance above the decision's own mean, so the same ranking produces the same
+weights regardless of a provider's probability scale. `graded` (conviction above
+the fixed 0.5 prior) and `top_n` (the earliest top-N cut) are kept so runs
+recorded under them stay reproducible. Under every graded policy a name the
+provider did not answer carries no conviction share.
+
+`schemas.validate_weights` then clamps to the scenario's position limit and
+records every correction as a violation rather than applying it silently.
 
 A provider failure yields `invalid = True` and no weights, which the run loop
 treats as **hold**: a model failure must never become a liquidation.
