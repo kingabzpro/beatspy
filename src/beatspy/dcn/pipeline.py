@@ -37,6 +37,11 @@ from .state import build_state, enforce_budget, render_state
 
 NEUTRAL = 0.5
 
+# How many typed questions one asset costs, per form. Providers cap the number of
+# questions in a single request (Cloudflare rejects more than 64), so the
+# candidate set is sized to fit rather than discovered by a 422.
+FORMS_PER_TICKER = {"noul": 1, "choice": 1, "rank": 1, "twin": 2, "all": 3, "per_asset": 1}
+
 
 @dataclass
 class DcnDecision:
@@ -62,6 +67,9 @@ class DcnDecision:
     answers: dict[str, Answer] = field(default_factory=dict)
     missing_ids: list[str] = field(default_factory=list)
     backfilled: list[str] = field(default_factory=list)
+    # The probability the policy actually sized from, once the configured signal
+    # rule has combined the forms. Recorded so a run explains its own weights.
+    sized_probabilities: dict[str, float] = field(default_factory=dict)
     call: CallRecord | None = None
     error: str | None = None
     validated: ValidatedDecision = field(default_factory=ValidatedDecision)
@@ -112,6 +120,7 @@ def derive_weights(
     benchmark: str | None = None,
     answered: dict[str, float] | None = None,
     universe: list[str] | None = None,
+    current: dict[str, float] | None = None,
 ) -> ValidatedDecision:
     """Turn probabilities into a portfolio.
 
@@ -138,6 +147,11 @@ def derive_weights(
     `universe` is the set this decision may hold, when the scenario narrows it
     (for example to the strongest trailing performers as of the decision date).
     It defaults to the scenario's whole tradable pool.
+
+    `current` is the book as it stands. When `policy.rebalance_band` is set, a
+    name is only traded if its target differs from what is held by more than the
+    band, so weekly noise does not become fees. A name that left the universe is
+    always sold, since it has no target at all.
     """
     benchmark_ticker = (benchmark or scenario.benchmark).upper()
     active = list(universe) if universe is not None else list(scenario.tradable)
@@ -165,6 +179,28 @@ def derive_weights(
             scenario.max_position_weight,
         )
 
+    def with_band(targets: dict[str, float]) -> dict[str, float]:
+        """Trade only the names whose target moved more than the band.
+
+        Names inside the band keep exactly the weight they already had, and the
+        freed budget is spread across the names that did breach, so the book
+        stays fully invested without nudging everything every week.
+        """
+        band = float(getattr(policy, "rebalance_band", 0.0) or 0.0)
+        if band <= 0 or not current:
+            return targets
+        held = {ticker: float(current.get(ticker, 0.0)) for ticker in targets}
+        kept = {ticker: held[ticker] for ticker, weight in targets.items() if abs(weight - held[ticker]) <= band}
+        traded = [ticker for ticker in targets if ticker not in kept]
+        budget = 1.0 - sum(kept.values())
+        moved = sum(targets[ticker] for ticker in traded)
+        if not traded or budget <= 1e-9:
+            return {**kept} if kept else targets
+        if moved <= 1e-9:
+            return targets
+        scale = budget / moved
+        return {**kept, **{ticker: targets[ticker] * scale for ticker in traded}}
+
     uniform = 1.0 / len(tradable)
     base = 1.0 - policy.base_weight
 
@@ -179,7 +215,7 @@ def derive_weights(
             weights = {ticker: base * uniform for ticker in tradable}
             for ticker, tilt in tilts.items():
                 weights[ticker] += policy.base_weight * (tilt / total)
-        return validate_weights(weights, None, scenario.tradable, scenario.max_position_weight)
+        return validate_weights(with_band(weights), None, scenario.tradable, scenario.max_position_weight)
 
     # Graded. Half the book is a uniform spread across every asset; the other half
     # is allocated in proportion to the tilt above the prior. Blending matters: a
@@ -240,6 +276,32 @@ def label_observations(data, scenario, decision: DcnDecision) -> list[cal.Observ
             )
         )
     return observations
+
+
+def _consensus_pair(decision: DcnDecision) -> tuple[dict[str, float], dict[str, float]]:
+    """Average the forms that were answered, and say which names carry a view.
+
+    Module-level so it can be tested and reused; `DcnPipeline._sized_signal` is
+    the caller that also honours the configured signal rule.
+    """
+    sized: dict[str, float] = {}
+    answered: dict[str, float] = {}
+    for ticker in decision.tickers:
+        values = [
+            value
+            for value in (
+                decision.answered_noul.get(ticker),
+                decision.answered_choice.get(ticker),
+                decision.answered_rank.get(ticker),
+            )
+            if value is not None
+        ]
+        if values:
+            sized[ticker] = sum(values) / len(values)
+            answered[ticker] = sized[ticker]
+        else:
+            sized[ticker] = NEUTRAL
+    return sized, answered
 
 
 class DcnPipeline:
@@ -308,14 +370,36 @@ class DcnPipeline:
         decision.missing_ids = list(result.missing_ids)
         decision.call = build_call_record(result, state_text, question_set.ids, self.client)
         self._extract(decision, question_set)
+        sized, answered = self._sized_signal(decision)
+        decision.sized_probabilities = dict(sized)
         decision.validated = derive_weights(
-            decision.probabilities,
+            sized,
             self.settings.decision,
             self.scenario,
-            answered=decision.answered_noul,
+            answered=answered,
             universe=list(tickers),
+            current=holdings,
         )
         return decision
+
+    def _sized_signal(self, decision: DcnDecision) -> tuple[dict[str, float], dict[str, float]]:
+        """The probability map the policy sizes from, and which names carry a view.
+
+        `noul` uses the yes/no answers alone. `consensus` averages every form the
+        model actually answered for each ticker, so a two-way choice and a
+        five-level severity judgement both count; forms that disagree pull the
+        estimate toward the prior rather than hiding the disagreement. Names with
+        no answer at all stay neutral and carry no conviction share. With one
+        form asked the two rules are identical.
+        """
+        if self.settings.decision.signals != "consensus":
+            return dict(decision.probabilities), dict(decision.answered_noul)
+        return _consensus_pair(decision)
+
+    def question_budget(self) -> int:
+        """How many assets this form can ask about inside the provider's limit."""
+        forms = FORMS_PER_TICKER.get(self.question_form, 1)
+        return max(1, self.settings.decision.max_questions // forms)
 
     def candidates(self, data, as_of: date, holdings: dict[str, float]) -> list[str]:
         """Which assets this decision asks about, and may therefore hold.
@@ -324,18 +408,23 @@ class DcnPipeline:
         single asset's answer stands on its own. What is investable follows the
         scenario: the whole pool, or, when the scenario declares `selection_top`,
         only the strongest trailing performers as of this decision date. Every
-        other form keeps the bounded momentum-ranked candidate set.
+        other form keeps a bounded momentum-ranked set, sized so the request stays
+        inside the provider's question limit, with holdings first so the model can
+        always act on what it owns.
         """
         from .state import candidates, select_universe
 
+        budget = self.question_budget()
+        pool = select_universe(data, self.scenario, as_of)
         if self.question_form == "per_asset":
-            return select_universe(data, self.scenario, as_of)
+            return pool[:budget]
         return candidates(
             data,
             self.scenario,
             as_of,
             extra=list(holdings),
-            max_candidates=self.scenario.max_candidates,
+            max_candidates=min(self.scenario.max_candidates, budget),
+            pool=pool,
         )
 
     def _extract(self, decision: DcnDecision, question_set: QuestionSet) -> None:

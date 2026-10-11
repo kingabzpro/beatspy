@@ -66,6 +66,8 @@ def test_run_metadata_identifies_the_decision_model_and_policy(per_asset_run_dir
     assert decision["policy"] == {
         "selection": "graded_cs",
         "base_weight": 0.5,
+        "signals": "consensus",
+        "rebalance_band": 0.02,
         "min_probability": 0.5,
         "top_n": 3,
         "min_names": 2,

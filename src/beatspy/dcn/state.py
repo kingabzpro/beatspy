@@ -71,28 +71,32 @@ def benchmark_row(data, benchmark: str, as_of: date) -> dict:
 
 def candidates(data, scenario, as_of: date, *,
                extra: list[str] | None = None,
-               max_candidates: int | None = None) -> list[str]:
+               max_candidates: int | None = None,
+               pool: list[str] | None = None) -> list[str]:
     """The tickers a decision asks about: the strongest trailing 90-day movers.
 
     Deterministic and point-in-time (ranked on data available at `as_of`, ties
     broken alphabetically), so the candidate set is reproducible and never
-    depends on how a previous decision went. Holdings are always included so the
-    model can act on what it owns.
+    depends on how a previous decision went. Holdings come first, so the model
+    can always act on what it owns, then the strongest movers up to the limit.
     """
     limit = max_candidates or scenario.max_candidates
+    allowed = [ticker.upper() for ticker in (pool if pool is not None else scenario.tradable)]
+    held = [ticker.upper() for ticker in (extra or []) if ticker.upper() in allowed]
     ranked = []
-    for ticker in scenario.tradable:
+    for ticker in allowed:
         trailing = data.trailing_return_pct(ticker, as_of, 63)
         if trailing is None:
             continue
-        ranked.append((abs(trailing), ticker.upper()))
+        ranked.append((abs(trailing), ticker))
     ranked.sort(key=lambda item: (-item[0], item[1]))
-    chosen = [ticker for _, ticker in ranked[:limit]]
-    for ticker in extra or []:
-        name = ticker.upper()
-        if name in scenario.tradable and name not in chosen:
-            chosen.append(name)
-    return chosen
+    chosen = list(dict.fromkeys(held))
+    for _, ticker in ranked:
+        if len(chosen) >= limit:
+            break
+        if ticker not in chosen:
+            chosen.append(ticker)
+    return chosen[: max(limit, len(held))]
 
 
 def select_universe(data, scenario, as_of: date) -> list[str]:
@@ -124,6 +128,32 @@ def select_universe(data, scenario, as_of: date) -> list[str]:
     return sorted(ticker for _, ticker in ranked[:top])
 
 
+def base_rate_row(universe: list[dict]) -> dict:
+    """The pool's realized hit rate against the benchmark, as a calibration anchor.
+
+    A probability is only meaningful next to the frequency it is trying to
+    estimate. If a third of the pool beat the benchmark over the last quarter,
+    then 0.5 is an optimistic answer for a typical name, and the model should be
+    able to see that. Everything here is computed from the same point-in-time
+    rows the state already carries, so it leaks nothing.
+    """
+    excesses = [
+        row["return_90d_vs_benchmark_pct"]
+        for row in universe
+        if row.get("return_90d_vs_benchmark_pct") is not None
+    ]
+    if not excesses:
+        return {"window_trading_days": 63, "share_beat_benchmark_pct": None, "median_excess_pct": None}
+    ordered = sorted(excesses)
+    middle = len(ordered) // 2
+    median = ordered[middle] if len(ordered) % 2 else (ordered[middle - 1] + ordered[middle]) / 2
+    return {
+        "window_trading_days": 63,
+        "share_beat_benchmark_pct": _round(100.0 * sum(1 for value in excesses if value > 0) / len(excesses), 1),
+        "median_excess_pct": _round(median, 2),
+    }
+
+
 def build_state(
     data,
     scenario,
@@ -152,6 +182,9 @@ def build_state(
         "horizon_trading_days": horizon_trading_days,
         "next_decision_date": next_decision_date,
         "benchmark": bench,
+        # What the pool has actually been doing, so a probability has something
+        # to be calibrated against.
+        "base_rate": base_rate_row(universe),
         "costs": {
             "fee_bps": scenario.fee_bps,
             "slippage_bps": scenario.slippage_bps,

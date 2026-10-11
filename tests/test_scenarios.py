@@ -65,10 +65,9 @@ def test_latest_six_month_scenario_is_weekly_over_25_assets():
     assert len(set(scenario.tradable)) == 25
     assert scenario.benchmark == "SPY"
     assert scenario.benchmark not in scenario.tradable, "SPY is the yardstick, never a holding"
-    # Each decision trades only the strongest trailing performers, chosen
-    # point-in-time, so the book is the model's choice among real assets.
-    assert scenario.selection_top == 12
-    assert scenario.selection_lookback_days == 126
+    # No momentum filter: it is available (`selection_top`), and the README
+    # records why it is off. The book is the model's choice among real assets.
+    assert scenario.selection_top is None
     # A weekly cadence caps decisions by default rather than running hundreds.
     assert scenario.max_decisions and scenario.max_decisions <= 30
 

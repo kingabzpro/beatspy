@@ -97,6 +97,7 @@ def decision_line(decision: DcnDecision) -> dict:
         "missing_ids": decision.missing_ids,
         "backfilled": decision.backfilled,
         "probabilities": decision.probabilities,
+        "sized_probabilities": decision.sized_probabilities,
         "choice_probabilities": decision.choice_probabilities,
         "rank_probabilities": decision.rank_probabilities,
         "validated": {
@@ -283,6 +284,8 @@ async def run_dcn(
                     "selection": settings.decision.selection,
                     # Recorded in full so the artifact alone explains the weights.
                     "base_weight": settings.decision.base_weight,
+                    "signals": settings.decision.signals,
+                    "rebalance_band": settings.decision.rebalance_band,
                     "min_probability": settings.decision.min_probability,
                     "top_n": settings.decision.top_n,
                     "min_names": settings.decision.min_names,

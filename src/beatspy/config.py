@@ -122,8 +122,18 @@ class DecisionConfig(BaseModel):
     #     equal-weighted, cash if fewer than `min_names` qualify. Kept so runs
     #     recorded under it stay reproducible.
     selection: Literal["graded_cs", "graded", "top_n"] = "graded_cs"
+    # Which answer becomes the sized probability. `noul` (a single yes/no number)
+    # is the narrow signal. `consensus` averages every form the run asked for
+    # (noul, choice, rank) per asset, so a severity judgement and a two-way bet
+    # both count, and disagreement between forms shrinks the position toward the
+    # prior instead of being hidden. With a single-form run the two are identical.
+    signals: Literal["noul", "consensus"] = "consensus"
     # Share of the graded book allocated by conviction; the remainder is even.
     base_weight: float = 0.5
+    # Only trade a name when its target weight differs from the current one by
+    # more than this. Small weekly rebalances are noise; they cost fees and
+    # slippage without expressing a view.
+    rebalance_band: float = 0.02
     min_probability: float = 0.5
     top_n: int = 3
     min_names: int = 2
@@ -140,6 +150,8 @@ class DecisionConfig(BaseModel):
             )
         if self.max_retries < 0:
             raise ValueError("max_retries must be >= 0")
+        if not 0.0 <= self.rebalance_band < 0.5:
+            raise ValueError("rebalance_band must be in [0, 0.5)")
         return self
 
     @property
@@ -328,6 +340,8 @@ def render_config(settings: Settings) -> str:
         f"max_retries = {_toml_value(d.max_retries)}",
         f"selection = {_toml_value(d.selection)}",
         f"base_weight = {_toml_value(d.base_weight)}",
+        f"signals = {_toml_value(d.signals)}",
+        f"rebalance_band = {_toml_value(d.rebalance_band)}",
         f"min_probability = {_toml_value(d.min_probability)}",
         f"top_n = {_toml_value(d.top_n)}",
         f"min_names = {_toml_value(d.min_names)}",

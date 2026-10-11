@@ -28,6 +28,9 @@ from __future__ import annotations
 # 4: the benchmark is never investable again. The default policy is graded_cs
 #    over the scenario's own assets, so the score reflects the model's choices;
 #    SPY is the yardstick only.
-DCN_PROTOCOL = 4
+# 5: the state carries a point-in-time base rate, the sizing signal defaults to
+#    a consensus across every question form answered, and the policy trades with
+#    a rebalance band so small weekly moves are not turned into fees.
+DCN_PROTOCOL = 5
 
 __all__ = ["DCN_PROTOCOL"]

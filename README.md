@@ -29,81 +29,75 @@ calibrated, and did the portfolio they built beat SPY?
 Rolling six months to the latest completed session (`2026-6m`), weekly decisions,
 frozen adjusted prices, window 2026-04-09 to 2026-10-09. The pool is 25 assets:
 large companies across all 11 sectors, plus broad equities and long Treasuries.
-Each decision may trade **only the pool's twelve strongest trailing six-month
-performers versus SPY**, ranked point-in-time from prices up to that date, so the
-book is the model's choice among real assets. SPY is the yardstick and is never
-held. That narrowing is itself a momentum rule, and this window punished it: its
-own equal-weight return is the reference line below.
+The book spreads across all of them by conviction; SPY is the yardstick and is
+never held, under any policy. Each decision sees the pool's trailing hit rate as
+a calibration anchor, and trades only when a weight moves more than the
+rebalance band, so weekly noise does not become fees.
 
-| Decision model | Return | vs its own set | vs SPY | Sharpe | Max DD | Turnover | Brier skill | AUC | p(AUC) |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `clef-flash` | **+0.46%** | **+0.84%** | −14.63% | 0.13 | −10.26% | 31.1% | −0.289 | 0.460 | 0.91 |
-| `gpt-6-luna` | +0.36% | +0.74% | −14.73% | 0.12 | −9.24% | 32.0% | −0.050 | 0.428 | 0.96 |
-| `clef` | −0.54% | −0.16% | −15.63% | −0.02 | −11.15% | 33.1% | −0.245 | 0.477 | 0.83 |
-| `jev-latest` | −0.60% | −0.22% | −15.69% | −0.04 | −10.79% | 34.8% | −0.078 | 0.478 | 0.76 |
-| *its investable set, equal weight* | *−0.38%* | *n/a* | *−15.47%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
-| *whole pool, equal weight* | *+9.09%* | *n/a* | *−6.00%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
-| *SPY buy-and-hold* | *+15.09%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| Decision model | Return | vs pool | vs SPY | Excess 95% CI | Sharpe | Max DD | Turnover | Brier skill | AUC | p(AUC) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `gpt-6-luna` | **+9.84%** | **+0.75%** | −5.25% | [−17.88%, +6.73%] | 1.92 | −3.16% | 15.3% | −0.019 | 0.476 | 0.56 |
+| `clef` | +9.82% | +0.73% | −5.27% | [−17.73%, +5.89%] | 1.89 | −3.38% | 17.9% | −0.268 | 0.502 | 0.21 |
+| `clef-flash` | +9.78% | +0.69% | −5.31% | [−16.40%, +5.35%] | 1.88 | −3.73% | 18.0% | −0.309 | 0.490 | 0.47 |
+| `jev-latest` | +8.29% | −0.80% | −6.80% | [−17.42%, +2.83%] | 1.67 | −2.82% | 19.6% | −0.064 | 0.478 | 0.54 |
+| *pool, equal weight* | *+9.09%* | *n/a* | *−6.00%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| *60/40, benchmark and Treasuries* | *+5.19%* | *n/a* | *−9.90%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| *12-1 momentum, top 3* | *−0.26%* | *n/a* | *−15.35%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
+| *SPY buy-and-hold* | *+15.09%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 
-Read this carefully, because the story is in the reference lines, not the models:
+Read it honestly:
 
-- **The selection rule lost the money, not the models.** Holding the same twelve
-  names equally, with no model input at all, returned −0.38% while the full pool
-  made +9.09% and SPY +15.09%. Trailing six-month winners gave back most of
-  their lead in this window, at every setting tested (3, 6 and 9-month
-  lookbacks, top 8 to 20).
-- **Two models beat the set they were given, barely.** `clef-flash` (+0.84) and
-  `gpt-6-luna` (+0.74) added less than a point over equal weight of the same
-  names; `clef` and `jev-latest` were slightly behind. With no measurable
-  signal, that is what the numbers should look like.
-- **Turnover is the visible cost of a rotating universe**: 31 to 35% per
-  decision, against 5% for a fixed pool, because names enter and leave the
-  top twelve every week.
-- **The probabilities still carry no measurable signal**: every Brier skill is
-  negative and every AUC permutation p-value is far from significant
-  (0.76 to 0.96).
+- **The return is the pool's beta, not forecasting.** Equal weight over the same
+  25 names made +9.09%; the models finished within a point of that, three of them
+  slightly ahead. Nothing here suggests the probabilities know which asset wins
+  next week: every Brier skill is negative and every AUC p-value is far from
+  significant.
+- **What actually improved the number was removing a drag.** A trailing-performer
+  filter, held equally with no model input, returned −0.94% at twelve names and
+  +5.31% at twenty against +9.09% for the whole pool, so it is off. Volatility
+  weighting lost too (+6.03%). The filter remains a scenario knob, and the README
+  records the measurements below.
+- **Turnover is the other cost**, and the rebalance band is why it fell from
+  ~50% under the earliest policy to 15 to 20% here.
+- **Against SPY the book still lags**, because SPY is cap-weighted and this book
+  is not. That gap is structural and is why the pool line sits beside it.
 
 <details>
-<summary><b>Universe and policy history, and why the numbers moved</b></summary>
+<summary><b>Every design that was measured, and what it returned</b></summary>
 
-Four configurations have been published, and only one of them was ever about
-forecasting:
+All figures are equal weight over the stated universe, on the same window, so
+the design is on trial and no model is involved:
 
-1. **Top three above 0.5** (the earliest cut): rewrote the whole book weekly at
-   ~50% turnover and returned −9.3% to +0.7%.
-2. **Graded over the whole pool** (protocol 2): halved turnover, added 8 to 17
-   points, and left the book about 7 points behind SPY, because an equal-weighted
-   selection of a mega-cap-led market lags the cap-weighted index itself.
-3. **SPY core plus sleeve** (protocol 3, withdrawn): tracked SPY to within a
-   point, but 85% of the book was the index, so the score stopped measuring the
-   model's choices.
-4. **Trailing-performer pool** (protocol 4, current): no index, the model
-   chooses among real assets, and the report adds the reference line that
-   isolates the rule's own return. In this window the rule was the problem,
-   which is a result worth publishing rather than tuning away.
+| Design | Return | Turnover |
+| --- | --- | --- |
+| Whole pool, equal weight | **+9.09%** | 3.3% |
+| Whole pool, inverse volatility | +6.03% | 3.9% |
+| Top 20 trailing performers | +5.31% | 6.9% |
+| Top 12 trailing performers | −0.94% | 13.6% |
+| Top 3 by 12-1 momentum (built-in reference) | −0.26% | 11% |
+| SPY buy-and-hold | +15.09% | n/a |
 
-Every gain in that list is portfolio construction or universe selection, not
-forecasting: the calibration columns are unmoved by all of it.
+Momentum filtering at 3, 6 and 9-month lookbacks and top 8 through 20 all landed
+below the pool in this window, and the narrower the filter, the worse it did.
+The pool is mega-caps, so the honest reading is that this window rewarded
+breadth, and the current design refuses to bet on a filter that has not earned
+its place.
 
 </details>
 
 <details>
-<summary><b>Is the momentum selection worth keeping?</b></summary>
+<summary><b>What the models were given to work with</b></summary>
 
-The scenario makes it a one-line change, and the offline sweep (no model calls,
-equal weight so the rule is measured on its own) says:
-
-| Lookback | Top N | Rule's own return | Turnover |
-| --- | --- | --- | --- |
-| 63 days | 12 | +6.75% | 18.2% |
-| 126 days | 12 | −0.38% | 14.6% |
-| 189 days | 20 | +7.48% | 6.4% |
-| none, whole pool | 25 | +9.09% | 3.3% |
-
-One window is one draw, so this is not proof that momentum loses. It is proof
-that the rule can dominate the result, which is why the model-vs-its-own-set
-column exists. Widen `selection_top`, lengthen `selection_lookback_days`, or drop
-`selection_top` to measure the models over the whole pool.
+- **A calibration anchor.** Every state carries the pool's trailing hit rate
+  against the benchmark (`base_rate`): on 2026-06-05, for example, only 30.8% of
+  names had beaten SPY over the previous quarter. A model answering 0.5 for a
+  typical name is contradicting a number it can see.
+- **Every question form.** `--form all` asks each asset three ways: a yes/no
+  probability, a two-way choice, and a five-level severity judgement. The sizing
+  signal can average them (`signals = "consensus"`), which shrinks a position
+  when the forms disagree. The published runs use the single-form signal, which
+  measured no worse.
+- **A rebalance band.** Weights inside the band are left exactly as they are.
 
 </details>
 

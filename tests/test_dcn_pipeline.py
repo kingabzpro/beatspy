@@ -21,10 +21,11 @@ from datetime import date
 
 import pytest
 
-from beatspy.config import DecisionConfig
+from beatspy.config import DecisionConfig, Settings
 from beatspy.dcn.clients import DcnResult
 from beatspy.dcn.pipeline import NEUTRAL, DcnPipeline, derive_weights
 from beatspy.schemas import NoulAnswer
+from conftest import make_prices
 
 
 def _scenario(**overrides):
@@ -237,6 +238,52 @@ def test_graded_never_buys_the_benchmark(graded):
     assert set(decision.weights) <= {"AAPL", "MSFT"}
 
 
+def test_consensus_averages_the_forms_that_were_answered():
+    """Choice and severity both count, and disagreement shrinks the position."""
+    from beatspy.dcn.pipeline import DcnDecision, _consensus_pair  # noqa: F401
+
+    decision = DcnDecision(date=date(2022, 2, 1), question_form="all", state={}, state_text="{}", tickers=["AAPL", "MSFT"])
+    decision.answered_noul = {"AAPL": 0.8, "MSFT": 0.6}
+    decision.answered_choice = {"AAPL": 0.4}
+    decision.answered_rank = {"AAPL": 0.6}
+    sized, answered = _consensus_pair(decision)
+    assert sized["AAPL"] == pytest.approx((0.8 + 0.4 + 0.6) / 3)
+    assert sized["MSFT"] == pytest.approx(0.6)
+    assert set(answered) == {"AAPL", "MSFT"}
+
+
+def test_a_name_with_no_answer_carries_no_conviction():
+    from beatspy.dcn.pipeline import DcnDecision, _consensus_pair
+
+    decision = DcnDecision(date=date(2022, 2, 1), question_form="all", state={}, state_text="{}", tickers=["AAPL", "MSFT"])
+    decision.answered_noul = {"AAPL": 0.9}
+    sized, answered = _consensus_pair(decision)
+    assert sized["MSFT"] == 0.5
+    assert "MSFT" not in answered
+
+
+def test_rebalance_band_keeps_small_moves_untraded(graded_cs):
+    """A name whose target barely moved is left exactly where it is."""
+    scenario = _scenario()
+    policy = graded_cs.model_copy(update={"rebalance_band": 0.05})
+    probabilities = _six({"AAPL": 0.8, "MSFT": 0.6})
+    current = {ticker: 1.0 / 6 for ticker in _six({})}
+    decision = derive_weights(probabilities, policy, scenario, current=current)
+    # MSFT sits inside the band of what is already held, so it is not touched.
+    assert decision.weights["MSFT"] == pytest.approx(1.0 / 6)
+    # The names that did breach stay fully funded, and the book stays invested.
+    assert decision.weights["AAPL"] > 1.0 / 6
+    assert sum(decision.weights.values()) == pytest.approx(1.0)
+
+
+def test_a_wide_band_leaves_the_whole_book_alone(graded_cs):
+    scenario = _scenario()
+    policy = graded_cs.model_copy(update={"rebalance_band": 0.5})
+    current = {ticker: 1.0 / 6 for ticker in _six({})}
+    decision = derive_weights(_six({"AAPL": 0.8}), policy, scenario, current=current)
+    assert decision.weights == pytest.approx(current)
+
+
 # --------------------------------------------------------------------------- #
 # Legacy top-N (kept for reproducibility of earlier runs)
 # --------------------------------------------------------------------------- #
@@ -368,6 +415,36 @@ def test_provider_failure_produces_an_invalid_decision_that_holds(data_service, 
     assert decision.coverage == 0.0
     assert decision.call is None  # no response to record
     assert decision.validated.weights == {}
+
+
+def test_multi_form_runs_stay_inside_the_provider_question_limit(scenario):
+    """Cloudflare rejects more than 64 questions, so the set is sized to fit."""
+    from beatspy.config import DECISION_MODELS
+    from beatspy.data.service import DataService
+
+    big = scenario.model_copy(update={"tradable": [f"T{index:02d}" for index in range(30)], "max_candidates": 30})
+    data = DataService(make_prices(big.universe), benchmark=big.benchmark)
+    for form in ("all", "twin", "per_asset"):
+        config = DecisionConfig(decision_model="clef")
+        pipeline = DcnPipeline(Settings(decision=config), big, StateSensitiveStub(), question_form=form)
+        tickers = pipeline.candidates(data, date(2022, 2, 15), holdings={"T00": 0.1, "T01": 0.1})
+        questions = len(tickers) * {"all": 3, "twin": 2, "per_asset": 1}[form]
+        assert questions <= DECISION_MODELS["clef"]["max_questions"], (form, questions)
+        assert "T00" in tickers and "T01" in tickers, "holdings must stay actionable"
+
+
+class StateSensitiveStub:
+    provider = "offline"
+    model = "stub"
+    endpoint = "https://offline.invalid"
+
+    async def decide(self, state, questions):
+        from beatspy.dcn.clients import DcnResult
+
+        return DcnResult(answers={}, input_tokens=1)
+
+    async def close(self):
+        return None
 
 
 def test_per_asset_asks_about_every_investable_asset(data_service, scenario, settings):

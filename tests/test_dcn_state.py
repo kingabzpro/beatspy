@@ -194,6 +194,22 @@ def test_the_pipeline_enforces_the_budget_on_a_full_book(scenario):
     assert decision.state["as_of"] == "2022-02-15"
 
 
+def test_state_carries_a_point_in_time_base_rate(prices, scenario):
+    """A probability needs the frequency it is estimating, so the state carries it."""
+    state = _state(prices, scenario, date(2022, 2, 15))
+    base = state["base_rate"]
+    assert base["window_trading_days"] == 63
+    assert 0.0 <= base["share_beat_benchmark_pct"] <= 100.0
+    assert base["median_excess_pct"] is not None
+
+    # Point-in-time: tampering with later prices cannot move it.
+    frame = prices.copy()
+    later = frame["date"] > pd.Timestamp("2022-02-15")
+    frame.loc[later, "close"] = frame.loc[later, "close"] * 4.0
+    tampered = _state(frame, scenario, date(2022, 2, 15))
+    assert tampered["base_rate"] == base
+
+
 def test_select_universe_defaults_to_the_whole_pool(prices, scenario):
     from beatspy.dcn.state import select_universe
 
@@ -248,10 +264,11 @@ def test_holdings_are_always_asked_about(prices, scenario):
     """The model must be able to act on what it already owns."""
     data = DataService(prices, benchmark=scenario.benchmark)
     as_of = date(2022, 2, 15)
-    # TLT is the weakest mover in this fixture, so it would not be picked alone.
-    picked = candidates(data, scenario, as_of, extra=["TLT"], max_candidates=1)
-    assert "TLT" in picked
-    assert len(picked) == 2
+    # A holding takes the first slot even though TLT is the weakest mover here,
+    # because the provider limit counts every question the decision will send.
+    assert candidates(data, scenario, as_of, extra=["TLT"], max_candidates=1) == ["TLT"]
+    roomy = candidates(data, scenario, as_of, extra=["TLT"], max_candidates=2)
+    assert "TLT" in roomy and len(roomy) == 2
 
 
 def test_candidates_ignore_untradable_extras(prices, scenario):

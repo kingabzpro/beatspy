@@ -1,12 +1,12 @@
 {
   "artifact_hashes": {
-    "decisions.jsonl": "d53d8d2f595feb1ee79a3aa5019d11985e095b7d6d5a4c9b6da3c7114fbffd65",
-    "equity_curve.csv": "24e57fe132d2128b6822a284919f704fb5a210515867a2775bec1c9ef6873b04",
-    "events.jsonl": "ffee20d3b5a8b5852cc939e2d55f9ecbd9f4e4d11deb32c5d485bedc39e434f7",
-    "metrics.json": "3dc5c096158c5eacda41f56d78da1f5dbd7c0379f5ea3cd5b9942dad849829f2",
+    "decisions.jsonl": "1d4aca50310b5e1c94c92517a083f352b467c52ffd97852019babb4100544a28",
+    "equity_curve.csv": "5596696905b154e4bba809db770ab6a4fe19b7f699441f495556f0d7d07ff0ed",
+    "events.jsonl": "7e3ab1e3d36fcaf5a3cd139e657effc23a4c8697354da4fa381ff7558e914c91",
+    "metrics.json": "b7fbabbbbc42d696d0a7794055cd6f7de60f2a01bcc76b4944f5ae320f8f82a2",
     "snapshot/MANIFEST.json": "5788ebd51e6d12c5d2a55d0b06ba8c79d8e5590502174e1a6739068f461ff138",
     "snapshot/prices.csv": "d5b1dfa939e5672617313c7e9e6c27eb72625cd0c308cd3b5e1b303cfac46b6e",
-    "trades.csv": "32e9a18917c8cf6ee85c5e32b412dbd19340c1eb7a96091106db72e3c4e717e0"
+    "trades.csv": "041f10b9e7c13540043f0b3154d31c50702da2beb4d7457ad6e1e9325aae8f4d"
   },
   "beatspy_version": "0.3.0",
   "bench": {
@@ -17,7 +17,7 @@
     "slippage_bps": 5.0
   },
   "benchmark": "dcn",
-  "created_utc": "2026-10-11T18:36:18+00:00",
+  "created_utc": "2026-10-11T19:07:22+00:00",
   "data": {
     "end": "2026-10-09",
     "fetched_at_utc": "2026-10-11T17:33:39+00:00",
@@ -55,23 +55,25 @@
       "SPY"
     ]
   },
-  "dcn_protocol": 4,
+  "dcn_protocol": 5,
   "decision": {
-    "decision_model": "jev-latest",
-    "endpoint": "https://api.typesafe.ai/v1/systemone",
-    "label": "TypeSafe Jev",
+    "decision_model": "gpt-6-luna",
+    "endpoint": "https://api.openai.com/v1",
+    "label": "OpenAI Decisions (gpt-6-luna)",
     "policy": {
       "base_weight": 0.5,
       "min_names": 2,
       "min_probability": 0.5,
+      "rebalance_band": 0.02,
       "selection": "graded_cs",
+      "signals": "consensus",
       "top_n": 3
     },
     "pricing": {
-      "cost_per_m_input": 0.042,
+      "cost_per_m_input": 0.1,
       "cost_per_m_output": 0.0
     },
-    "provider": "typesafe",
+    "provider": "openai_decisions",
     "question_form": "per_asset"
   },
   "disclaimer": "Historical decision-model benchmark. The model receives frozen point-in-time market state, returns typed probabilities, and is scored on those probabilities and on a portfolio built from them.",
@@ -85,7 +87,7 @@
     "frequency": "weekly",
     "start": "2026-04-09"
   },
-  "run_id": "20261011-183618_2026-6m_jev-latest_a4c584e091",
+  "run_id": "20261011-190722_2026-6m_gpt-6-luna_1b60842af9",
   "scenario": {
     "benchmark": "SPY",
     "cash": true,
@@ -101,7 +103,7 @@
     "name": "2026-6m",
     "recent_months": 6,
     "selection_lookback_days": 126,
-    "selection_top": 12,
+    "selection_top": null,
     "slippage_bps": 5.0,
     "start": "2026-04-09",
     "through_latest": false,
@@ -137,11 +139,11 @@
     "year": null
   },
   "schema_version": 3,
-  "source_revision": "f0f732360dac5213d63af7485ce12facf78e9119",
+  "source_revision": "c2001685da23807d19f7a351eef923d7052a4624",
   "state_sample": {
-    "chars": 4173,
+    "chars": 4346,
     "decision_date": "2026-04-09",
-    "sha256": "26afb13b5562fca7a716adda77cb053e3e724ce6c00f62b9b06076d18a68cfd5"
+    "sha256": "f49dc450142873f65ea4e1756abc4c63b1ca3e2f2a5f68513be8a3966c5e5e00"
   },
   "synthetic": false
 }
