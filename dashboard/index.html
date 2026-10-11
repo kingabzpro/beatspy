@@ -51,29 +51,30 @@
       <div id="leaderboard-table" class="table-wrap"></div>
     </section>
     <section id="how" class="how" aria-labelledby="how-title">
-      <details>
-        <summary>
-          <span class="eyebrow">METHOD</span>
-          <strong id="how-title">How this benchmark works</strong>
-          <span class="how-hint">Frozen data · typed questions · fixed policy · replayable scores</span>
-        </summary>
-        <div class="how-body">
-          <ol class="how-steps">
-            <li><strong>Freeze the market.</strong> Prices are downloaded once into a content-addressed snapshot, and every run re-uses the same bytes.</li>
-            <li><strong>Build the state.</strong> One compact JSON object per decision, containing only data dated on or before that decision date.</li>
-            <li><strong>Anchor the probabilities.</strong> The state carries the pool's trailing hit rate against SPY, so a model can see when 0.5 is an optimistic answer for a typical name.</li>
-            <li><strong>Ask typed questions.</strong> One probability question per investable asset, phrased identically for every provider: will it beat SPY over the next few sessions?</li>
-            <li><strong>Size the book.</strong> A fixed policy spreads the whole book across the pool by conviction, and only trades a name when its weight moves more than the rebalance band. The index is never bought, and the rule is recorded before any result is seen.</li>
-            <li><strong>Execute and score.</strong> Orders fill at the next session's open. Every answer is scored twice, for calibration and for the return of the portfolio its probabilities built.</li>
-          </ol>
-          <p class="caption">Every run can be replayed offline from its own artifacts, and an adversarial audit checks that data after a decision date can never change that decision. No prompts, no tools, no hidden state.</p>
-          <div class="how-links">
-            <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
-            <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>
-            <a href="https://github.com/kingabzpro/beatspy/blob/main/examples/leakage_audit.py">Leakage audit ↗</a>
-          </div>
-        </div>
-      </details>
+      <div class="section-heading"><div><p class="eyebrow">METHOD</p><h2 id="how-title">How this benchmark works</h2></div></div>
+      <p class="how-lede">Six steps run identically for every model. Fixing them is the point: a difference on the board is then a difference between models, not between setups, and any run can be replayed from its own artifacts.</p>
+      <p class="how-hint">Frozen data · typed questions · fixed policy · replayable scores</p>
+      <ol class="how-steps">
+        <li><strong>Freeze the market.</strong>Prices are downloaded once into a content-addressed snapshot. Every run over that window re-uses the same bytes, so a score can never change because the data did.</li>
+        <li><strong>Build the state.</strong>One compact JSON per decision date, holding only data dated on or before it, with the token budget enforced before anything is sent. It carries the pool's trailing hit rate against SPY, so a model can see when 0.5 is an optimistic answer for a typical name.</li>
+        <li><strong>Ask typed questions.</strong>One probability question per investable asset, phrased identically for every model: will it beat SPY over the next few sessions? The optional forms ask the same name as a two-way choice and a five-level rank. Answers must be typed probabilities; a refusal is recorded as missing coverage, never invented.</li>
+        <li><strong>Size the book.</strong>A fixed, deterministic policy turns probabilities into target weights: the book spreads across the pool by conviction, a trade fires only when a weight moves past the rebalance band, and the index is never bought. The rule was written down before results were seen and is recorded in every run.</li>
+        <li><strong>Fill the orders.</strong>Only weights that moved past the band become orders, and they fill at the next session's open with fees and slippage applied. No decision can trade on a price it has already seen.</li>
+        <li><strong>Score it twice.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built: return, Sharpe and drawdown against SPY and deterministic baselines such as equal weight and 60/40.</li>
+      </ol>
+      <h3 class="how-sub">What keeps it honest</h3>
+      <div class="how-notes">
+        <p><strong>No look-ahead.</strong>The state holds only data dated on or before the decision date. The adversarial audit tampers with every later price and requires the earlier decisions to come out byte-identical.</p>
+        <p><strong>Missing stays missing.</strong>An unanswered question is never scored and carries no conviction, so a provider failure cannot become a trade. Coverage is printed on every run.</p>
+        <p><strong>Replayable.</strong>Each run ships its state hash, decisions, fills and metrics, and <code>beatspy verify</code> re-derives the scores offline, requiring exact agreement.</p>
+        <p><strong>Uncertainty is reported.</strong>Returns and excess carry block-bootstrap intervals clustered by decision date, and every calibration score carries a permutation p-value: one six-month window cannot prove an edge.</p>
+      </div>
+      <div class="how-links">
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/examples/leakage_audit.py">Leakage audit ↗</a>
+        <a href="https://github.com/kingabzpro/beatspy/blob/main/CONTRIBUTING.md">Contributing ↗</a>
+      </div>
     </section>
     <section id="run-details" hidden aria-labelledby="run-title">
       <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>
