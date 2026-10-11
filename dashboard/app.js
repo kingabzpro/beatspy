@@ -257,7 +257,7 @@ if (typeof document !== "undefined") {
   }
   function renderBoard() {
     visible = leaderboardRuns(runs);
-    $("board-window").textContent = "Latest completed result per decision model; open one to review its full metric set.";
+    $("board-window").textContent = "One row per model, latest completed result; open a row for its full summary.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
@@ -283,6 +283,36 @@ if (typeof document !== "undefined") {
         : `Synthetic demo data: ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`;
     }
     $("run-count").className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
+    // The front page is the board plus one paragraph that says what it means;
+    // the method, the caveats and the pricing live in the sections below it.
+    const signedPercent = value => Number.isFinite(value) && value > 0 ? `+${percent(value)}` : percent(value);
+    if (visible.length) {
+      const scored = visible.map(run => ({
+        name: modelName(run.model),
+        total: Number(run.metrics?.total_return),
+        excess: Number(run.metrics?.excess_return_vs_spy),
+        skill: Number(run.brier_skill_score),
+      }));
+      const spy = Number(visible[0].metrics?.spy_total_return);
+      const best = scored.reduce((a, b) => Number.isFinite(b.total) && !(Number.isFinite(a.total) && a.total >= b.total) ? b : a);
+      const beat = scored.filter(row => Number.isFinite(row.excess) && row.excess > 0).length;
+      const skills = scored.map(row => row.skill).filter(Number.isFinite);
+      const bestSkill = skills.length ? Math.max(...skills) : null;
+      const decisions = Number(visible[0].decisions ?? visible[0].metrics?.decisions);
+      $("summary").textContent = [
+        `${count(visible.length)} models${Number.isFinite(decisions) && decisions > 0 ? `, ${plural(decisions, "weekly decision")}` : ""}.`,
+        beat === 0
+          ? `None beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`
+          : `${count(beat)} of ${count(scored.length)} beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`,
+        Number.isFinite(bestSkill)
+          ? (bestSkill > 0
+            ? `Best Brier skill ${score(bestSkill)}.`
+            : `Every Brier skill is negative, best ${score(bestSkill)}: none shows measurable probability skill.`)
+          : "",
+      ].filter(Boolean).join(" ");
+    } else {
+      $("summary").textContent = "";
+    }
     $("status").textContent = visible.length ? "" : (runs.length
       ? "No completed results yet."
       : "No results yet. Record a decision-model run and re-render this page.");

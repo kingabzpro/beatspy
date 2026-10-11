@@ -305,6 +305,10 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   assert.equal($('demo-banner').hidden, true, 'real results must not show the synthetic warning');
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
+  // The front page carries the board and one paragraph that reads it.
+  assert.match($('summary').textContent, /2 models, 9 weekly decisions\./);
+  assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, clef-flash, returned \+5\.00%\./);
+  assert.match($('summary').textContent, /Every Brier skill is negative/);
   assert.equal($('cost-overview').hidden, false);
   // The pricing panel standardizes every model on the same units: rate, billed
   // tokens and cost for one decision, and the run total.
