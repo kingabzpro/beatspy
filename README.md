@@ -63,6 +63,7 @@ Useful flags:
 uv run beatspy run --model jev-latest --scenario 2026-ytd --freq weekly
 uv run beatspy run --model gpt-6-luna --max-decisions 12
 uv run beatspy run --model clef --form all      # ask every question form
+uv run beatspy run --max-cost-usd 0.05          # abort a run that would overspend
 uv run beatspy calibrate <run-id>               # calibration table for one run
 uv run beatspy verify results/<run-id>          # offline replay of a finished run
 uv run beatspy compare                          # latest run per decision model

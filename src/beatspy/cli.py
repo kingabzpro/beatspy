@@ -106,6 +106,18 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p.add_argument("--label", help="free-text label stored in the run record")
+    p.add_argument(
+        "--max-cost-usd",
+        type=float,
+        default=None,
+        help="stop the run when the estimated provider cost exceeds this many USD (an aborted run writes no artifacts)",
+    )
+    p.add_argument(
+        "--max-consecutive-failures",
+        type=positive_int,
+        default=None,
+        help="stop the run after this many consecutive provider call failures",
+    )
     p.add_argument("--refresh-data", action="store_true", help="re-download the frozen price snapshot")
     p.add_argument(
         "--offline-fixture",
@@ -550,6 +562,8 @@ def cmd_run(args: argparse.Namespace) -> int:
                     prepared_data=prepared_data,
                     client=client,
                     question_form=args.form,
+                    max_cost_usd=args.max_cost_usd,
+                    max_consecutive_failures=args.max_consecutive_failures,
                 )
             )
         return await asyncio.gather(*jobs.values(), return_exceptions=True)

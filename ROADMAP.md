@@ -156,7 +156,7 @@ for the sequencing section at the very end.
   pass `beatspy verify`, and the full test suite passes.
 
 ### M5. Add run-level guardrails
-`effort: M` · `status: todo`
+`effort: M` · `status: done`
 - **Why:** retries are bounded per call (4 attempts), but nothing stops a run from
   grinding against an exhausted quota decision after decision. The archived
   spy-core experiment shows the failure mode: 2,823 HTTP attempts, $3.77 reserved,
@@ -165,6 +165,12 @@ for the sequencing section at the very end.
   record the abort reason and spent estimate in `run.json`.
 - **Done when:** a simulated quota exhaustion stops the run after a bounded number
   of decisions and states why in the artifact.
+- **Progress (2026-10-11):** `run_dcn` takes `max_cost_usd` and
+  `max_consecutive_failures`, both exposed as `beatspy run` flags. An aborted run
+  writes no artifacts at all (so a partial result cannot be mistaken for a
+  finished one) and the error names the spend, the decision index, and the last
+  provider error. Both guardrail values are recorded in `run.json` for completed
+  runs. Tests cover the cost abort, the failure abort, and the recorded shape.
 
 ### M6. Make the baselines say what they are
 `effort: S` · `status: todo`

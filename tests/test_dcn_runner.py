@@ -74,6 +74,8 @@ def test_run_metadata_identifies_the_decision_model_and_policy(per_asset_run_dir
     # The snapshot the run was scored against is recorded for replay.
     assert meta["data"]["prices_sha256"]
     assert meta["artifact_hashes"]["metrics.json"]
+    # Guardrails are recorded even when none were set.
+    assert meta["guardrails"] == {"max_cost_usd": None, "max_consecutive_failures": None}
 
 
 def test_metrics_carry_both_halves_of_the_benchmark(per_asset_run_dir):
@@ -225,6 +227,23 @@ def test_a_completely_failed_provider_holds_the_portfolio_and_records_it(tmp_pat
         assert line["validated"]["cash"] == 1.0
         assert line["observed"] == []  # nothing was asked, so nothing is scored
     assert metrics["calibration"]["observations"] == 0
+
+
+def test_a_cost_cap_stops_a_run_before_it_finishes(tmp_path, scenario, frozen_data):
+    """The cap is checked after each decision; an aborted run writes no artifacts."""
+    # Two scripted calls at 500 input tokens each: 0.000045 USD per decision
+    # against clef-flash's $0.09 / 1M, so the second call breaches the cap.
+    with pytest.raises(RuntimeError, match="max-cost-usd"):
+        run_offline(tmp_path, scenario, frozen_data, OfflineDcnClient(), max_cost_usd=0.00005)
+    results = tmp_path / "results"
+    assert not results.exists() or not any(results.iterdir())
+
+
+def test_consecutive_provider_failures_abort_the_run(tmp_path, scenario, frozen_data):
+    with pytest.raises(RuntimeError, match="consecutive provider failures"):
+        run_offline(tmp_path, scenario, frozen_data, ExplodingClient(), max_consecutive_failures=2)
+    results = tmp_path / "results"
+    assert not results.exists() or not any(results.iterdir())
 
 
 def test_calibration_can_be_rebuilt_from_the_decisions_alone(dcn_run_dir):

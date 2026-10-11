@@ -198,6 +198,8 @@ def run_offline(
     settings: Settings | None = None,
     label: str | None = None,
     scenario_overrides: dict | None = None,
+    max_cost_usd: float | None = None,
+    max_consecutive_failures: int | None = None,
 ):
     """Execute a complete DCN run offline through the real runner."""
     import asyncio
@@ -216,6 +218,8 @@ def run_offline(
             client=client,
             question_form=question_form,
             label=label,
+            max_cost_usd=max_cost_usd,
+            max_consecutive_failures=max_consecutive_failures,
         )
     )
 

@@ -136,8 +136,19 @@ async def run_dcn(
     prepared_data: tuple[DataService, dict] | None = None,
     client: DcnClient | None = None,
     question_form: str = "per_asset",
+    max_cost_usd: float | None = None,
+    max_consecutive_failures: int | None = None,
 ) -> Path:
-    """Run the full DCN benchmark for one decision model on one scenario."""
+    """Run the full DCN benchmark for one decision model on one scenario.
+
+    Optional guardrails stop a run that is burning quota against a broken or
+    rate-limited provider. An aborted run writes no artifacts, so a partial
+    result can never be mistaken for a finished one.
+    """
+    if max_cost_usd is not None and max_cost_usd <= 0:
+        raise ValueError("max_cost_usd must be positive")
+    if max_consecutive_failures is not None and max_consecutive_failures < 1:
+        raise ValueError("max_consecutive_failures must be at least 1")
     scenario = resolve_scenario(scenario)
     scenario = scenario.model_copy(
         update={"start": start or scenario.start, "end": end or scenario.end, "frequency": freq or scenario.frequency}
@@ -146,6 +157,8 @@ async def run_dcn(
     owns_client = client is None
     dcn_client = client or make_client(settings)
     try:
+        from .scoring import estimate_cost, score_run
+
         pipeline = DcnPipeline(settings, scenario, dcn_client, question_form=question_form)
         start_day = date.fromisoformat(start or scenario.start)
         end_day = date.fromisoformat(end or scenario.end)
@@ -159,8 +172,11 @@ async def run_dcn(
         event_lines: list[dict] = []
         observations: list[Observation] = []
         recent: list[dict] = []
+        spent_usd = 0.0
+        consecutive_failures = 0
 
         async def weight_fn(day: date, state) -> dict:
+            nonlocal spent_usd, consecutive_failures
             invested = state.weights(day, data)
             period = data.decision_period(day, decision_dates, end_day)
             if progress is not None:
@@ -177,6 +193,20 @@ async def run_dcn(
             decision.observed = label_observations(data, scenario, decision)
             observations.extend(decision.observed)
             decisions.append(decision)
+            if decision.call is not None:
+                spent_usd += estimate_cost(settings, decision.call.input_tokens, decision.call.output_tokens) or 0.0
+            consecutive_failures = consecutive_failures + 1 if decision.error else 0
+            if max_cost_usd is not None and spent_usd > max_cost_usd:
+                raise RuntimeError(
+                    f"run stopped: estimated cost ${spent_usd:.6f} after {len(decisions)} of "
+                    f"{len(decision_dates)} decisions exceeds the ${max_cost_usd:.6f} cap (--max-cost-usd)"
+                )
+            if max_consecutive_failures is not None and consecutive_failures >= max_consecutive_failures:
+                raise RuntimeError(
+                    f"run stopped: {consecutive_failures} consecutive provider failures at decision "
+                    f"{len(decisions)} of {len(decision_dates)} (--max-consecutive-failures); "
+                    f"last error: {decision.error}"
+                )
             event_lines.append(
                 {
                     "type": "decision",
@@ -196,8 +226,6 @@ async def run_dcn(
         result: BacktestResult = await run_backtest(
             data, decision_dates, weight_fn, scenario, allowed_tickers=scenario.tradable
         )
-
-        from .scoring import score_run
 
         metrics, equity_df = await score_run(
             data,
@@ -235,6 +263,10 @@ async def run_dcn(
                 if decisions
                 else None
             ),
+            "guardrails": {
+                "max_cost_usd": max_cost_usd,
+                "max_consecutive_failures": max_consecutive_failures,
+            },
             "decision": {
                 "decision_model": settings.decision.decision_model,
                 "provider": settings.decision.provider,
