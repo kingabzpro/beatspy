@@ -19,14 +19,16 @@ function catalogRun(overrides = {}) {
     estimated_cost_usd: 0.0009, brier: 0.2, brier_skill_score: -0.17, auc: 0.71, ece: 0.2,
     max_calibration_error: 0.36, calibration_gap: 0.355,
     metrics: {total_return: 0.05, spy_total_return: 0.01, excess_return_vs_spy: 0.04, sharpe: -0.98,
-      max_drawdown: -0.07, input_tokens: 1000, output_tokens: 0, requests: 9, answer_coverage: 1.0,
+      max_drawdown: -0.07, annual_volatility: 0.11, avg_turnover: 0.153, trades: 40,
+      input_tokens: 1000, output_tokens: 0, requests: 9, answer_coverage: 1.0,
       mean_latency_s: 0.4, decisions: 9, invalid_outputs: 0, estimated_cost_usd: 0.0009,
+      outperformance_hit_rate: 0.44,
       baselines: {equal_weight: 0.02, sixty_forty: 0.01, momentum_12_1: -0.03},
       return_ci: {lower: -0.01, upper: 0.11, level: 0.95, draws: 1000, method: 'decision-window block bootstrap'},
       excess_return_ci: {lower: -0.02, upper: 0.09, level: 0.95, draws: 1000, method: 'decision-window block bootstrap'},
       calibration: {observations: 9, horizons: 3, coverage: 1.0, miscalibration_gap: 0.355, signals: {
         noul: {n: 9, brier: 0.2, brier_skill_score: -0.17, auc: 0.71, expected_calibration_error: 0.2,
-          brier_skill_p_value: 0.55, auc_p_value: 0.42,
+          brier_skill_p_value: 0.55, auc_p_value: 0.42, log_loss: 0.61, accuracy: 0.55, base_rate: 0.48,
           mean_predicted: 0.58, bins: [
             {lower: 0, upper: 0.5, count: 0, mean_predicted: 0, observed_rate: null},
             {lower: 0.5, upper: 0.6, count: 6, mean_predicted: 0.55, observed_rate: 0.67},
@@ -307,9 +309,21 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   runButton.onclick();  // selects the run
   await settle();
   assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
-  assert.equal($('metrics').children.length, 6);
+  // The board carries the headline metrics; the summary below carries the rest.
+  const headers = table.children[0].descendants()
+    .filter(node => node.tagName === 'th')
+    .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
+  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'vs SPY', 'Sharpe', 'Max DD', 'Brier skill', 'AUC']);
+  // Every other metric is reviewed in the run summary, each with its reading.
+  assert.equal($('metrics').children.length, 16);
   const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
   assert.match(metricText, /Excess vs SPY/);
+  assert.match(metricText, /Excess vs pool/);
+  assert.match(metricText, /Turnover per decision/);
+  assert.match(metricText, /Decisions ahead of SPY/);
+  assert.match(metricText, /Log loss/);
+  assert.match(metricText, /ECE \(noul\)/);
+  assert.match(metricText, /Answer coverage/);
   assert.match(metricText, /95% interval/);
   assert.match(metricText, /permutation p =/);
   assert.equal($('reliability').children[0].descendants().filter(node => node.tagName === 'svg').length, 1);

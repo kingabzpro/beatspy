@@ -157,8 +157,10 @@ if (typeof document !== "undefined") {
     for (const [key, value] of Object.entries(attrs || {})) result.setAttribute(key, String(value));
     return result;
   };
-  // The board is deliberately short: the return, the two risk numbers, and the
-  // two calibration numbers. Everything else lives in the run's detail panel.
+  // The board keeps the numbers a first read needs: what it returned, whether
+  // that beat the benchmark, the two risk figures, and the two calibration
+  // figures. The supporting metrics live in the run summary, which opens on a
+  // click, so the full review happens in one place.
   const COLUMNS = [
     ["model", "Model", "text", "row"],
     ["total_return", "Return", "percent", "metrics"],
@@ -219,7 +221,7 @@ if (typeof document !== "undefined") {
   }
   function renderBoard() {
     visible = leaderboardRuns(runs);
-    $("board-window").textContent = "Latest completed result per decision model.";
+    $("board-window").textContent = "Latest completed result per decision model; open one to review its full metric set.";
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
@@ -279,8 +281,11 @@ if (typeof document !== "undefined") {
       row.append(td);
       for (const [key, , kind, source] of COLUMNS.slice(1)) {
         const raw = rowValue(run, key, source), value = Number(raw);
-        const tone = Number.isFinite(value) ? (value >= 0 ? "positive" : "negative") : "";
-        row.append(node("td", FORMAT[kind](raw), `num ${key === "excess_return_vs_spy" ? tone : ""}`));
+        // Tone only the columns whose neutral point is zero; Sharpe, drawdown
+        // and the calibration scores are all read against their own scales.
+        const tone = Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy")
+          ? (value >= 0 ? "positive" : "negative") : "";
+        row.append(node("td", FORMAT[kind](raw), `num ${tone}`));
       }
       body.append(row);
     }
@@ -463,14 +468,33 @@ if (typeof document !== "undefined") {
       const ciNote = excessCi && !missing(excessCi.lower) && !missing(excessCi.upper)
         ? `95% interval ${percent(excessCi.lower)} to ${percent(excessCi.upper)}`
         : "interval unavailable";
-      // [heading, formatted value, signed?, sub-note]
+      // [heading, formatted value, signed?, sub-note]. This panel is the review:
+      // the board's headline numbers plus everything behind them, each with the
+      // line that says how to read it.
+      const pool = run.metrics.baselines?.equal_weight;
+      const vsPool = Number.isFinite(pool) ? run.metrics.total_return - pool : null;
       const tiles = [
-        ["Portfolio return", percent(run.metrics.total_return), run.metrics.total_return, "vs the benchmark's " + percent(run.metrics.spy_total_return)],
+        ["Portfolio return", percent(run.metrics.total_return), run.metrics.total_return,
+          `vs the benchmark's ${percent(run.metrics.spy_total_return)}`],
         ["Excess vs SPY", percent(run.metrics.excess_return_vs_spy), run.metrics.excess_return_vs_spy, ciNote],
+        ["Excess vs pool", percent(vsPool), vsPool, "above 0 beats holding the same universe equally"],
+        ["Decisions ahead of SPY", percent(run.metrics.outperformance_hit_rate), null,
+          "share of decisions the book ended ahead"],
         ["Sharpe", ratio(run.metrics.sharpe), run.metrics.sharpe, "zero risk-free rate"],
+        ["Annual volatility", percent(run.metrics.annual_volatility), null, "realized, annualized"],
         ["Maximum drawdown", percent(run.metrics.max_drawdown), run.metrics.max_drawdown, "peak to trough"],
-        ["Brier (noul)", score(noulStats.brier), null, `Brier skill ${score(noulStats.brier_skill_score)}: above 0 beats a constant`],
+        ["Turnover per decision", percent(run.metrics.avg_turnover), null, "share of the book traded, one-sided"],
+        ["Decisions", count(run.metrics.decisions), null, `${plural(run.metrics.trades, "fill")} filled`],
+        ["Answer coverage", percent(run.metrics.answer_coverage), null,
+          `${plural(run.metrics.invalid_outputs, "invalid answer")}: missing answers stay unscored and carry no conviction`],
+        ["Brier (noul)", score(noulStats.brier), null, `sample rate ${score(noulStats.base_rate)}: what a constant would score`],
+        ["Brier skill (noul)", score(noulStats.brier_skill_score), noulStats.brier_skill_score,
+          `permutation p = ${score(noulStats.brier_skill_p_value)}: above 0 beats a constant`],
+        ["Log loss (noul)", score(noulStats.log_loss), null, "lower is better"],
         ["AUC (noul)", score(noulStats.auc), null, `permutation p = ${score(noulStats.auc_p_value)}: 0.5 is chance`],
+        ["ECE (noul)", score(noulStats.expected_calibration_error), null,
+          `expected calibration error; worst bin ${score(noulStats.max_calibration_error)}`],
+        ["Accuracy (noul)", percent(noulStats.accuracy), null, "share of labels the called side got right"],
       ];
       for (const [title, formatted, value, note] of tiles) {
         const tile = node("div", undefined, "metric");
