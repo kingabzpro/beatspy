@@ -118,7 +118,7 @@ for the sequencing section at the very end.
   what `clients.py` and `pipeline.py` actually do.
 
 ### M2. Make the scenario schema strict
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** `Scenario` silently ignores unknown TOML keys, so four built-in
   scenarios still carry `allow_finnhub` / `allow_web_search` from the deleted
   agent era, including `2026-ytd.toml` with `allow_finnhub = true`. A future typo

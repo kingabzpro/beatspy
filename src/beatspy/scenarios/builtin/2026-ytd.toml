@@ -10,5 +10,3 @@ benchmark = "SPY"
 # energy, industrials, utilities, materials, and real estate; bonds and gold.
 tradable = ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "HD", "WMT", "PG", "JPM", "V", "LLY", "JNJ", "XOM", "CVX", "CAT", "GE", "NEE", "SO", "LIN", "SHW", "PLD", "AMT", "TLT", "GLD"]
 lookback_days = 400
-allow_finnhub = true
-allow_web_search = false

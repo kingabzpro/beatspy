@@ -9,6 +9,4 @@ initial_capital = 100000.0
 fee_bps = 5.0
 slippage_bps = 5.0
 max_position_weight = 0.35
-allow_web_search = false
-allow_finnhub = false
 lookback_days = 90

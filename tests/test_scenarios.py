@@ -101,6 +101,18 @@ def test_make_scenario_applies_overrides():
     assert scenario.max_candidates == 4
 
 
+def test_unknown_scenario_keys_are_rejected():
+    """A typo or a leftover key must fail loudly, not be silently ignored."""
+    from pydantic import ValidationError
+
+    from beatspy.schemas import Scenario
+
+    payload = make_scenario().model_dump()
+    payload["allow_finnhub"] = True
+    with pytest.raises(ValidationError, match="allow_finnhub"):
+        Scenario.model_validate(payload)
+
+
 def test_bundled_scenario_runs_end_to_end_offline(tmp_path, scenario, frozen_data, offline_client):
     """A bundled scenario must complete a DCN run with no provider and no network."""
     from conftest import run_offline

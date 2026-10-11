@@ -303,7 +303,10 @@ class RunMetrics(BaseModel):
 
 
 class Scenario(BaseModel):
-    model_config = ConfigDict(protected_namespaces=())
+    # Unknown keys are rejected: a scenario file that carries a key this build
+    # does not read (a leftover from an older format, or a typo) would otherwise
+    # be silently ignored and quietly change nothing.
+    model_config = ConfigDict(protected_namespaces=(), extra="forbid")
 
     name: str
     title: str
