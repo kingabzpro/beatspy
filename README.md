@@ -4,7 +4,7 @@
 
 **Decision models, not chat models.**
 
-Five decision models read one frozen point-in-time market state, answer the same
+Six decision models read one frozen point-in-time market state, answer the same
 typed probability questions, and are scored twice: were the probabilities
 calibrated, and did the portfolio they built beat SPY?
 
@@ -13,7 +13,7 @@ calibrated, and did the portfolio they built beat SPY?
 [![CI](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml/badge.svg)](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Full 5-model run](https://img.shields.io/badge/full%205--model%20run-%240.10-brightgreen.svg)](#the-models)
+[![Full 6-model run](https://img.shields.io/badge/full%206--model%20run-%240.11-brightgreen.svg)](#the-models)
 
 </div>
 
@@ -41,6 +41,7 @@ rebalance band, so weekly noise does not become fees.
 | `clef-flash` | +9.78% | +0.69% | −5.31% | [−16.40%, +5.35%] | 1.88 | −3.73% | 18.0% | −0.309 | 0.490 | 0.47 |
 | `jev-latest` | +8.29% | −0.80% | −6.80% | [−17.42%, +2.83%] | 1.67 | −2.82% | 19.6% | −0.064 | 0.478 | 0.54 |
 | `pplx-decider` | +8.16% | −0.93% | −6.93% | [−19.43%, +4.28%] | 1.64 | −3.32% | 21.3% | −0.195 | 0.476 | 0.51 |
+| `ms-decision-1` | +5.96% | −3.13% | −9.13% | [−21.87%, +2.75%] | 1.21 | −3.32% | 28.4% | −0.642 | 0.472 | 0.74 |
 | *pool, equal weight* | *+9.09%* | *n/a* | *−6.00%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 | *60/40, benchmark and Treasuries* | *+5.19%* | *n/a* | *−9.90%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
 | *12-1 momentum, top 3* | *−0.26%* | *n/a* | *−15.35%* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* | *n/a* |
@@ -114,7 +115,7 @@ its place.
 All four bill **input tokens only**: output is free because there is no output
 text, and none offers prompt caching (pricing checked 2026-10-08). One run asks
 one question per asset and one call answers them all, so a complete 25-week
-benchmark of all five models costs about **$0.10**.
+benchmark of all six models costs about **$0.11**.
 
 Two routers serve decision models from other providers, and the benchmark speaks
 their contract directly (verified live 2026-10-12):
