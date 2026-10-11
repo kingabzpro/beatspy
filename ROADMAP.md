@@ -129,7 +129,7 @@ for the sequencing section at the very end.
   doing nothing.
 
 ### M3. Record the full sizing policy in `run.json`
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** the policy block (`src/beatspy/dcn/runner.py:237-242`) records
   `selection`, `min_probability`, `top_n`, `min_names`, but not `base_weight`, so
   a graded run's own artifact cannot fully describe how its weights were derived.

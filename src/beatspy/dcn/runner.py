@@ -247,6 +247,8 @@ async def run_dcn(
                 },
                 "policy": {
                     "selection": settings.decision.selection,
+                    # Recorded in full so the artifact alone explains the weights.
+                    "base_weight": settings.decision.base_weight,
                     "min_probability": settings.decision.min_probability,
                     "top_n": settings.decision.top_n,
                     "min_names": settings.decision.min_names,
