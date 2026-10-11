@@ -24,13 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Decision-model providers. All three speak the same state-plus-typed-questions
 # contract; they differ only in transport, auth, and question limits.
-PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "hf_space", "hf_rest")
-
-# Hugging Face serves no decision models through its serverless Inference API, but
-# it hosts them as Spaces, and a Space exposes its work over HTTP: Gradio's event
-# protocol for the StartLux spaces, a plain one-question JSON API for the
-# AutoTrust demo. These entries point at those Spaces: free, no key, run on
-# Hugging Face hardware.
+PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter")
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
 # run against them needs no new transport:
@@ -97,46 +91,6 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 65_536,
         "max_questions": 64,
         "state_note": "Routed by Requesty; same typed-questions contract",
-    },
-    "hf-startlux-27b": {
-        "provider": "hf_space",
-        "model": "startlux-decision-27b",
-        "label": "StartLux Decision 27B (Hugging Face Space)",
-        "base_url": "https://hugging-apps-startlux-decision-27b.hf.space",
-        "api_key_env": "",
-        "space_fn": "decide",
-        "input_mode": "text",
-        "cost_per_m_input": 0.0,
-        "cost_per_m_output": 0.0,
-        "context_window": 8_192,
-        "max_questions": 64,
-        "state_note": "Runs on Hugging Face ZeroGPU; free, no key, queued",
-    },
-    "hf-startlux-4b": {
-        "provider": "hf_space",
-        "model": "startlux-decision-4b",
-        "label": "StartLux Decision 4B (Hugging Face Space)",
-        "base_url": "https://hugging-apps-startlux-decision-4b.hf.space",
-        "api_key_env": "",
-        "space_fn": "decide",
-        "input_mode": "dataframe",
-        "cost_per_m_input": 0.0,
-        "cost_per_m_output": 0.0,
-        "context_window": 8_192,
-        "max_questions": 64,
-        "state_note": "Takes the questions as a table; runs on Hugging Face ZeroGPU",
-    },
-    "autotrust-jev-27b": {
-        "provider": "hf_rest",
-        "model": "autotrust/JEV-27B",
-        "label": "AutoTrust JEV-27B (Hugging Face Space)",
-        "base_url": "https://autotrust-jev-27b-demo.hf.space",
-        "api_key_env": "",
-        "cost_per_m_input": 0.0,
-        "cost_per_m_output": 0.0,
-        "context_window": 8_192,
-        "max_questions": 64,
-        "state_note": "One typed question per call; runs on Hugging Face CPU",
     },
     "openrouter-kev-4b": {
         "provider": "openrouter",

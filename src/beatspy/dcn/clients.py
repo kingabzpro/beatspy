@@ -60,7 +60,6 @@ class DcnResult:
     output_tokens: int = 0
     latency_s: float = 0.0
     attempts: int = 1
-    requests: int = 1
     raw: dict | None = None
 
 
@@ -72,15 +71,6 @@ def _questions_payload(questions: dict[str, Question]) -> dict[str, dict]:
             body["criteria"] = question.criteria
         payload[question_id] = body
     return payload
-
-
-def _options_text(criteria) -> str:
-    """Render criteria the way these Spaces' own demo tables do."""
-    if isinstance(criteria, dict):
-        return " | ".join(f"{key}: {value}" for key, value in criteria.items())
-    if isinstance(criteria, list):
-        return " | ".join(str(item) for item in criteria)
-    return ""
 
 
 class DcnClient(Protocol):
@@ -371,235 +361,10 @@ class OpenRouterDecisionsClient(TypeSafeClient):
     provider = "openrouter"
 
 
-class HfSpaceClient:
-    """A decision model hosted as a Hugging Face Space.
-
-    Hugging Face serves no decision models through its serverless Inference API,
-    but it hosts them as Spaces, and a Space exposes its work as an HTTP API.
-    The transport is Gradio's two-step call: POST the inputs to
-    `/gradio_api/call/<fn>`, then read the server-sent event that carries the
-    result. Each Space names its own inputs, so the model spec records the
-    function name and the input shape.
-    """
-
-    provider = "hf_space"
-
-    def __init__(self, *, model: str, endpoint: str, api_key: str | None = None, fn: str = "decide",
-                 input_mode: str = "text", timeout_s: float = 300.0, max_retries: int = 2, client=None,
-                 **_ignored):
-        self.model = model
-        self.endpoint = endpoint.rstrip("/")
-        self.fn = fn
-        self.input_mode = input_mode
-        self.api_key = api_key
-        self.max_retries = max_retries
-        # ZeroGPU spaces serve anonymous callers a small quota and answer 429 with
-        # "authenticate with a Hugging Face token for more" once it is spent.
-        self._headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
-        import httpx
-
-        self._client = client or httpx.AsyncClient(timeout=timeout_s)
-        self._owns_client = client is None
-
-    async def close(self) -> None:
-        if self._owns_client:
-            await self._client.aclose()
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *exc) -> None:
-        await self.close()
-
-    def _inputs(self, state: dict, questions: dict[str, Question]) -> list:
-        import json
-
-        payload = _questions_payload(questions)
-        state_text = json.dumps(state, separators=(",", ":"), sort_keys=True)
-        if self.input_mode == "text":
-            # State and questions as JSON text. The trailing None fills the
-            # optional image input every one of these Spaces declares; omitting
-            # it makes Gradio fail the call before the model sees anything.
-            return [state_text, json.dumps(payload), None]
-        if self.input_mode == "dataframe":
-            rows = [
-                [question_id, body["type"], body["instructions"], _options_text(body.get("criteria"))]
-                for question_id, body in payload.items()
-            ]
-            table = {"headers": ["name", "type", "question", "options"], "data": rows, "metadata": None}
-            return [state_text, table, None]
-        raise DcnError(f"unknown hf_space input mode {self.input_mode!r}")
-
-    @staticmethod
-    def _outputs(event_text: str) -> list:
-        """Pull the output list out of a Gradio server-sent event."""
-        import json
-
-        for line in event_text.splitlines():
-            if line.startswith("data:"):
-                return json.loads(line.split("data:", 1)[1].strip())
-        raise DcnError(f"gradio event carried no data: {event_text[:200]!r}")
-
-    @staticmethod
-    def _find_answers(value, depth: int = 0):
-        """Find the decision payload inside whatever a Space returned."""
-        import json
-
-        if depth > 4:
-            return None
-        if isinstance(value, dict):
-            if isinstance(value.get("answers"), dict):
-                return value
-            for item in value.values():
-                found = HfSpaceClient._find_answers(item, depth + 1)
-                if found is not None:
-                    return found
-        elif isinstance(value, list):
-            for item in value:
-                found = HfSpaceClient._find_answers(item, depth + 1)
-                if found is not None:
-                    return found
-        elif isinstance(value, str) and "answers" in value:
-            try:
-                return HfSpaceClient._find_answers(json.loads(value), depth + 1)
-            except ValueError:
-                return None
-        return None
-
-    async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
-        import asyncio
-        import random
-
-        url = f"{self.endpoint}/gradio_api/call/{self.fn}"
-        body = {"data": self._inputs(state, questions)}
-        started = asyncio.get_running_loop().time()
-        last_error: Exception | None = None
-        for attempt in range(self.max_retries + 1):
-            try:
-                response = await self._client.post(url, json=body, headers=self._headers)
-                if response.status_code in RETRY_STATUSES or response.status_code >= 500:
-                    last_error = DcnError(f"HTTP {response.status_code}: {response.text[:200]}")
-                    raise last_error
-                if response.status_code >= 400:
-                    raise DcnError(f"HTTP {response.status_code}: {response.text[:300]}")
-                event_id = response.json()["event_id"]
-                stream = await self._client.get(f"{url}/{event_id}", headers=self._headers)
-                if stream.status_code >= 400:
-                    raise DcnError(f"HTTP {stream.status_code} reading the result: {stream.text[:200]}")
-                outputs = self._outputs(stream.text)
-                payload = self._find_answers(outputs)
-                if payload is None:
-                    raise DcnError(f"no typed answers in the Space response: {str(outputs)[:200]}")
-                answers, missing = parse_answers(payload, list(questions))
-                return DcnResult(
-                    answers=answers,
-                    missing_ids=missing,
-                    input_tokens=int((payload.get("usage") or {}).get("input_tokens") or 0),
-                    output_tokens=int((payload.get("usage") or {}).get("output_tokens") or 0),
-                    latency_s=round(asyncio.get_running_loop().time() - started, 3),
-                    attempts=attempt + 1,
-                    raw=payload,
-                )
-            except (DcnError, httpx.HTTPError) as exc:
-                last_error = exc
-                if attempt >= self.max_retries:
-                    break
-                await asyncio.sleep(min(2.0 ** attempt, 20.0) * (0.5 + random.random() / 2))
-        raise DcnError(f"space call failed after {self.max_retries + 1} attempts: {last_error}")
-
-
 def _state_text(state: dict) -> str:
     import json
 
     return json.dumps(state, separators=(",", ":"), sort_keys=True)
-
-
-class HfRestClient(HttpDcnClient):
-    """A Space that answers one typed question per plain JSON call.
-
-    AutoTrust's JEV demo exposes `POST /api/decide` with `kind`, `state`,
-    `question`, and `options`, and returns probabilities over those options, so
-    a decision with N questions fans out to N calls that are reassembled into
-    one DcnResult. `noul` is asked with the Space's fixed options
-    ["false", "true"], and its state field is capped at 6,000 characters.
-    """
-
-    provider = "hf_rest"
-    MAX_STATE_CHARS = 6_000
-
-    def _question_text(self, question: Question) -> str:
-        import json
-
-        instructions = question.instructions
-        if isinstance(instructions, dict) and "question" in instructions:
-            return str(instructions["question"])
-        if isinstance(instructions, str):
-            return instructions
-        return json.dumps(instructions, separators=(",", ":"), sort_keys=True)
-
-    def _request(self, state_text: str, question: Question) -> dict | None:
-        """The one-question request body, or None for a form this Space cannot ask."""
-        if question.type == "noul":
-            options = ["false", "true"]
-        elif question.type == "choice":
-            options = [str(option) for option in question.criteria]
-        else:
-            # The Space fixes its score form to its own six-level 0..5 scale,
-            # which this benchmark's five-level rank form does not share.
-            return None
-        return {
-            "kind": question.type,
-            "state": state_text,
-            "question": self._question_text(question),
-            "options": options,
-        }
-
-    @staticmethod
-    def _answer(question: Question, options: list[str], payload: dict):
-        probabilities = payload.get("probabilities")
-        if not isinstance(probabilities, list) or len(probabilities) != len(options):
-            return None
-        if question.type == "noul":
-            return NoulAnswer(noul=float(probabilities[options.index("true")]))
-        choice = str(payload.get("choice", ""))
-        if choice not in options:
-            return None
-        return ChoiceAnswer(choice=choice, probabilities=dict(zip(options, probabilities, strict=True)))
-
-    async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
-        import asyncio
-
-        state_text = _state_text(state)
-        if len(state_text) > self.MAX_STATE_CHARS:
-            raise DcnError(
-                f"the state is {len(state_text)} characters; this Space accepts at most {self.MAX_STATE_CHARS}"
-            )
-        url = f"{self.endpoint}/api/decide"
-        started = asyncio.get_running_loop().time()
-        answers: dict = {}
-        missing: list[str] = []
-        attempts = 0
-        requests = 0
-        for question_id, question in questions.items():
-            request = self._request(state_text, question)
-            if request is None:
-                missing.append(question_id)
-                continue
-            payload, tries = await self._post(url, {}, request)
-            requests += 1
-            attempts += tries
-            answer = self._answer(question, request["options"], payload)
-            if answer is None:
-                missing.append(question_id)
-            else:
-                answers[question_id] = answer
-        return DcnResult(
-            answers=answers,
-            missing_ids=missing,
-            latency_s=round(asyncio.get_running_loop().time() - started, 3),
-            attempts=attempts,
-            requests=requests,
-        )
 
 
 _CLIENTS = {
@@ -608,8 +373,6 @@ _CLIENTS = {
     "cloudflare": CloudflareClefClient,
     "requesty": RequestyClient,
     "openrouter": OpenRouterDecisionsClient,
-    "hf_space": HfSpaceClient,
-    "hf_rest": HfRestClient,
 }
 
 
@@ -624,7 +387,7 @@ def missing_credentials(settings) -> list[str]:
 
     decision = settings.decision
     missing: list[str] = []
-    if decision.provider not in ("hf_space", "hf_rest") and not decision_api_key(decision.decision_model):
+    if not decision_api_key(decision.decision_model):
         missing.append(decision.spec["api_key_env"])
     if decision.provider == "cloudflare" and not cloudflare_account_id():
         missing.append("CLOUDFLARE_ACCOUNT_ID")
@@ -647,27 +410,14 @@ def make_client(settings, *, client: httpx.AsyncClient | None = None) -> HttpDcn
             f"Export it, or add it to .env next to the repository, then retry. "
             f"`beatspy models` shows which credentials resolve."
         )
-    api_key = decision_api_key(decision.decision_model)
-    extra = {}
-    if provider == "hf_space":
-        import os
-
-        # A Space runs on Hugging Face hardware and takes no key of its own; an HF
-        # token only lifts the shared ZeroGPU quota anonymous callers run into.
-        api_key = os.environ.get("HF_TOKEN") or os.environ.get("BEATSPY_HF_TOKEN")
-        extra = {
-            "fn": decision.spec.get("space_fn", "decide"),
-            "input_mode": decision.spec.get("input_mode", "text"),
-        }
     return factory(
         model=decision.spec["model"],
         endpoint=decision.endpoint,
-        api_key=api_key,
+        api_key=decision_api_key(decision.decision_model),
         timeout_s=decision.timeout_s,
         max_retries=decision.max_retries,
         account_id=cloudflare_account_id(),
         client=client,
-        **extra,
     )
 
 
@@ -686,7 +436,7 @@ def build_call_record(result: DcnResult, state_text: str, question_ids: list[str
         missing_ids=result.missing_ids,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
-        requests=result.requests,
+        requests=1,
         latency_s=result.latency_s,
         attempts=result.attempts,
     )

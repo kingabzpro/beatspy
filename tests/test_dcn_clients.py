@@ -413,111 +413,6 @@ def test_score_answers_pass_through_unchanged():
 
 
 # --------------------------------------------------------------------------- #
-# Hugging Face Space, one question per call (AutoTrust JEV demo)
-# --------------------------------------------------------------------------- #
-
-
-def _hf_rest_transport(calls: list):
-    """Answers one typed question per call, mirroring the Space's own envelope."""
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        calls.append(request)
-        body = json.loads(request.content)
-        assert request.url.path == "/api/decide"
-        assert isinstance(body["state"], str)
-        if body["kind"] == "noul":
-            payload = {
-                "kind": "noul",
-                "options": ["false", "true"],
-                "probabilities": [0.25, 0.75],
-                "choice_index": 1,
-                "choice": "true",
-                "model": "autotrust/JEV-27B",
-            }
-        else:
-            payload = {
-                "kind": body["kind"],
-                "options": body["options"],
-                "probabilities": [0.6, 0.4],
-                "choice_index": 0,
-                "choice": body["options"][0],
-                "model": "autotrust/JEV-27B",
-            }
-        return httpx.Response(200, json=payload)
-
-    return httpx.MockTransport(handler)
-
-
-def test_hf_rest_fans_out_one_question_per_call_and_reassembles_the_answers():
-    import asyncio
-
-    from beatspy.dcn.clients import HfRestClient
-
-    calls: list[httpx.Request] = []
-    client = HfRestClient(
-        model="autotrust/JEV-27B",
-        endpoint="https://autotrust-jev-27b-demo.hf.space",
-        api_key=None,
-        client=_client(_hf_rest_transport(calls)),
-    )
-    questions = _questions()
-    result = asyncio.run(client.decide({"as_of": "2022-02-15"}, questions))
-
-    assert len(calls) == len(questions) == 2
-    noul_body = json.loads(calls[0].content)
-    assert noul_body["kind"] == "noul"
-    assert noul_body["options"] == ["false", "true"]
-    assert "AAPL" in noul_body["question"]
-    assert json.loads(noul_body["state"])["as_of"] == "2022-02-15"
-    assert json.loads(calls[1].content)["options"] == ["outperform", "underperform"]
-
-    assert result.answers["noul_AAPL"].noul == pytest.approx(0.75)
-    assert result.answers["choice_AAPL"].choice == "outperform"
-    assert result.answers["choice_AAPL"].probabilities == {"outperform": 0.6, "underperform": 0.4}
-    assert result.missing_ids == []
-    assert result.requests == 2
-    assert result.attempts == 2
-
-
-def test_hf_rest_records_the_rank_form_as_missing_rather_than_remapping_it():
-    """The Space fixes its score form to a six-level scale; five levels do not fit."""
-    import asyncio
-
-    from beatspy.dcn.clients import HfRestClient
-
-    calls: list[httpx.Request] = []
-    client = HfRestClient(
-        model="autotrust/JEV-27B",
-        endpoint="https://autotrust-jev-27b-demo.hf.space",
-        api_key=None,
-        client=_client(_hf_rest_transport(calls)),
-    )
-    questions = build_questions("all", ["AAPL"], "SPY", 20).questions
-    assert "rank_AAPL" in questions
-    result = asyncio.run(client.decide({"as_of": "2022-02-15"}, questions))
-
-    assert "rank_AAPL" in result.missing_ids
-    assert set(result.answers) == {"noul_AAPL", "choice_AAPL"}
-    assert len(calls) == 2  # the rank question was never put on the wire
-    assert result.requests == 2
-
-
-def test_hf_rest_refuses_a_state_over_the_space_limit():
-    import asyncio
-
-    from beatspy.dcn.clients import HfRestClient
-
-    client = HfRestClient(
-        model="autotrust/JEV-27B",
-        endpoint="https://autotrust-jev-27b-demo.hf.space",
-        api_key=None,
-        client=_client(_capture({})),
-    )
-    with pytest.raises(DcnError, match="6000"):
-        asyncio.run(client.decide({"blob": "x" * 6_100}, _questions()))
-
-
-# --------------------------------------------------------------------------- #
 # Client construction
 # --------------------------------------------------------------------------- #
 
@@ -526,8 +421,7 @@ def test_hf_rest_refuses_a_state_over_the_space_limit():
 def test_make_client_builds_every_configured_model(name, monkeypatch):
     spec = DECISION_MODELS[name]
     # Supply whatever this provider needs so construction is what is under test.
-    if spec["api_key_env"]:
-        monkeypatch.setenv(spec["api_key_env"], "test-key")
+    monkeypatch.setenv(spec["api_key_env"], "test-key")
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
@@ -591,20 +485,8 @@ def test_unknown_model_is_rejected_at_construction():
 
 def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
-        if spec["provider"] in ("hf_space", "hf_rest"):
-            # A Space runs on Hugging Face hardware and takes no key of its own.
-            assert spec["api_key_env"] == "", f"{name} should not name a key variable"
-        else:
-            assert spec["api_key_env"], f"{name} has no api_key_env"
-        assert spec["provider"] in (
-            "openai_decisions",
-            "typesafe",
-            "cloudflare",
-            "requesty",
-            "openrouter",
-            "hf_space",
-            "hf_rest",
-        )
+        assert spec["api_key_env"], f"{name} has no api_key_env"
+        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter")
         assert spec["cost_per_m_input"] is not None
         assert spec["cost_per_m_output"] == 0.0  # decision models bill input only
 
