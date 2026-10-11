@@ -38,7 +38,7 @@ for the sequencing section at the very end.
 - **Done when:** the documented config surface matches observable behavior.
 
 ### L2. Delete `.github/benchmark-models.json`
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** it is a leftover agent-era registry (gpt-6-luna, mimo, GLM, Kimi,
   DeepSeek) that contradicts `config.py`: it lists gpt-6-luna output at
   `$0.5 / 1M` while the DCN config bills input only (`cost_per_m_output: 0.0`,
