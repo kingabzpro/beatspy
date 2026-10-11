@@ -128,6 +128,31 @@ class TestRunBacktest:
         assert result.equity.iloc[-1] == pytest.approx(100_000.0)  # stayed all cash
 
 
+class TestBaselines:
+    def test_sixty_forty_holds_equities_and_treasuries(self, data_service, scenario):
+        from beatspy.engine.backtest import sixty_forty_weight_fn
+
+        fn = sixty_forty_weight_fn(scenario)
+        assert fn(date(2022, 2, 1), None)["weights"] == {"SPY": 0.6, "TLT": 0.4}
+
+    def test_sixty_forty_falls_back_to_cash_without_tlt(self, scenario):
+        from beatspy.engine.backtest import sixty_forty_weight_fn
+
+        no_bonds = scenario.model_copy(update={"tradable": ["AAPL", "MSFT"]})
+        assert sixty_forty_weight_fn(no_bonds)(date(2022, 2, 1), None)["weights"] == {"SPY": 0.6}
+
+    def test_momentum_falls_back_to_the_benchmark_without_history(self, scenario):
+        from beatspy.data.service import DataService
+        from beatspy.engine.backtest import momentum_weight_fn
+        from conftest import make_prices
+
+        # A one-month fixture gives no name the 200 closes momentum needs.
+        prices = make_prices(scenario.universe, start="2022-01-01", end="2022-02-01")
+        data = DataService(prices, benchmark=scenario.benchmark)
+        fn = momentum_weight_fn(scenario, data)
+        assert fn(date(2022, 2, 1), None)["weights"] == {scenario.benchmark: 1.0}
+
+
 class TestMetrics:
     def test_total_return_and_drawdown(self):
         equity = pd.Series([100.0, 110.0, 99.0, 121.0])

@@ -173,7 +173,7 @@ for the sequencing section at the very end.
   runs. Tests cover the cost abort, the failure abort, and the recorded shape.
 
 ### M6. Make the baselines say what they are
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** `sixty_forty_weight_fn` (`src/beatspy/engine/backtest.py:245-249`)
   returns `{SPY: 0.6}`, which is 60% equity and 40% cash, not a 60/40 portfolio,
   even though TLT trades in the same universe. The momentum baseline silently
@@ -183,6 +183,14 @@ for the sequencing section at the very end.
   `sixty_cash`; record momentum fallback dates in the metrics or events.
 - **Done when:** every baseline name matches its construction, and any fallback is
   visible in the artifacts.
+- **Progress (2026-10-11):** `sixty_forty_weight_fn` now holds 60% benchmark and
+  40% TLT when TLT is investable (all seven bundled scenarios), falling back to
+  60% benchmark plus 40% cash only when it is not. Three engine tests pin the
+  equity/bond weights, the no-TLT fallback, and the momentum fallback to 100%
+  benchmark on short history, which is also documented in the function. The
+  fallback is not surfaced as a metric: adding a field to `RunMetrics` would
+  make recorded runs fail replay comparison, so visibility comes from the test
+  and docstring instead.
 
 ### M7. Measure choice-form order sensitivity
 `effort: M` · `status: todo`

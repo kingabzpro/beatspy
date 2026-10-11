@@ -243,14 +243,29 @@ def equal_weight_fn(scenario: Scenario):
 
 
 def sixty_forty_weight_fn(scenario: Scenario):
+    """A real 60/40: 60% benchmark equities, 40% long Treasuries (TLT).
+
+    Scenarios whose investable universe has no TLT fall back to 60% benchmark
+    and 40% cash, which is stated here rather than left implicit.
+    """
+    equity = scenario.benchmark
+    bonds = "TLT"
+    has_bonds = bonds in {ticker.upper() for ticker in scenario.tradable}
+    weights = {equity: 0.6, bonds: 0.4} if has_bonds else {equity: 0.6}
+
     def fn(day: date, state: PortfolioState) -> dict:
-        return {"weights": {scenario.benchmark: 0.6}}
+        return {"weights": dict(weights)}
 
     return fn
 
 
 def momentum_weight_fn(scenario: Scenario, data: DataService, top: int = 3):
-    """12-1 momentum: rank by return from ~252 trading days ago to ~21 days ago."""
+    """12-1 momentum: rank by return from ~252 trading days ago to ~21 days ago.
+
+    A name needs at least 200 closes to be scored. When no name qualifies (for
+    example, near the start of a short snapshot), the reference holds 100% of the
+    benchmark rather than nothing; `test_engine.py` pins that fallback.
+    """
 
     def fn(day: date, state: PortfolioState) -> dict:
         scored = []
