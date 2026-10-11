@@ -83,16 +83,17 @@ class TestExecuteTarget:
 
 
 class TestRunBacktest:
-    @pytest.mark.parametrize("legacy", [False, True])
-    def test_open_fills_precede_same_session_close_decisions(self, data_service, scenario, legacy):
+    def test_open_fills_precede_same_session_close_decisions(self, data_service, scenario):
+        """A decision at today's close sees the fills its own prior decision caused."""
         observed = {}
 
         def weights(day, state):
             observed[day] = dict(state.positions)
             return {"weights": {"SPY": 0.5}}
 
-        asyncio.run(run_backtest(data_service, [date(2022, 1, 3), date(2022, 1, 4)], weights, scenario, legacy=legacy))
-        assert bool(observed[date(2022, 1, 4)]) is not legacy
+        asyncio.run(run_backtest(data_service, [date(2022, 1, 3), date(2022, 1, 4)], weights, scenario))
+        # The Jan 3 decision fills at the Jan 4 open, before the Jan 4 decision runs.
+        assert bool(observed[date(2022, 1, 4)]) is True
 
     def test_agent_style_async_weights(self, data_service, scenario):
         days = data_service.decision_dates(date(2022, 1, 3), date(2022, 3, 31), "monthly")

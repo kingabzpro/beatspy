@@ -164,15 +164,13 @@ async def run_backtest(
     weight_fn: WeightFn,
     scenario: Scenario,
     *,
-    legacy=False,
     allowed_tickers: list[str] | None = None,
 ) -> BacktestResult:
     """Drive a portfolio through decision dates with a weight function.
 
     weight_fn(decision_date, state) returns {"weights": {ticker: weight}, ...};
-    it may be async (the agent pipeline) or plain (baselines). Unexecuted final
-    decisions (no next trading day inside the data) are recorded with zero
-    turnover and no trades.
+    it may be async. Unexecuted final decisions (no next trading day inside the
+    data) are recorded with zero turnover and no trades.
     """
     if not decision_dates:
         raise ValueError("no decision dates provided")
@@ -192,7 +190,10 @@ async def run_backtest(
 
     idx = 0
     for day in days:
-        if not legacy and day in pending:
+        # Fills from an earlier decision execute at today's open, before any
+        # decision made at today's close, so the state a decision sees already
+        # reflects the trades it caused.
+        if day in pending:
             decision_day, weights = pending.pop(day)
             step = execute_target(
                 state, weights, decision_day, day, data, scenario.total_fee_rate, allowed_tickers=allowed_tickers
@@ -210,13 +211,6 @@ async def run_backtest(
             else:
                 turnover.append((day, 0.0))
             idx += 1
-        if day in pending:
-            decision_day, weights = pending.pop(day)
-            step = execute_target(
-                state, weights, decision_day, day, data, scenario.total_fee_rate, allowed_tickers=allowed_tickers
-            )
-            trades.extend(step.trades)
-            turnover.append((decision_day, step.turnover))
         equity[day] = state.equity(day, data)
 
     return BacktestResult(
