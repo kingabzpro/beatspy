@@ -361,6 +361,43 @@ def test_run_defaults_to_the_per_asset_form():
         parser.parse_args(["run", "--max-decisions", "0"])
 
 
+def test_state_prints_the_token_cost_of_a_decision(tmp_path, monkeypatch, capsys):
+    """The inspector builds the real state offline and reports its budget usage."""
+    monkeypatch.chdir(tmp_path)
+    assert main(["state", "--offline-fixture", "--scenario", "test-scenario"]) == 0
+    out = capsys.readouterr().out
+    assert "as_of" in out
+    assert "TOTAL (compact)" in out
+    assert "budget" in out
+
+
+def test_state_json_is_the_exact_wire_document(tmp_path, monkeypatch, capsys):
+    import json as jsonlib
+
+    monkeypatch.chdir(tmp_path)
+    assert main(["state", "--offline-fixture", "--scenario", "test-scenario", "--json"]) == 0
+    state = jsonlib.loads(capsys.readouterr().out)
+    assert set(state["decide_on"]) == {"AAPL", "MSFT", "TLT"}
+    assert state["benchmark"]["ticker"] == "SPY"
+    assert state["portfolio"]["holdings"] == []  # an empty book unless --held
+
+
+def test_state_held_simulates_a_fully_invested_book(tmp_path, monkeypatch, capsys):
+    import json as jsonlib
+
+    monkeypatch.chdir(tmp_path)
+    assert main(["state", "--offline-fixture", "--scenario", "test-scenario", "--held", "--json"]) == 0
+    state = jsonlib.loads(capsys.readouterr().out)
+    assert len(state["portfolio"]["holdings"]) == 3
+    assert state["portfolio"]["cash_weight_pct"] == 0.0
+
+
+def test_state_rejects_a_date_outside_the_window(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    assert main(["state", "--offline-fixture", "--scenario", "test-scenario", "--date", "2030-01-01"]) == 1
+    assert "outside the scenario window" in capsys.readouterr().err
+
+
 def test_removed_agent_benchmark_surface_is_gone(capsys):
     with pytest.raises(SystemExit):
         main(["--help"])

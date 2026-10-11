@@ -215,13 +215,17 @@ for the sequencing section at the very end.
   float tolerance.
 
 ### M9. Add a `beatspy state` inspector command
-`effort: M` · `status: todo`
+`effort: M` · `status: done`
 - **Why:** today the only way to see a state is inside `decisions.jsonl` after a
   paid run. Budget work (V1) and debugging both need an offline view.
 - **Change:** a command that builds the state for a scenario and date from the
   frozen snapshot, prints the JSON plus the token estimate and per-section sizes,
   and requires no credentials.
 - **Done when:** it runs offline and its estimate matches what a real run records.
+- **Progress (2026-10-11):** `beatspy state` prints the per-section and total
+  character/token cost against the budget, with `--json` for the exact document,
+  `--held` to simulate a fully invested book, and `--offline-fixture` for a
+  credential-free check. Diagnostics go to stderr so `--json` stays parseable.
 
 ### M10. Write the power-analysis note
 `effort: M` · `status: todo` · `depends on: V3`

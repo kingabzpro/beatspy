@@ -1,16 +1,18 @@
 """BeatSPY command line interface.
 
-Commands: setup, doctor, models, scenarios, run, calibrate, verify, compare,
-report, demo.
+Commands: setup, doctor, models, scenarios, state, run, calibrate, verify,
+compare, report, demo.
 
 This is a DCN benchmark: a *decision model* reads a frozen point-in-time state
 plus typed questions and answers with probabilities. Each command below is about
 choosing one of those models, running it over frozen prices, and scoring its
 probabilities as well as the portfolio they produce.
 
-Only two commands can reach the network, and each does so only when the user
-asked for it: `run` without `--offline-fixture`, and `doctor --probe`. `setup`
-stores credentials but never calls a provider.
+Only `run` (without `--offline-fixture`) and `doctor --probe` call a decision
+model, and each does so only when the user asked for it. `state` is an
+inspection tool: it reads the frozen snapshot, never a provider, and may fetch
+prices if the snapshot does not exist yet. `setup` stores credentials but never
+calls a provider.
 """
 
 from __future__ import annotations
@@ -80,6 +82,28 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = sub.add_parser("scenarios", parents=[common], help="list available benchmark scenarios")
     p.set_defaults(func=cmd_scenarios)
+
+    p = sub.add_parser("state", parents=[common], help="show the point-in-time state for one decision")
+    p.add_argument("--scenario", help=f"scenario name (default: {DEFAULT_SCENARIO})")
+    p.add_argument("--date", help="decision date YYYY-MM-DD (default: the last decision in the window)")
+    p.add_argument("--freq", choices=["weekly", "monthly"], help="decision frequency override")
+    p.add_argument("--start", help="override start date YYYY-MM-DD (with --offline-fixture)")
+    p.add_argument("--end", help="override end date YYYY-MM-DD (with --offline-fixture)")
+    p.add_argument("--max-decisions", type=positive_int, help="limit decisions, evenly spread across the period")
+    p.add_argument(
+        "--form",
+        choices=["per_asset", "noul", "choice", "rank", "twin", "all"],
+        default="per_asset",
+        help="which asset set the decision would ask about (default: per_asset)",
+    )
+    p.add_argument("--held", action="store_true", help="simulate an equal-weight fully invested book")
+    p.add_argument("--json", action="store_true", help="print the state document itself")
+    p.add_argument(
+        "--offline-fixture",
+        action="store_true",
+        help="use generated prices instead of the frozen snapshot: no network (test aid)",
+    )
+    p.set_defaults(func=cmd_state)
 
     p = sub.add_parser("run", parents=[common], help="run one decision model over one scenario")
     p.add_argument(
@@ -404,6 +428,94 @@ def cmd_scenarios(args: argparse.Namespace) -> int:
             f"universe {', '.join(scenario.tradable)} (+{scenario.benchmark} benchmark), "
             f"up to {scenario.max_candidates} candidates per decision"
         )
+    return 0
+
+
+def cmd_state(args: argparse.Namespace) -> int:
+    """Build the point-in-time state for one decision and show its token cost.
+
+    Offline by default: it reads the frozen snapshot and never calls a provider.
+    Use it to see exactly what a decision model would read, and whether the state
+    fits the token budget.
+    """
+    from .data.calendar import resolve_scenario
+    from .dcn.runner import ensure_data
+    from .dcn.state import build_state, candidates, enforce_budget, render_state, state_token_estimate
+
+    if args.offline_fixture:
+        base = None
+        if args.scenario:
+            try:
+                base = load_scenario(args.scenario)
+            except FileNotFoundError:
+                base = None
+        else:
+            base = load_scenario(DEFAULT_SCENARIO)
+        scenario, prepared, _ = _offline_fixture(base, args)
+        data, manifest = prepared
+        # Diagnostics go to stderr so --json output stays machine-readable.
+        print("Offline fixture: generated prices, no network. Not a benchmark input.", file=sys.stderr)
+    else:
+        scenario = resolve_scenario(load_scenario(args.scenario or DEFAULT_SCENARIO))
+        data, manifest = ensure_data(scenario)
+
+    start_day = date.fromisoformat(scenario.start)
+    end_day = date.fromisoformat(scenario.end)
+    decision_dates = data.decision_dates(
+        start_day, end_day, args.freq or scenario.frequency, max_decisions=scenario.max_decisions
+    )
+    if not decision_dates:
+        print("No decision dates in this scenario window.", file=sys.stderr)
+        return 1
+    as_of = date.fromisoformat(args.date) if args.date else decision_dates[-1]
+    if not start_day <= as_of <= end_day:
+        print(f"--date {as_of} is outside the scenario window {start_day} to {end_day}.", file=sys.stderr)
+        return 1
+    period = data.decision_period(as_of, decision_dates, end_day)
+
+    if args.form == "per_asset":
+        tickers = [ticker.upper() for ticker in scenario.tradable]
+    else:
+        tickers = candidates(data, scenario, as_of, extra=[], max_candidates=scenario.max_candidates)
+    if args.held:
+        # Simulate the book after a no-view decision: an even spread over the
+        # universe, fully invested. This is the shape that grows the state.
+        weight = 1.0 / len(tickers)
+        holdings = {ticker: weight for ticker in tickers}
+    else:
+        holdings = {}
+    cash = 1.0 - sum(holdings.values())
+
+    state = build_state(
+        data,
+        scenario,
+        as_of,
+        holdings=holdings,
+        cash=cash,
+        question_tickers=tickers,
+        horizon_trading_days=period["horizon_trading_days"],
+        next_decision_date=period["next_decision_date"],
+    )
+    budget = load_settings().decision.max_state_tokens
+    state, trimmed = enforce_budget(state, budget)
+    text = render_state(state)
+
+    if args.json:
+        print(json.dumps(state, indent=2, sort_keys=True))
+        return 0
+
+    print(f"Scenario : {scenario.name} | snapshot {manifest.get('snapshot_id', '?')[:12]}")
+    print(f"as_of    : {as_of} | next decision {period['next_decision_date'] or 'end of window'}")
+    print(f"Horizon  : {period['horizon_trading_days']} trading days")
+    print(f"Questions: {len(tickers)} assets ({args.form}), holdings {len(holdings)}")
+    print()
+    print(f"{'section':<20}{'chars':>8}{'est tokens':>12}")
+    for key in sorted(state):
+        section = json.dumps(state[key], separators=(",", ":"), sort_keys=True)
+        print(f"{key:<20}{len(section):>8}{state_token_estimate(section):>12}")
+    print(f"{'TOTAL (compact)':<20}{len(text):>8}{state_token_estimate(text):>12}  budget {budget}")
+    if trimmed:
+        print(f"Trimmed  : {', '.join(trimmed)}")
     return 0
 
 
