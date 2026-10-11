@@ -397,13 +397,17 @@ def _probe_decision_model(name: str) -> tuple[bool, str]:
 def cmd_models(args: argparse.Namespace) -> int:
     settings = load_settings()
     active = settings.decision.decision_model
-    print(f"{'':<2}{'model':<12} {'provider':<17} {'$ / M input':>12} {'context':>9}  key")
+    # Ids vary a lot in length now that routers are in the table, so measure.
+    width = max(len(name) for name in DECISION_MODELS) + 2
+    providers = max(len(spec["provider"]) for spec in DECISION_MODELS.values()) + 2
+    print(f"{'':<2}{'model':<{width}} {'provider':<{providers}} {'$ / M input':>12} {'context':>9}  key")
     for name, spec in DECISION_MODELS.items():
         ok, detail = _key_status(name, spec)
         marker = "*" if name == active else " "
         context = f"{spec['context_window'] // 1000}k"
+        price = f"{spec['cost_per_m_input']:>12.3f}"
         print(
-            f"{marker:<2}{name:<12} {spec['provider']:<17} {spec['cost_per_m_input']:>12.3f} {context:>9}  "
+            f"{marker:<2}{name:<{width}} {spec['provider']:<{providers}} {price} {context:>9}  "
             f"{'yes' if ok else 'no'} ({detail})"
         )
     print(f"\n* configured decision model ({DEFAULT_DECISION_MODEL} is the default).")

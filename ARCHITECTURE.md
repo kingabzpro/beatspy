@@ -21,6 +21,12 @@ single `DcnClient` protocol:
 | OpenAI Decisions | `POST /v1/decisions` with a `questions` array (`predicate` for yes/no, plus `choice` and `score`) |
 | TypeSafe Jev | `POST https://api.typesafe.ai/v1/systemone` |
 | Cloudflare Clef | `POST /accounts/{id}/ai/run/@cf/cloudflare/{model}` |
+| Requesty | `POST https://router.requesty.ai/v1/decisions`, the System One contract |
+| OpenRouter | `POST https://openrouter.ai/api/alpha/decisions`, the same contract |
+
+The two routers speak the System One request and answer shape, so they reuse its
+parser and differ only in endpoint and key; the chat/completions path rejects
+decision models by design, which is why the path is pinned by a test.
 
 429, 529, 5xx and connection errors retry with exponential backoff; any other 4xx
 raises immediately, because retrying a schema error only burns quota.

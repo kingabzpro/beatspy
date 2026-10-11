@@ -486,7 +486,7 @@ def test_unknown_model_is_rejected_at_construction():
 def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
         assert spec["api_key_env"], f"{name} has no api_key_env"
-        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare")
+        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter")
         assert spec["cost_per_m_input"] is not None
         assert spec["cost_per_m_output"] == 0.0  # decision models bill input only
 
@@ -505,3 +505,52 @@ def test_api_key_absent_is_none_not_an_error(monkeypatch):
     for env in ("TYPESAFE_API_KEY", "BEATSPY_TYPESAFE_API_KEY"):
         monkeypatch.delenv(env, raising=False)
     assert decision_api_key("jev-latest") is None
+
+class TestRouterProviders:
+    """Requesty and OpenRouter serve decision models over the same typed contract.
+
+    Verified live 2026-10-12: both accept `{model, state, questions}` and answer
+    with `{"answers": {"<id>": {"type": "noul", "noul": <p>}}}`, so they reuse the
+    System One parser and only need their own endpoint and key.
+    """
+
+    def test_requesty_posts_the_typed_contract_to_its_endpoint(self, monkeypatch):
+        monkeypatch.setenv("REQUESTY_API_KEY", "requesty-test-key")
+        settings = Settings.model_validate({"decision": {"decision_model": "requesty-clef"}})
+        client = make_client(settings)
+        assert client.provider == "requesty"
+        method, url, headers, body = client.build_request({"as_of": "2026-01-02"}, _questions())
+        assert method == "POST"
+        assert url == "https://router.requesty.ai/v1/decisions"
+        assert headers["Authorization"] == "Bearer requesty-test-key"
+        assert body["model"] == "sference/clef"
+        assert set(body) == {"model", "state", "questions"}
+        assert body["questions"]["noul_AAPL"]["type"] == "noul"
+
+    def test_openrouter_uses_the_decisions_alpha_path(self, monkeypatch):
+        monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-test-key")
+        settings = Settings.model_validate({"decision": {"decision_model": "openrouter-solar-decide"}})
+        client = make_client(settings)
+        assert client.provider == "openrouter"
+        _, url, headers, body = client.build_request({"as_of": "2026-01-02"}, _questions())
+        # The chat/completions path rejects decision models outright, so the path matters.
+        assert url == "https://openrouter.ai/api/alpha/decisions"
+        assert headers["Authorization"] == "Bearer openrouter-test-key"
+        assert body["model"] == "upstage/solar-decide"
+
+    @pytest.mark.parametrize(
+        "model",
+        ["requesty-clef", "requesty-pplx-decider", "openrouter-solar-decide", "openrouter-mercury-decide",
+         "openrouter-jev-1-13", "openrouter-microsoft-decision-1", "openrouter-liquid-d1"],
+    )
+    def test_router_models_parse_a_typed_answer(self, model, monkeypatch):
+        key_env = DECISION_MODELS[model]["api_key_env"]
+        monkeypatch.setenv(key_env, "test-key")
+        payload = {"answers": {"noul_AAPL": {"type": "noul", "noul": 0.62}}}
+        settings = Settings.model_validate({"decision": {"decision_model": model}})
+        client = make_client(settings, client=httpx.AsyncClient(transport=_capture(payload)))
+        import asyncio
+
+        result = asyncio.run(client.decide({"as_of": "2026-01-02"}, _questions()))
+        assert result.answers["noul_AAPL"].noul == pytest.approx(0.62)
+        assert result.missing_ids == ["choice_AAPL"]

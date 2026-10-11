@@ -24,7 +24,13 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Decision-model providers. All three speak the same state-plus-typed-questions
 # contract; they differ only in transport, auth, and question limits.
-PROVIDERS = ("openai_decisions", "typesafe", "cloudflare")
+PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter")
+
+# Two routers speak the same typed-question contract as TypeSafe System One, so a
+# run against them needs no new transport:
+#   Requesty  POST https://router.requesty.ai/v1/decisions   (models by id, e.g. sference/clef)
+#   OpenRouter POST https://openrouter.ai/api/alpha/decisions
+# Verified live 2026-10-12: both return {"answers": {"<id>": {"type": "noul", "noul": 0.99}}}.
 
 # The decision models this benchmark covers, with pricing verified against the
 # sources below on 2026-10-08. Decision models bill input only: there is no
@@ -73,6 +79,90 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 65_536,
         "max_questions": 64,
         "state_note": "Workers AI truncates long text state to roughly the first 2K tokens",
+    },
+    "requesty-clef": {
+        "provider": "requesty",
+        "model": "sference/clef",
+        "label": "Clef via Requesty (Sference)",
+        "base_url": "https://router.requesty.ai/v1/decisions",
+        "api_key_env": "REQUESTY_API_KEY",
+        "cost_per_m_input": 0.24,
+        "cost_per_m_output": 0.0,
+        "context_window": 65_536,
+        "max_questions": 64,
+        "state_note": "Routed by Requesty; same typed-questions contract",
+    },
+    "requesty-pplx-decider": {
+        "provider": "requesty",
+        "model": "perplexity/pplx-decider-v1-27b",
+        "label": "Perplexity Decider 27B via Requesty",
+        "base_url": "https://router.requesty.ai/v1/decisions",
+        "api_key_env": "REQUESTY_API_KEY",
+        "cost_per_m_input": 0.02,
+        "cost_per_m_output": 0.0,
+        "context_window": 262_144,
+        "max_questions": 64,
+        "state_note": "Routed by Requesty; same typed-questions contract",
+    },
+    "openrouter-solar-decide": {
+        "provider": "openrouter",
+        "model": "upstage/solar-decide",
+        "label": "Upstage Solar Decide via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "cost_per_m_input": 0.05,
+        "cost_per_m_output": 0.0,
+        "context_window": 524_288,
+        "max_questions": 64,
+        "state_note": "Routed by OpenRouter; returns the resolved model version",
+    },
+    "openrouter-mercury-decide": {
+        "provider": "openrouter",
+        "model": "inception/mercury-decide",
+        "label": "Inception Mercury Decide via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "cost_per_m_input": 0.02,
+        "cost_per_m_output": 0.0,
+        "context_window": 65_536,
+        "max_questions": 64,
+        "state_note": "Routed by OpenRouter; 65k context",
+    },
+    "openrouter-jev-1-13": {
+        "provider": "openrouter",
+        "model": "typesafe/jev-1.13",
+        "label": "TypeSafe Jev 1.13 via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0,
+        "context_window": 64_000,
+        "max_questions": 64,
+        "state_note": "A pinned Jev version, for checking drift against jev-latest",
+    },
+    "openrouter-microsoft-decision-1": {
+        "provider": "openrouter",
+        "model": "microsoft/microsoft-decision-1",
+        "label": "Microsoft Decision 1 via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0,
+        "context_window": 32_768,
+        "max_questions": 64,
+        "state_note": "Routed by OpenRouter; 32k context",
+    },
+    "openrouter-liquid-d1": {
+        "provider": "openrouter",
+        "model": "liquid/d1",
+        "label": "Liquid D1 via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "cost_per_m_input": 0.04,
+        "cost_per_m_output": 0.0,
+        "context_window": 65_536,
+        "max_questions": 64,
+        "state_note": "Routed by OpenRouter; 65k context",
     },
     "clef-flash": {
         "provider": "cloudflare",

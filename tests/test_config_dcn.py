@@ -93,11 +93,14 @@ def test_env_file_does_not_override_the_secrets_file(tmp_path, monkeypatch):
 
 
 def test_each_decision_model_reads_its_own_key_variable(monkeypatch):
-    for env in ("OPENAI_API_KEY", "BEATSPY_OPENAI_API_KEY", "TYPESAFE_API_KEY",
-                "BEATSPY_TYPESAFE_API_KEY", "CLOUDFLARE_AUTH_TOKEN", "BEATSPY_CLOUDFLARE_AUTH_TOKEN"):
+    # Derived from the registry: a new provider must not make this assertion read
+    # a real credential out of the environment.
+    for spec in DECISION_MODELS.values():
+        env = spec["api_key_env"]
         monkeypatch.delenv(env, raising=False)
+        monkeypatch.delenv(f"BEATSPY_{env}", raising=False)
     for name in DECISION_MODELS:
-        assert decision_api_key(name) is None
+        assert decision_api_key(name) is None, f"{name} unexpectedly resolved a key"
 
     monkeypatch.setenv("TYPESAFE_API_KEY", "jev-key")
     assert decision_api_key("jev-latest") == "jev-key"

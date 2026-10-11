@@ -340,6 +340,27 @@ class CloudflareClefClient(HttpDcnClient):
         )
 
 
+class RequestyClient(TypeSafeClient):
+    """Requesty router. Same System One contract, its own endpoint and key.
+
+    Verified live: POST /v1/decisions with `{model, state, questions}` returns
+    `{"answers": {"<id>": {"type": "noul", "noul": 0.9952}}}`.
+    """
+
+    provider = "requesty"
+
+
+class OpenRouterDecisionsClient(TypeSafeClient):
+    """OpenRouter decisions endpoint (alpha). Same contract, again.
+
+    Verified live: POST /api/alpha/decisions returns the typed answers plus the
+    resolved model version and the request cost. The chat/completions endpoint
+    rejects these models by design, so the path matters.
+    """
+
+    provider = "openrouter"
+
+
 def _state_text(state: dict) -> str:
     import json
 
@@ -350,6 +371,8 @@ _CLIENTS = {
     "openai_decisions": OpenAiDecisionsClient,
     "typesafe": TypeSafeClient,
     "cloudflare": CloudflareClefClient,
+    "requesty": RequestyClient,
+    "openrouter": OpenRouterDecisionsClient,
 }
 
 

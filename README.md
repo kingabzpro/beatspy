@@ -115,6 +115,26 @@ text, and none offers prompt caching (pricing checked 2026-10-08). One run asks
 one question per asset and one call answers them all, so a complete 25-week
 benchmark of all four models costs about **$0.07**.
 
+Two routers serve decision models from other providers, and the benchmark speaks
+their contract directly (verified live 2026-10-12):
+
+| Model | Route | Upstream | Input price |
+| --- | --- | --- | --- |
+| `requesty-clef` | Requesty `/v1/decisions` | Sference Clef | $0.24 / 1M |
+| `requesty-pplx-decider` | Requesty | Perplexity Decider 27B | $0.02 / 1M |
+| `openrouter-solar-decide` | OpenRouter `/api/alpha/decisions` | Upstage Solar Decide | $0.05 / 1M |
+| `openrouter-mercury-decide` | OpenRouter | Inception Mercury Decide | $0.02 / 1M |
+| `openrouter-jev-1-13` | OpenRouter | TypeSafe Jev 1.13, pinned | $0.042 / 1M |
+| `openrouter-microsoft-decision-1` | OpenRouter | Microsoft Decision 1 | $0.042 / 1M |
+| `openrouter-liquid-d1` | OpenRouter | Liquid D1 | $0.04 / 1M |
+
+`openrouter.ai/api/v1/models?output_modalities=decisions` is the live list, and
+on 2026-10-12 it served nineteen decision models, several with free tiers. Two
+caveats worth knowing: OpenAI and TypeSafe expose native decision heads, while
+Anthropic and Google emulate them with structured output (their P(true) is a
+prompted estimate and their choice and score answers carry no distribution), so
+the emulated routes are not in the table yet.
+
 ## Quick start
 
 ```bash
