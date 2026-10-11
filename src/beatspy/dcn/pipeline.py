@@ -13,7 +13,6 @@ Two design choices keep this benchmark honest:
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
 from dataclasses import dataclass, field
 from datetime import date
@@ -200,7 +199,6 @@ class DcnPipeline:
         self.scenario = resolve_scenario(scenario)
         self.client = client
         self.question_form = question_form
-        self._lock = asyncio.Semaphore(max(1, settings.decision.concurrency))
 
     async def decide(
         self,
@@ -239,14 +237,13 @@ class DcnPipeline:
             tickers=list(tickers),
             horizon_trading_days=horizon_trading_days,
         )
-        async with self._lock:
-            try:
-                result = await self.client.decide(state, question_set.questions)
-            except Exception as exc:  # provider failure is a measured signal, not a crash
-                decision.error = f"{type(exc).__name__}: {exc}"
-                decision.missing_ids = list(question_set.ids)
-                decision.validated = ValidatedDecision(weights={}, cash=1.0, invalid=True)
-                return decision
+        try:
+            result = await self.client.decide(state, question_set.questions)
+        except Exception as exc:  # provider failure is a measured signal, not a crash
+            decision.error = f"{type(exc).__name__}: {exc}"
+            decision.missing_ids = list(question_set.ids)
+            decision.validated = ValidatedDecision(weights={}, cash=1.0, invalid=True)
+            return decision
 
         decision.answers = result.answers
         decision.missing_ids = list(result.missing_ids)

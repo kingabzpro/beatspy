@@ -15,14 +15,13 @@ decision_model = "clef-flash"
 # Transport and retry behaviour. 429/529/5xx are retried with exponential backoff.
 timeout_s = 120.0
 max_retries = 4
-concurrency = 6
 
 # The sizing policy. Fixed here so a run cannot be tuned after seeing a result.
 # Only noul probabilities enter the portfolio.
-#   graded (default) — half the book is an even spread across the whole universe
+#   graded (default): half the book is an even spread across the whole universe
 #     and half follows conviction, so every asset is always held and a weak
 #     forecast is a mild tilt rather than a binary switch.
-#   top_n — the legacy cut: hold only `top_n` names above `min_probability`,
+#   top_n: the legacy cut. Hold only `top_n` names above `min_probability`,
 #     equal-weighted, cash when fewer than `min_names` qualify.
 selection = "graded"
 # Share of the graded book allocated by conviction; the remainder is even.

@@ -107,7 +107,6 @@ class DecisionConfig(BaseModel):
     api_key_env: str | None = None
     timeout_s: float = 120.0
     max_retries: int = 4
-    concurrency: int = 6
     # The sizing policy is fixed here so it cannot be tuned after seeing a
     # result. Only noul probabilities enter the portfolio.
     #   graded (default) — fully invested across the whole universe. `base_weight`
@@ -135,8 +134,8 @@ class DecisionConfig(BaseModel):
                 f"unknown decision model {self.decision_model!r}; "
                 f"choose from {', '.join(sorted(DECISION_MODELS))}"
             )
-        if self.concurrency < 1 or self.max_retries < 0:
-            raise ValueError("concurrency must be >= 1 and max_retries >= 0")
+        if self.max_retries < 0:
+            raise ValueError("max_retries must be >= 0")
         return self
 
     @property
@@ -303,8 +302,6 @@ def load_settings(path: Path | None = None) -> Settings:
         settings = Settings.model_validate(settings.model_dump())
     if (v := os.environ.get("BEATSPY_DECISION_BASE_URL")) is not None:
         settings.decision.base_url = v
-    if (v := os.environ.get("BEATSPY_DECISION_CONCURRENCY")) is not None:
-        settings.decision.concurrency = int(v)
     if (v := os.environ.get("BEATSPY_DECISION_TIMEOUT_S")) is not None:
         settings.decision.timeout_s = float(v)
     return settings
@@ -325,7 +322,6 @@ def render_config(settings: Settings) -> str:
         f"decision_model = {_toml_value(d.decision_model)}",
         f"timeout_s = {_toml_value(d.timeout_s)}",
         f"max_retries = {_toml_value(d.max_retries)}",
-        f"concurrency = {_toml_value(d.concurrency)}",
         f"min_probability = {_toml_value(d.min_probability)}",
         f"top_n = {_toml_value(d.top_n)}",
         f"min_names = {_toml_value(d.min_names)}",
