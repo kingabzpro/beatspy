@@ -48,7 +48,7 @@ for the sequencing section at the very end.
 - **Done when:** `grep -r benchmark-models` finds nothing, and no docs reference it.
 
 ### L3. Clean local residue from the deleted spy-core package
-`effort: S` · `status: todo`
+`effort: S` · `status: partial`
 - **Why:** `src/beatspy/spy_core/__pycache__` holds compiled modules (budget,
   experiment, paper, policy, research, runner, sec, verify) whose sources were
   never committed and are now gone; `.beatspy-data/*.py` helper scripts
@@ -61,6 +61,11 @@ for the sequencing section at the very end.
   remove the orphaned `__pycache__` and helper scripts. Confirm with the owner
   before deleting any data artifacts.
 - **Done when:** nothing on disk imports a package that no longer exists.
+- **Progress (2026-10-11):** removed the orphaned
+  `src/beatspy/spy_core/__pycache__` (compiled modules only, no sources). The
+  `results/` directories and `.beatspy-data/*.py` helper scripts are
+  deliberately left in place: they are gitignored and irreversible to delete, so
+  they wait for an explicit go-ahead.
 
 ### L4. Record one full state sample per run
 `effort: S` · `status: todo`
