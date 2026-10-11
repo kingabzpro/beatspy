@@ -426,6 +426,14 @@ for the sequencing section at the very end.
 - **Change:** run all four models across all seven scenarios, publish a scenario
   by model matrix with a pooled view, and keep per-window detail.
 - **Done when:** the dashboard shows the matrix with pooled uncertainty from V3.
+- **Progress (2026-10-11):** the single-window leaderboard is refreshed:
+  `dashboard/data/` now carries four protocol-3 `core_satellite` runs on 2026-6m
+  (2026-04-09 to 2026-10-09), one per model, all `beatspy verify` clean, total
+  spend about $0.07. Returns +13.69% to +14.06% against SPY +15.09%, every
+  excess interval straddling zero, no calibration skill (AUC p 0.25 to 0.67).
+  The dashboard's policy line now describes the core/sleeve split instead of the
+  legacy top-N route, and a duplicated sentence in the coverage caption is gone.
+  Still open: the other six scenarios and the pooled multi-window view.
 
 ### V5. Populate `miscalibration_gap` in the headline runs
 `effort: S` · `status: todo`

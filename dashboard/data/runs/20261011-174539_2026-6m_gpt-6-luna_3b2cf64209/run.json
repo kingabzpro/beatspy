@@ -1,12 +1,12 @@
 {
   "artifact_hashes": {
-    "decisions.jsonl": "fe672b9e965efc8cbc636ae6b5836f49a7cc4078f570c8678d49fe60149e8db8",
-    "equity_curve.csv": "7e3f6cdc71d41d8c864c42f498274ef7d66d12882ed2c701f225fd4290d07bbe",
-    "events.jsonl": "0c2c1e753d0141fda4c52adaabca2544e665fc2737ea2a1708f90ada1556855e",
-    "metrics.json": "a06318009609d2ba4ec6174b614b0679603c85d59dc0074b58c3f0e17b3706eb",
-    "snapshot/MANIFEST.json": "b79f0a07628f7d98727eceb40f33d91f5e18cfee964ca1b18ed37e59cacd759f",
-    "snapshot/prices.csv": "7bfacce6ec78a7494cb390a6687a7354dc51567b7afd3bca1c4d946f84b6b01c",
-    "trades.csv": "2bc590952d99c16890eeb3b32b6ae3a120c47841c3843e5af23e056e0cb1210c"
+    "decisions.jsonl": "2188974e6cb3d396a36d0fe2de17667259cb51d7e4657573add2429dc20f6b4f",
+    "equity_curve.csv": "d3f9c82c0ac5a132e41ec8fb54e8a33656eb17add2c1d574da61c2938c6be367",
+    "events.jsonl": "bbc29d3b3b3aeab4d0c82ad87435896bb1e3db91fe70c802a0ef7395c88a6ed8",
+    "metrics.json": "b8d727192b86099f4c2c10efad1bb7b93ccbb1d066d4f3d0395138e70d88fea4",
+    "snapshot/MANIFEST.json": "5788ebd51e6d12c5d2a55d0b06ba8c79d8e5590502174e1a6739068f461ff138",
+    "snapshot/prices.csv": "d5b1dfa939e5672617313c7e9e6c27eb72625cd0c308cd3b5e1b303cfac46b6e",
+    "trades.csv": "64310e966edc1bfe01fa2223fc3d2e2056a37dc747bf87bbf6fc9344628e7dcb"
   },
   "beatspy_version": "0.3.0",
   "bench": {
@@ -17,15 +17,15 @@
     "slippage_bps": 5.0
   },
   "benchmark": "dcn",
-  "created_utc": "2026-10-08T18:48:18+00:00",
+  "created_utc": "2026-10-11T17:45:39+00:00",
   "data": {
-    "end": "2026-10-07",
-    "fetched_at_utc": "2026-10-08T17:32:27+00:00",
-    "prices_sha256": "7bfacce6ec78a7494cb390a6687a7354dc51567b7afd3bca1c4d946f84b6b01c",
+    "end": "2026-10-09",
+    "fetched_at_utc": "2026-10-11T17:33:39+00:00",
+    "prices_sha256": "d5b1dfa939e5672617313c7e9e6c27eb72625cd0c308cd3b5e1b303cfac46b6e",
     "rows": 10478,
-    "snapshot_id": "ba0b23a814acb18d0550b2bd508774cf128a07daad90da91933f60d03bd004f9",
+    "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
     "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
-    "start": "2025-03-03",
+    "start": "2025-03-05",
     "tickers": [
       "AAPL",
       "MSFT",
@@ -55,37 +55,43 @@
       "SPY"
     ]
   },
-  "dcn_protocol": 1,
+  "dcn_protocol": 3,
   "decision": {
-    "decision_model": "jev-latest",
-    "endpoint": "https://api.typesafe.ai/v1/systemone",
-    "label": "TypeSafe Jev",
+    "decision_model": "gpt-6-luna",
+    "endpoint": "https://api.openai.com/v1",
+    "label": "OpenAI Decisions (gpt-6-luna)",
     "policy": {
+      "base_weight": 0.5,
+      "core_weight": 0.85,
       "min_names": 2,
       "min_probability": 0.5,
-      "selection": "graded",
+      "selection": "core_satellite",
       "top_n": 3
     },
     "pricing": {
-      "cost_per_m_input": 0.042,
+      "cost_per_m_input": 0.1,
       "cost_per_m_output": 0.0
     },
-    "provider": "typesafe",
+    "provider": "openai_decisions",
     "question_form": "per_asset"
   },
   "disclaimer": "Historical decision-model benchmark. The model receives frozen point-in-time market state, returns typed probabilities, and is scored on those probabilities and on a portfolio built from them.",
+  "guardrails": {
+    "max_consecutive_failures": null,
+    "max_cost_usd": null
+  },
   "label": null,
   "requested": {
-    "end": "2026-10-07",
+    "end": "2026-10-09",
     "frequency": "weekly",
-    "start": "2026-04-07"
+    "start": "2026-04-09"
   },
-  "run_id": "20261008-184818_2026-6m_jev-latest_8e77506dcc",
+  "run_id": "20261011-174539_2026-6m_gpt-6-luna_3b2cf64209",
   "scenario": {
     "benchmark": "SPY",
     "cash": true,
     "description": "Rolling six-month window ending at the latest completed NYSE session, with weekly decisions over 25 stocks and ETFs.",
-    "end": "2026-10-07",
+    "end": "2026-10-09",
     "fee_bps": 5.0,
     "frequency": "weekly",
     "initial_capital": 100000.0,
@@ -96,7 +102,7 @@
     "name": "2026-6m",
     "recent_months": 6,
     "slippage_bps": 5.0,
-    "start": "2026-04-07",
+    "start": "2026-04-09",
     "through_latest": false,
     "title": "Latest 6 months",
     "tradable": [
@@ -130,6 +136,11 @@
     "year": null
   },
   "schema_version": 3,
-  "source_revision": "38345382d8d6e29fdbfbace6f80643e68542525b",
+  "source_revision": "777b0fcd80ae04d46404abe912c968e44e534c05",
+  "state_sample": {
+    "chars": 4282,
+    "decision_date": "2026-04-09",
+    "sha256": "abd7067b14e37178878176084d371e215605b38dfd4fea6ecaf2ac7ffa728107"
+  },
   "synthetic": false
 }

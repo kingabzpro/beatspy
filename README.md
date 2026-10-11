@@ -156,39 +156,44 @@ proof of its absence either.
 
 Rolling six months to the latest completed session (`2026-6m`), weekly decisions,
 25 stocks and ETFs, one probability question per asset per week, 625 predictions
-per model. Frozen adjusted prices throughout.
+per model. Frozen adjusted prices throughout. Window 2026-04-09 to 2026-10-09.
+Every run holds `core_satellite` with an 85% SPY core and a 15% active sleeve, so
+the comparison against SPY is the sleeve's contribution and not an
+asset-allocation difference.
 
-| Decision model | Return | vs SPY | vs equal weight | Sharpe | Max DD | Brier skill | AUC |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `clef-flash` | **+11.28%** | −7.22% | **+1.89%** | 2.02 | −3.75% | −0.318 | 0.496 |
-| `gpt-6-luna` | +8.67% | −9.83% | −0.71% | 1.63 | −4.04% | −0.022 | 0.474 |
-| `clef` | +7.28% | −11.22% | −2.11% | 1.30 | −5.32% | −0.301 | 0.499 |
-| `jev-latest` | +7.01% | −11.49% | −2.38% | 1.28 | −6.06% | −0.077 | 0.490 |
-| *SPY buy-and-hold* | *+18.50%* | n/a | n/a | n/a | n/a | n/a | n/a |
-| *equal weight, same 25* | *+9.39%* | n/a | n/a | n/a | n/a | n/a | n/a |
+| Decision model | Return | vs SPY | Excess 95% CI | Sharpe | Max DD | Turnover | Brier skill | AUC | p(AUC) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `clef-flash` | **+14.06%** | −1.03% | [−3.23%, +0.67%] | 2.37 | −3.95% | 5.0% | −0.293 | 0.498 | 0.38 |
+| `clef` | +13.95% | −1.14% | [−3.71%, +0.75%] | 2.37 | −3.87% | 5.2% | −0.242 | 0.501 | 0.25 |
+| `gpt-6-luna` | +13.76% | −1.33% | [−3.83%, +0.56%] | 2.34 | −3.94% | 4.4% | −0.023 | 0.471 | 0.67 |
+| `jev-latest` | +13.69% | −1.40% | [−3.65%, +0.32%] | 2.32 | −3.93% | 5.2% | −0.085 | 0.481 | 0.51 |
+| *SPY buy-and-hold* | *+15.09%* | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 
 Read this carefully, because the honest conclusion is narrower than the returns
 suggest:
 
-- **No decision model beat SPY.** SPY is cap-weighted and holds the mega-caps at
-  full weight, so an equal-weighted book of the same names starts roughly nine
-  points behind. That is a property of the benchmark, not of the models.
-- **One model beat the equal-weight reference** (`clef-flash`, +1.89 points). That
-  is the comparison that isolates the model, and one window is not enough to call
-  it skill.
+- **The portfolio tracks SPY by construction, and the sleeve is the only active
+  part.** Every model lands within 1.4 points of SPY, against 7 to 12 points
+  behind under the previous whole-book policy. The residual gap is the model's
+  tilts plus costs, which is exactly what the benchmark should be measuring.
+- **No model's sleeve beat SPY.** Every excess confidence interval includes zero,
+  so none of the four differences is distinguishable from noise at 25 decisions.
 - **The probabilities carry no measurable signal.** Every model has *negative*
-  Brier skill, worse than predicting the sample average, and an AUC of 0.474 to
-  0.499, i.e. chance or slightly below. The returns come from diversifying across
-  25 names and trading rarely, not from forecasting.
-- Two providers are markedly underconfident: `clef` answered a mean 0.29 where the
-  realized rate was 0.45.
+  Brier skill, worse than predicting the sample average, and no AUC permutation
+  p-value comes near significance (0.25 to 0.67). The returns come from holding
+  the index and trading rarely, not from forecasting.
+- Two providers are still markedly underconfident: `clef` answered a mean 0.30
+  where the realized rate was 0.45, and `clef-flash` 0.29. `gpt-6-luna` is the
+  best calibrated at 0.48.
 
-An earlier configuration asked about 10 momentum-ranked candidates and held only
-the top three above 0.5, equal-weighted. Because that can emit nothing but 0% or
-33% per position, it rewrote the whole book weekly at ~50% turnover, and returned
-−9.3% to +0.7%. One decision per asset with graded sizing roughly halved turnover
-and added 8 to 17 points of return, a portfolio-construction gain, not a
-forecasting one.
+The policy history is the same story told three times. The earliest cut held only
+the top three names above 0.5, rewrote the whole book weekly at ~50% turnover, and
+returned −9.3% to +0.7%. Graded sizing over the whole book roughly halved
+turnover and added 8 to 17 points. The SPY core removed the remaining structural
+gap: the same model over the same window returned +7.77% (23.3% turnover, −7.33
+points behind SPY) with the whole-book policy and +13.69% (5.2% turnover, −1.40)
+with an 85% core. Every one of those gains is portfolio construction, not
+forecasting; the calibration columns are unchanged by them.
 
 ## Two things worth knowing before you trust a number
 

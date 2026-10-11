@@ -498,10 +498,15 @@ if (typeof document !== "undefined") {
       allocationRowsData.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
       chart("allocations", allocationRowsData, tickers, percent);
       const rates = ratesFor(run.model, meta), cost = run.metrics.estimated_cost_usd ?? inputCost(run.metrics, rates);
+      const policy = run.policy || {};
+      const policyText = policy.selection === "core_satellite"
+        ? `core ${percent(policy.core_weight)} in the benchmark, ${percent(1 - (policy.core_weight ?? 0))} active sleeve`
+        : (policy.selection === "graded_cs" || policy.selection === "graded")
+          ? `whole book across the universe, neutral P = ${policy.min_probability ?? "?"}`
+          : `route ${count(policy.top_n)} names at P ≥ ${policy.min_probability ?? "?"}`;
       $("run-cost").textContent = `Input-only estimate ${dollars(cost)} · ${count(run.metrics.input_tokens)} input tokens · `
         + `${count(run.metrics.output_tokens)} output tokens · ${plural(run.metrics.requests, "request")} · `
-        + `mean latency ${FORMAT.millis(run.metrics.mean_latency_s)} · route ${count(run.policy?.top_n)} names at `
-        + `P ≥ ${run.policy?.min_probability ?? "?"}`;
+        + `mean latency ${FORMAT.millis(run.metrics.mean_latency_s)} · ${policyText}`;
       $("price-source").replaceChildren();
       if (rates?.source) {
         const link = node("a", "Published pricing ↗"); link.href = rates.source;
@@ -509,8 +514,7 @@ if (typeof document !== "undefined") {
         $("price-source").append(link);
       }
       $("settings").textContent = JSON.stringify(meta, null, 2);
-      $("coverage").textContent = `Scored ${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")} · `
-        + `${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")}, `
+      $("coverage").textContent = `Scored ${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")}, `
         + `labeled against realized benchmark-relative outcomes. ${calibration.note || ""}`.trim();
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {
