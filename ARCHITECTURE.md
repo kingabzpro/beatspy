@@ -48,10 +48,12 @@ serves a bar later than `as_of`. Two rules are load-bearing:
   byte-identical state.
 - **A hard token budget.** Workers AI silently truncates long text state to
   roughly its first 2K tokens, which would quietly give Clef a different question
-  from the one the other providers read. The state is therefore budgeted to stay
-  inside `DecisionConfig.max_state_tokens` (~1,800) for *every* provider (the
-  full 23-name universe is covered by a test), and the size is recorded on each
-  decision as `state_chars` plus a `state_sha256`.
+  from the one the other providers read. `enforce_budget` therefore trims the
+  state deterministically before it is sent, in a fixed order: recent-decision
+  history first, then market rows the decision does not ask about. If it still
+  does not fit, the run fails loudly rather than let one provider read a
+  truncated state. The size is recorded on each decision as `state_chars` plus a
+  `state_sha256`, and `state_trimmed` lists whatever was dropped.
 
 The state describes the market; it never states an allocation. Allocation rules
 live in the question set and the sizing policy, where they can be audited.

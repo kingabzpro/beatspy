@@ -91,6 +91,7 @@ def decision_line(decision: DcnDecision) -> dict:
         "tickers": decision.tickers,
         "state_sha256": decision.state_sha256,
         "state_chars": len(decision.state_text),
+        "state_trimmed": decision.state_trimmed,
         "questions": {key: value.model_dump() for key, value in decision.questions.items()},
         "answers": {key: value.model_dump() for key, value in decision.answers.items()},
         "missing_ids": decision.missing_ids,

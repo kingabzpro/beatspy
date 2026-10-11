@@ -147,3 +147,44 @@ def render_state(state: dict) -> str:
 def state_token_estimate(text: str) -> int:
     """Cheap upper bound on tokens; ~3 chars/token is conservative for JSON numbers."""
     return (len(text) + 2) // 3
+
+
+def enforce_budget(state: dict, max_tokens: int) -> tuple[dict, list[str]]:
+    """Trim the state until it fits ``max_tokens``, deterministically.
+
+    Workers AI truncates long text state to roughly its first 2K tokens, which
+    would silently give Clef a different question from the one every other
+    provider reads. Rather than let that happen, the least load-bearing content
+    is dropped in a fixed order:
+
+    1. the recent-decision history, oldest entry first;
+    2. market rows the decision is not asking about.
+
+    If the state still does not fit, this raises instead of sending a state one
+    provider would truncate. Returns the (possibly trimmed) state and the list
+    of what was dropped, for the record.
+    """
+    state = {
+        **state,
+        "recent_decisions": list(state.get("recent_decisions") or []),
+        "market": list(state.get("market") or []),
+    }
+    trimmed: list[str] = []
+    if state_token_estimate(render_state(state)) <= max_tokens:
+        return state, trimmed
+    while state["recent_decisions"] and state_token_estimate(render_state(state)) > max_tokens:
+        state["recent_decisions"].pop(0)
+        if "recent_decisions" not in trimmed:
+            trimmed.append("recent_decisions")
+    asked = {str(ticker).upper() for ticker in state.get("decide_on") or []}
+    kept = [row for row in state["market"] if str(row.get("ticker", "")).upper() in asked]
+    if len(kept) != len(state["market"]):
+        trimmed.append(f"market:{len(state['market']) - len(kept)}")
+        state["market"] = kept
+    estimate = state_token_estimate(render_state(state))
+    if estimate > max_tokens:
+        raise ValueError(
+            f"state needs about {estimate} tokens after trimming, over the {max_tokens}-token budget; "
+            "shrink the universe or raise max_state_tokens"
+        )
+    return state, trimmed

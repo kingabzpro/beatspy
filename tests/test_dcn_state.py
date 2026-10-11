@@ -108,6 +108,92 @@ def test_state_stays_compact_for_a_large_universe(scenario):
     assert estimate < 1800, f"state would be truncated by Workers AI at ~2K tokens (est {estimate})"
 
 
+BIG_UNIVERSE = [
+    "AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "HD", "WMT", "PG", "COST",
+    "JPM", "V", "LLY", "JNJ", "UNH", "XOM", "CVX", "CAT", "GE", "NEE",
+    "LIN", "PLD", "AMT", "QQQ", "TLT",
+]
+
+
+def _full_book_state(prices, scenario, tickers, as_of: date) -> dict:
+    data = DataService(prices, benchmark=scenario.benchmark)
+    holdings = {ticker: 1.0 / len(tickers) for ticker in tickers}
+    recent = [
+        {"date": f"2022-0{month}-01", "held": ", ".join(f"{ticker} 4%" for ticker in tickers)}
+        for month in (1, 2, 3)
+    ]
+    return build_state(
+        data,
+        scenario,
+        as_of,
+        holdings=holdings,
+        cash=0.0,
+        question_tickers=tickers,
+        horizon_trading_days=5,
+        next_decision_date="2022-02-28",
+        recent=recent,
+    )
+
+
+def test_a_fully_invested_book_exceeds_the_budget_before_enforcement(scenario):
+    """The published runs grew past the budget once holdings and history were
+    included, which is why enforcement exists rather than a comment."""
+    from beatspy.dcn.state import enforce_budget
+    from conftest import make_prices
+
+    big = scenario.model_copy(update={"tradable": BIG_UNIVERSE})
+    state = _full_book_state(make_prices(big.universe), big, BIG_UNIVERSE, date(2022, 2, 15))
+    assert state_token_estimate(render_state(state)) > 1800  # the raw state is over
+    trimmed_state, trimmed = enforce_budget(state, 1800)
+    assert state_token_estimate(render_state(trimmed_state)) <= 1800
+    assert "recent_decisions" in trimmed
+    # Deterministic: the same input trims the same way every time.
+    again, trimmed_again = enforce_budget(state, 1800)
+    assert render_state(again) == render_state(trimmed_state)
+    assert trimmed_again == trimmed
+
+
+def test_enforce_budget_fails_loudly_when_nothing_more_can_be_trimmed(prices, scenario):
+    from beatspy.dcn.state import enforce_budget
+
+    state = _state(prices, scenario, date(2022, 2, 15))
+    with pytest.raises(ValueError, match="token budget"):
+        enforce_budget(state, 20)
+
+
+def test_the_pipeline_enforces_the_budget_on_a_full_book(scenario):
+    """The real decision path sends a state inside the configured budget."""
+    import asyncio
+
+    from beatspy.config import Settings
+    from beatspy.dcn.pipeline import DcnPipeline
+    from conftest import OfflineDcnClient, make_prices, make_scenario
+
+    big = make_scenario(tradable=BIG_UNIVERSE)
+    data = DataService(make_prices(big.universe), benchmark=big.benchmark)
+    pipeline = DcnPipeline(Settings(), big, OfflineDcnClient(), question_form="per_asset")
+    holdings = {ticker: 1.0 / len(BIG_UNIVERSE) for ticker in BIG_UNIVERSE}
+    # Same shape the runner writes into `recent`: every holding, spelled out.
+    recent = [
+        {"date": f"2022-0{month}-01", "held": ", ".join(f"{ticker} 4%" for ticker in BIG_UNIVERSE)}
+        for month in (1, 2, 3)
+    ]
+    decision = asyncio.run(
+        pipeline.decide(
+            data,
+            date(2022, 2, 15),
+            holdings=holdings,
+            cash=0.0,
+            horizon_trading_days=5,
+            next_decision_date="2022-02-28",
+            recent=recent,
+        )
+    )
+    assert decision.state_trimmed, "a full 25-name book should have needed trimming"
+    assert state_token_estimate(decision.state_text) <= Settings().decision.max_state_tokens
+    assert decision.state["as_of"] == "2022-02-15"
+
+
 def test_candidates_are_deterministic_and_bounded(prices, scenario):
     data = DataService(prices, benchmark=scenario.benchmark)
     as_of = date(2022, 2, 15)

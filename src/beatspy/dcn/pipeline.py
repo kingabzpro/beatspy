@@ -33,7 +33,7 @@ from ..schemas import (
 from . import calibration as cal
 from .clients import DcnClient, build_call_record
 from .questions import QuestionSet, build_questions
-from .state import build_state, render_state
+from .state import build_state, enforce_budget, render_state
 
 NEUTRAL = 0.5
 
@@ -67,6 +67,8 @@ class DcnDecision:
     validated: ValidatedDecision = field(default_factory=ValidatedDecision)
     observed: list[cal.Observation] = field(default_factory=list)
     horizon_trading_days: int = 0
+    # What the token-budget enforcement dropped from the state, if anything.
+    state_trimmed: list[str] = field(default_factory=list)
 
     @property
     def state_sha256(self) -> str:
@@ -229,6 +231,9 @@ class DcnPipeline:
             next_decision_date=next_decision_date,
             recent=recent,
         )
+        # Workers AI truncates past roughly 2K tokens, so the budget is enforced
+        # here, before the state is sent, rather than trusted to hold by itself.
+        state, state_trimmed = enforce_budget(state, self.settings.decision.max_state_tokens)
         state_text = render_state(state)
         decision = DcnDecision(
             date=as_of,
@@ -239,6 +244,7 @@ class DcnPipeline:
             question_ids=question_set.ids,
             tickers=list(tickers),
             horizon_trading_days=horizon_trading_days,
+            state_trimmed=state_trimmed,
         )
         try:
             result = await self.client.decide(state, question_set.questions)

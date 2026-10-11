@@ -315,7 +315,7 @@ for the sequencing section at the very end.
 ## P1 - Very important (validity and credibility)
 
 ### V1. Enforce the state token budget
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** `ARCHITECTURE.md:51` says the state is budgeted to stay inside
   `DecisionConfig.max_state_tokens` (~1,800), and the test comment says "the
   budget is enforced" (`tests/test_dcn_state.py:93`). It is not enforced anywhere
@@ -330,6 +330,14 @@ for the sequencing section at the very end.
   extend the test to a fully invested 25-name book with recent decisions.
 - **Done when:** a full-book run stays inside the budget or fails loudly, and the
   test that claims enforcement actually covers the real case.
+- **Progress (2026-10-11):** the budget is enforced in the live path by
+  `enforce_budget` (called from `DcnPipeline.decide`), which trims the recent
+  history first and then market rows the decision does not ask about, failing
+  loudly if the state still does not fit. Reproduced the original bug in a test:
+  a fully invested 25-name book with three history entries estimates at 1,933
+  tokens against the 1,800 budget. `state_trimmed` is recorded per decision in
+  `decisions.jsonl`, and the pipeline test proves a full book is sent inside the
+  configured budget.
 
 ### V2. Make the sizing policy scale-invariant
 `effort: M` · `status: todo`
