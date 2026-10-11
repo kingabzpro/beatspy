@@ -34,7 +34,7 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="topbar"><a class="brand" href="#"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
-    <nav aria-label="Main navigation"><a href="#leaderboard">Results</a><a href="#cost-overview">Pricing</a><a href="#contribute">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+    <nav aria-label="Main navigation"><a href="#leaderboard">Results</a><a href="#how">How it works</a><a href="#cost-overview">Pricing</a><a href="#contribute">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
   </header>
   <main id="main-content" tabindex="-1">
     <noscript><p class="caption">Enable JavaScript to explore the leaderboard and charts, or <a href="https://github.com/kingabzpro/beatspy/tree/main/dashboard/data">browse the published result files on GitHub</a>.</p></noscript>
@@ -49,6 +49,30 @@
       <p id="demo-banner" class="pill warn" hidden>Synthetic demo data: no decision model was called and none of these numbers are real results.</p>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap"></div>
+    </section>
+    <section id="how" class="how" aria-labelledby="how-title">
+      <details>
+        <summary>
+          <span class="eyebrow">METHOD</span>
+          <strong id="how-title">How this benchmark works</strong>
+          <span class="how-hint">Frozen data · typed questions · fixed policy · replayable scores</span>
+        </summary>
+        <div class="how-body">
+          <ol class="how-steps">
+            <li><strong>Freeze the market.</strong> Prices are downloaded once into a content-addressed snapshot, and every run re-uses the same bytes.</li>
+            <li><strong>Build the state.</strong> One compact JSON object per decision, containing only data dated on or before that decision date.</li>
+            <li><strong>Ask typed questions.</strong> One probability question per asset, phrased identically for every provider: will it beat SPY over the next few sessions?</li>
+            <li><strong>Size the book.</strong> A fixed policy holds the benchmark as the core and allocates the rest across the universe by conviction. It is recorded in the run before any result is seen.</li>
+            <li><strong>Execute and score.</strong> Orders fill at the next session's open. Every answer is scored twice, for calibration and for the return of the portfolio its probabilities built.</li>
+          </ol>
+          <p class="caption">Every run can be replayed offline from its own artifacts, and an adversarial audit checks that data after a decision date can never change that decision. No prompts, no tools, no hidden state.</p>
+          <div class="how-links">
+            <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
+            <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>
+            <a href="https://github.com/kingabzpro/beatspy/blob/main/examples/leakage_audit.py">Leakage audit ↗</a>
+          </div>
+        </div>
+      </details>
     </section>
     <section id="run-details" hidden aria-labelledby="run-title">
       <div class="section-heading"><div><p class="eyebrow">UNDER THE HOOD</p><h2 id="run-title">Selected run</h2></div><span id="run-trust" class="pill"></span></div>
