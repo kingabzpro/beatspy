@@ -194,6 +194,46 @@ def test_the_pipeline_enforces_the_budget_on_a_full_book(scenario):
     assert decision.state["as_of"] == "2022-02-15"
 
 
+def test_select_universe_defaults_to_the_whole_pool(prices, scenario):
+    from beatspy.dcn.state import select_universe
+
+    data = DataService(prices, benchmark=scenario.benchmark)
+    assert select_universe(data, scenario, date(2022, 2, 15)) == [t.upper() for t in scenario.tradable]
+
+
+def test_select_universe_keeps_the_strongest_trailing_performers(prices, scenario):
+    """A selection scenario trades only the pool's best trailing performers."""
+    from beatspy.dcn.state import select_universe
+
+    data = DataService(prices, benchmark=scenario.benchmark)
+    as_of = date(2022, 2, 15)
+    lookback = 126
+    benchmark_return = data.trailing_return_pct(scenario.benchmark, as_of, lookback) or 0.0
+    ranked = sorted(
+        ((data.trailing_return_pct(ticker, as_of, lookback) or -1e9) - benchmark_return, ticker)
+        for ticker in scenario.tradable
+    )
+    expected = sorted(ticker for _, ticker in ranked[-2:])
+
+    selected = scenario.model_copy(update={"selection_top": 2})
+    assert select_universe(data, selected, as_of) == expected
+
+
+def test_select_universe_uses_only_data_up_to_the_decision_date(prices, scenario):
+    """The ranking is point-in-time: tampering with later prices cannot move it."""
+    from beatspy.dcn.state import select_universe
+
+    selected = scenario.model_copy(update={"selection_top": 2})
+    as_of = date(2022, 2, 15)
+    honest = select_universe(DataService(prices, benchmark=scenario.benchmark), selected, as_of)
+
+    frame = prices.copy()
+    later = frame["date"] > pd.Timestamp(as_of)
+    frame.loc[later, "close"] = frame.loc[later, "close"] * 3.0
+    tampered = select_universe(DataService(frame, benchmark=scenario.benchmark), selected, as_of)
+    assert honest == tampered
+
+
 def test_candidates_are_deterministic_and_bounded(prices, scenario):
     data = DataService(prices, benchmark=scenario.benchmark)
     as_of = date(2022, 2, 15)

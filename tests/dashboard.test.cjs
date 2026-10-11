@@ -22,8 +22,11 @@ function catalogRun(overrides = {}) {
       max_drawdown: -0.07, input_tokens: 1000, output_tokens: 0, requests: 9, answer_coverage: 1.0,
       mean_latency_s: 0.4, decisions: 9, invalid_outputs: 0, estimated_cost_usd: 0.0009,
       baselines: {equal_weight: 0.02, sixty_forty: 0.01, momentum_12_1: -0.03},
+      return_ci: {lower: -0.01, upper: 0.11, level: 0.95, draws: 1000, method: 'decision-window block bootstrap'},
+      excess_return_ci: {lower: -0.02, upper: 0.09, level: 0.95, draws: 1000, method: 'decision-window block bootstrap'},
       calibration: {observations: 9, horizons: 3, coverage: 1.0, miscalibration_gap: 0.355, signals: {
         noul: {n: 9, brier: 0.2, brier_skill_score: -0.17, auc: 0.71, expected_calibration_error: 0.2,
+          brier_skill_p_value: 0.55, auc_p_value: 0.42,
           mean_predicted: 0.58, bins: [
             {lower: 0, upper: 0.5, count: 0, mean_predicted: 0, observed_rate: null},
             {lower: 0.5, upper: 0.6, count: 6, mean_predicted: 0.55, observed_rate: 0.67},
@@ -178,17 +181,17 @@ test('the frontend uses safe text rendering, keeps the design, and never mention
       assert.doesNotMatch(text.toLowerCase(), new RegExp(word), `${name} mentions ${word}`);
     }
   }
-  // The reliability section and its callout are part of the site.
-  for (const anchor of ['leaderboard', 'calibration', 'reliability', 'reliability-bins', 'gap-callout',
+  // The reliability section is part of the site.
+  for (const anchor of ['leaderboard', 'calibration', 'reliability', 'reliability-bins',
     'pricing-table', 'model-costs', 'run-cost', 'performance', 'drawdown', 'allocations']) {
     assert.match(html, new RegExp(`id="${anchor}"`), anchor);
   }
   assert.match(html, /Reliability/);
   assert.match(html, /Brier/);
-  // The miscalibration callout and the reliability chart live in the script.
-  assert.match(js, /miscalibration_gap/);
+  // The reliability chart and the per-run statistics live in the script.
   assert.match(js, /reliabilityChart/);
-  assert.match(js, /gap-callout/);
+  assert.match(js, /excess_return_ci/);
+  assert.match(js, /auc_p_value/);
 });
 
 test('the committed public catalog is a valid DCN catalog', () => {
@@ -235,7 +238,7 @@ function fakeElement(tag) {
 const PAGE_IDS = [
   'leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'cost-overview', 'cost-window',
   'pricing-table', 'model-costs', 'price-source', 'price-note', 'input-price', 'output-price', 'reset-rates',
-  'run-details', 'run-trust', 'run-title', 'run-meta', 'metrics', 'calibration', 'gap-callout', 'reliability',
+  'run-details', 'run-trust', 'run-title', 'run-meta', 'metrics', 'calibration', 'reliability',
   'reliability-bins', 'reliability-bins-caption', 'performance', 'run-cost', 'coverage', 'settings', 'downloads',
   'contribute',
 ];
@@ -265,7 +268,7 @@ function mountSite(site) {
 
 const settle = async () => {for (let i = 0; i < 50; i++) await new Promise(resolve => setTimeout(resolve, 0));};
 
-test('the payload actually drives the page: leaderboard, equity, reliability and the gap callout', async () => {
+test('the payload actually drives the page: leaderboard, equity, reliability and the run statistics', async () => {
   const first = catalogRun();
   const second = catalogRun({run_id: 'run-b', dir: 'runs/run-b', model: 'clef', provider: 'cloudflare',
     question_form: 'noul', created_utc: '2026-10-08T09:00:00+00:00'});
@@ -302,8 +305,11 @@ test('the payload actually drives the page: leaderboard, equity, reliability and
   runButton.onclick();  // selects the run
   await settle();
   assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
-  assert.equal($('metrics').children.length, 6);
-  assert.match($('gap-callout').descendants().map(node => node.textContent).join(' '), /35\.50% Paired miscalibration gap:/);
+  assert.equal($('metrics').children.length, 8);
+  const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
+  assert.match(metricText, /Excess vs SPY/);
+  assert.match(metricText, /95% interval/);
+  assert.match(metricText, /permutation p =/);
   assert.equal($('reliability').children[0].descendants().filter(node => node.tagName === 'svg').length, 1);
   const circles = $('reliability').children[0].descendants().filter(node => node.tagName === 'circle');
   assert.equal(circles.length, 4);

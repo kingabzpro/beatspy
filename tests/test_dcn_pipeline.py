@@ -1,6 +1,6 @@
 """The sizing policy and the neutrality of missing answers.
 
-Three policies are tested here.
+Three policies are tested here, none of which may hold the benchmark index.
 
 - **graded_cs** (the default): fully invested across the whole universe, with the
   conviction share allocated by each probability's distance above the decision's
@@ -230,8 +230,7 @@ def test_graded_scores_only_the_scenario_universe(graded):
 
 
 def test_graded_never_buys_the_benchmark(graded):
-    """Under a graded policy the benchmark is comparison-only: the policy holds
-    the tradable universe, so SPY can never be a satellite."""
+    """SPY is the yardstick, not a holding: no policy can buy it."""
     scenario = _scenario(tradable=["AAPL", "MSFT"])
     decision = derive_weights({"AAPL": 0.9, "MSFT": 0.6}, graded, scenario, benchmark="SPY")
     assert "SPY" not in decision.weights
@@ -266,73 +265,10 @@ def test_legacy_holds_only_top_n(legacy):
     assert set(decision.weights) == {"MSFT", "GOOGL", "TLT"}
 
 
-def test_defaults_are_core_satellite_and_recorded():
+def test_defaults_are_graded_cs_and_recorded():
     config = DecisionConfig()
-    assert config.selection == "core_satellite"
-    assert config.core_weight == 0.85
+    assert config.selection == "graded_cs"
     assert config.min_probability == 0.5
-
-
-# --------------------------------------------------------------------------- #
-# Core satellite (default): the benchmark is the core of the book
-# --------------------------------------------------------------------------- #
-
-
-@pytest.fixture
-def core() -> DecisionConfig:
-    return DecisionConfig(selection="core_satellite", core_weight=0.85, min_probability=0.5)
-
-
-def test_core_satellite_holds_the_index_core_and_a_bounded_sleeve(core):
-    scenario = _scenario()
-    decision = derive_weights(_six({"AAPL": 0.8, "MSFT": 0.6}), core, scenario)
-    assert decision.weights["SPY"] == pytest.approx(0.85)
-    sleeve = {ticker: weight for ticker, weight in decision.weights.items() if ticker != "SPY"}
-    assert set(sleeve) == set(_six({}))
-    assert sum(sleeve.values()) == pytest.approx(0.15)
-    assert sum(decision.weights.values()) == pytest.approx(1.0)
-
-
-def test_core_satellite_core_is_exempt_from_the_position_limit(core):
-    """Holding the index is not a single-name bet, so the 35% cap does not apply."""
-    scenario = _scenario(max_position_weight=0.35)
-    decision = derive_weights(_six({"AAPL": 0.9}), core, scenario)
-    assert decision.weights["SPY"] == pytest.approx(0.85)
-    assert not any("SPY" in violation for violation in decision.violations)
-
-
-def test_core_satellite_sleeve_is_scale_invariant(core):
-    """The same ranking at a different scale sizes the sleeve identically."""
-    scenario = _scenario()
-    view = {"AAPL": 0.60, "MSFT": 0.54}
-    reference = None
-    for factor in (0.5, 1.0, 2.0, 3.0):
-        scaled = {ticker: 0.5 + factor * (value - 0.5) for ticker, value in view.items()}
-        assert all(0.0 <= value <= 1.0 for value in scaled.values())
-        decision = derive_weights(_six({}), core, scenario, answered=scaled)
-        if reference is None:
-            reference = decision.weights
-        assert decision.weights == pytest.approx(reference)
-    assert reference["SPY"] == pytest.approx(0.85)
-
-
-def test_core_satellite_gives_no_tilt_to_unanswered_names(core):
-    scenario = _scenario()
-    decision = derive_weights(_six({}), core, scenario, answered={"AAPL": 0.30, "MSFT": 0.26})
-    sleeve_base = 0.15 * 0.5 / 6
-    for ticker in ("TLT", "GOOGL", "AMZN", "JPM"):
-        assert decision.weights[ticker] == pytest.approx(sleeve_base)
-    assert decision.weights["AAPL"] > sleeve_base
-
-
-def test_core_satellite_with_zero_core_matches_graded_cs(graded_cs):
-    """The two policies are the same rule; the core is the only difference."""
-    scenario = _scenario()
-    answered = {"AAPL": 0.7, "MSFT": 0.6, "TLT": 0.55}
-    zero_core = DecisionConfig(selection="core_satellite", core_weight=0.0)
-    cross = derive_weights(_six({}), graded_cs, scenario, answered=answered)
-    with_core = derive_weights(_six({}), zero_core, scenario, answered=answered)
-    assert with_core.weights == pytest.approx(cross.weights)
 
 
 # --------------------------------------------------------------------------- #
@@ -395,19 +331,7 @@ def test_missing_answers_backfill_to_neutral_and_only_the_answered_name_gets_wei
         if ticker not in answered:
             assert probability == NEUTRAL
 
-    if settings.decision.selection == "core_satellite":
-        # The index core is always held; with one answered name the sleeve is a
-        # degenerate cross-section and spreads evenly. The invariant that matters:
-        # no unanswered name is ever given the conviction share.
-        weights = decision.validated.weights
-        assert weights["SPY"] == pytest.approx(settings.decision.core_weight)
-        sleeve = 1.0 - settings.decision.core_weight
-        sleeve_base = sleeve / len(scenario.tradable)
-        for ticker, weight in weights.items():
-            if ticker != "SPY" and ticker not in answered:
-                assert weight == pytest.approx(sleeve_base)
-        assert sum(weights.values()) == pytest.approx(1.0)
-    elif settings.decision.selection == "graded_cs":
+    if settings.decision.selection == "graded_cs":
         # One answered name is a degenerate cross-section, so the book is the even
         # spread. The invariant that matters: no unanswered name is ever given
         # the conviction share, and the book still participates.

@@ -131,12 +131,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--label", help="free-text label stored in the run record")
     p.add_argument(
-        "--core-weight",
-        type=float,
-        default=None,
-        help="share of the book held in the benchmark itself under the core_satellite policy (default 0.85)",
-    )
-    p.add_argument(
         "--max-cost-usd",
         type=float,
         default=None,
@@ -446,7 +440,7 @@ def cmd_state(args: argparse.Namespace) -> int:
     """
     from .data.calendar import resolve_scenario
     from .dcn.runner import ensure_data
-    from .dcn.state import build_state, candidates, enforce_budget, render_state, state_token_estimate
+    from .dcn.state import build_state, candidates, enforce_budget, render_state, select_universe, state_token_estimate
 
     if args.offline_fixture:
         base = None
@@ -480,7 +474,8 @@ def cmd_state(args: argparse.Namespace) -> int:
     period = data.decision_period(as_of, decision_dates, end_day)
 
     if args.form == "per_asset":
-        tickers = [ticker.upper() for ticker in scenario.tradable]
+        # The same investable set a real decision would get, selection rule included.
+        tickers = select_universe(data, scenario, as_of)
     else:
         tickers = candidates(data, scenario, as_of, extra=[], max_candidates=scenario.max_candidates)
     if args.held:
@@ -617,10 +612,6 @@ def cmd_run(args: argparse.Namespace) -> int:
     from .schemas import Scenario
 
     settings = load_settings()
-    if args.core_weight is not None:
-        # Applies to every model in this invocation, so their books stay
-        # comparable; the value is recorded in each run.json.
-        settings.decision.core_weight = args.core_weight
     # `--model` may name several models. They share nothing but the frozen
     # snapshot, so they run concurrently rather than one after another.
     models = list(dict.fromkeys(args.model or [settings.decision.decision_model]))

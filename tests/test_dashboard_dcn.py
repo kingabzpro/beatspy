@@ -336,7 +336,7 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
     js = (static_dir() / "app.js").read_text(encoding="utf-8")
     assert not any(bad in js for bad in ("innerHTML", "outerHTML", "document.write", "eval("))
     assert "textContent" in js
-    for anchor in ("leaderboard", "calibration", "reliability", "reliability-bins", "gap-callout", "pricing-table",
+    for anchor in ("leaderboard", "how", "calibration", "reliability", "reliability-bins", "pricing-table",
                    "model-costs", "run-cost", "performance", "drawdown", "allocations", "status", "run-count"):
         assert f'id="{anchor}"' in html, anchor
     assert 'aria-live="polite"' in html

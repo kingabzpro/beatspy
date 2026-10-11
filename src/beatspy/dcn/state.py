@@ -23,8 +23,7 @@ from datetime import date
 
 BENCHMARK_NOTE = (
     "All figures are computed from prices dated on or before as_of. "
-    "The benchmark column is the comparison index; the sizing policy decides "
-    "whether the portfolio may hold it."
+    "The benchmark column is the comparison index itself; it is not investable."
 )
 
 
@@ -94,6 +93,35 @@ def candidates(data, scenario, as_of: date, *,
         if name in scenario.tradable and name not in chosen:
             chosen.append(name)
     return chosen
+
+
+def select_universe(data, scenario, as_of: date) -> list[str]:
+    """The investable set at `as_of`: the pool, or its strongest trailing performers.
+
+    A scenario may declare `selection_top`: each decision then trades only that
+    many names, ranked by their trailing return versus the benchmark over
+    `selection_lookback_days`. The ranking reads closes dated on or before
+    `as_of` through `DataService`, so a name qualifies on what it already did,
+    never on what happens next. Ties break alphabetically, so the set is
+    reproducible.
+
+    With no rule declared the whole pool is investable, which is what the other
+    scenarios do.
+    """
+    pool = [ticker.upper() for ticker in scenario.tradable]
+    top = getattr(scenario, "selection_top", None)
+    if not top or top >= len(pool):
+        return pool
+    lookback = int(getattr(scenario, "selection_lookback_days", 126))
+    benchmark_return = data.trailing_return_pct(scenario.benchmark, as_of, lookback) or 0.0
+    ranked = []
+    for ticker in pool:
+        trailing = data.trailing_return_pct(ticker, as_of, lookback)
+        if trailing is None:
+            continue
+        ranked.append((-(trailing - benchmark_return), ticker))
+    ranked.sort()
+    return sorted(ticker for _, ticker in ranked[:top])
 
 
 def build_state(

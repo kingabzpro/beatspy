@@ -36,7 +36,7 @@ from beatspy.data.service import DataService
 from beatspy.dcn.clients import DcnResult
 from beatspy.dcn.pipeline import DcnPipeline
 from beatspy.dcn.runner import read_run
-from beatspy.dcn.state import build_state, enforce_budget, render_state
+from beatspy.dcn.state import build_state, enforce_budget, render_state, select_universe
 from beatspy.scenarios import load_scenario
 from beatspy.schemas import NoulAnswer
 
@@ -110,19 +110,26 @@ async def main(argv: list[str]) -> int:
 
     failures: list[str] = []
 
-    # 1. Direct state comparison for every pre-cut decision.
+    def state_for(bench, day: date, period: dict) -> str:
+        """The rendered state one service would build for one decision."""
+        return render_state(
+            build_state(
+                bench,
+                scenario,
+                day,
+                holdings={},
+                cash=1.0,
+                question_tickers=select_universe(bench, scenario, day),
+                horizon_trading_days=period["horizon_trading_days"],
+                next_decision_date=period["next_decision_date"],
+            )
+        )
+
+    # 1. Direct state comparison for every pre-cut decision. Each side uses its
+    #    own investable set, so a selection rule that peeked ahead would differ.
     for day in before:
         period = original.decision_period(day, decision_dates, end)
-        common = dict(
-            holdings={},
-            cash=1.0,
-            question_tickers=[ticker.upper() for ticker in scenario.tradable],
-            horizon_trading_days=period["horizon_trading_days"],
-            next_decision_date=period["next_decision_date"],
-        )
-        if render_state(build_state(original, scenario, day, **common)) != render_state(
-            build_state(tampered, scenario, day, **common)
-        ):
+        if state_for(original, day, period) != state_for(tampered, day, period):
             failures.append(f"state differs at {day}")
     print(f"[1] states byte-identical for all {len(before)} pre-cut decisions: {not failures}")
 
@@ -206,7 +213,7 @@ async def main(argv: list[str]) -> int:
             day,
             holdings={},
             cash=1.0,
-            question_tickers=[ticker.upper() for ticker in scenario.tradable],
+            question_tickers=select_universe(original, scenario, day),
             horizon_trading_days=period["horizon_trading_days"],
             next_decision_date=period["next_decision_date"],
         ),

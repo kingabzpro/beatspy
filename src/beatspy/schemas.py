@@ -237,8 +237,6 @@ def validate_weights(
     cash: float | None,
     tradable: list[str],
     max_weight: float,
-    *,
-    exempt: frozenset[str] | set[str] = frozenset(),
 ) -> ValidatedDecision:
     """Clamp a weight map to tradable tickers and risk limits.
 
@@ -246,13 +244,8 @@ def validate_weights(
     clamped to max_weight, and exposure is capped at 1.0 with the remainder in
     cash. Every correction is recorded as a violation rather than silently
     applied.
-
-    `exempt` names are held outside the per-name cap. The only user is the
-    `core_satellite` policy's index core: holding the benchmark itself is not a
-    single-name concentration bet, so the position limit does not apply to it.
     """
     violations: list[str] = []
-    exempt_upper = {str(name).upper() for name in exempt}
     cleaned: dict[str, float] = {}
     for ticker, weight in weights.items():
         name = str(ticker).upper().strip()
@@ -276,8 +269,6 @@ def validate_weights(
         violations.append(f"scaled exposure from {total:.1%} to {1.0 - cash:.1%}")
 
     for ticker in list(cleaned):
-        if ticker in exempt_upper:
-            continue
         if cleaned[ticker] > max_weight + 1e-9:
             violations.append(f"clamped {ticker} from {cleaned[ticker]:.1%} to {max_weight:.1%}")
             cleaned[ticker] = max_weight
@@ -362,6 +353,13 @@ class Scenario(BaseModel):
     # in the state for context; this bounds the number of typed questions per
     # request so cost and provider question limits stay predictable.
     max_candidates: int = Field(default=10, ge=2, le=64)
+    # Optional momentum selection. When `selection_top` is set, each decision
+    # trades only the strongest trailing performers in the pool, ranked against
+    # the benchmark over `selection_lookback_days` using closes dated on or
+    # before the decision date. Choosing the pool is part of the scenario; the
+    # ranking is point-in-time, so no name qualifies on future performance.
+    selection_top: int | None = Field(default=None, ge=2, le=64)
+    selection_lookback_days: int = Field(default=126, ge=20, le=504)
 
     @model_validator(mode="after")
     def check_window(self):

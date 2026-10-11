@@ -357,8 +357,6 @@ def test_run_defaults_to_the_per_asset_form():
     assert args.offline_fixture is False
     assert parser.parse_args(["run", "--offline-fixture"]).offline_fixture is True
     assert parser.parse_args(["run", "--max-decisions", "6"]).max_decisions == 6
-    assert parser.parse_args(["run"]).core_weight is None
-    assert parser.parse_args(["run", "--core-weight", "0.9"]).core_weight == 0.9
     with pytest.raises(SystemExit):
         parser.parse_args(["run", "--max-decisions", "0"])
 

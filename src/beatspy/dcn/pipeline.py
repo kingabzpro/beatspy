@@ -82,21 +82,6 @@ class DcnDecision:
         return (len(self.question_ids) - len(self.missing_ids)) / len(self.question_ids)
 
 
-def executable_tickers(scenario, policy) -> list[str]:
-    """The tickers the accounting engine may hold under one policy.
-
-    Every policy may hold the tradable universe. `core_satellite` additionally
-    holds the benchmark itself as the index core, which is what makes the
-    portfolio track the benchmark instead of carrying the drift of an
-    equal-weighted book.
-    """
-    tickers = [ticker.upper() for ticker in scenario.tradable]
-    benchmark = scenario.benchmark.upper()
-    if policy.selection == "core_satellite" and benchmark not in tickers:
-        tickers.append(benchmark)
-    return tickers
-
-
 def _cross_sectional_tilts(
     probabilities: dict[str, float],
     answered: dict[str, float] | None,
@@ -126,21 +111,20 @@ def derive_weights(
     *,
     benchmark: str | None = None,
     answered: dict[str, float] | None = None,
+    universe: list[str] | None = None,
 ) -> ValidatedDecision:
     """Turn probabilities into a portfolio.
 
-    Four fixed policies, selected by `policy.selection`:
+    Three fixed policies, selected by `policy.selection`. The benchmark index is
+    never investable under any of them: the book has to choose among the
+    scenario's own assets, so the score reflects the model's choices and not the
+    market's drift.
 
-    - **core_satellite** (default): `policy.core_weight` of the book holds the
-      benchmark itself, and the remaining sleeve is allocated across the
-      universe by the cross-sectional rule below. The portfolio therefore tracks
-      the index by construction, and the excess over SPY measures the model's
-      active sleeve rather than the cap-weighting drift of an equal-weighted
-      book. The core is exempt from the per-name position limit.
-    - **graded_cs**: the cross-sectional graded book. Half the book is an even
-      spread over the universe; the other half follows each probability's
+    - **graded_cs** (default): the cross-sectional graded book. Half the book is
+      an even spread over the universe; the other half follows each probability's
       distance above the decision's own mean. Invariant to a provider's
-      probability scale.
+      probability scale, so two providers are compared on discrimination rather
+      than on how far their numbers sit from 0.5.
     - **graded**: the original, conviction measured above the fixed 0.5 prior.
       Kept so runs recorded under it stay reproducible.
     - **top_n**: the legacy cut, kept for the same reason.
@@ -150,38 +134,14 @@ def derive_weights(
     tilt, the book holds the even spread rather than going to cash, so the
     portfolio is always comparable. Names the provider did not answer carry no
     tilt: an unanswered question must never become a directional bet.
+
+    `universe` is the set this decision may hold, when the scenario narrows it
+    (for example to the strongest trailing performers as of the decision date).
+    It defaults to the scenario's whole tradable pool.
     """
     benchmark_ticker = (benchmark or scenario.benchmark).upper()
-    tradable = [ticker for ticker in scenario.tradable if ticker.upper() != benchmark_ticker]
-
-    if policy.selection == "core_satellite":
-        core = min(max(float(policy.core_weight), 0.0), 1.0)
-        sleeve = 1.0 - core
-        weights: dict[str, float] = {}
-        if core > 0:
-            weights[benchmark_ticker] = core
-        if sleeve > 0 and tradable:
-            tilts, _ = _cross_sectional_tilts(probabilities, answered, tradable)
-            total = sum(tilts.values())
-            uniform = sleeve / len(tradable)
-            if total <= 1e-12:
-                for ticker in tradable:
-                    weights[ticker] = weights.get(ticker, 0.0) + uniform
-            else:
-                base = sleeve * (1.0 - policy.base_weight)
-                for ticker in tradable:
-                    weights[ticker] = weights.get(ticker, 0.0) + base / len(tradable)
-                for ticker, tilt in tilts.items():
-                    weights[ticker] = weights.get(ticker, 0.0) + sleeve * policy.base_weight * (tilt / total)
-        if not weights:
-            return ValidatedDecision(weights={}, cash=1.0)
-        return validate_weights(
-            weights,
-            None,
-            executable_tickers(scenario, policy),
-            scenario.max_position_weight,
-            exempt={benchmark_ticker},
-        )
+    active = list(universe) if universe is not None else list(scenario.tradable)
+    tradable = [ticker for ticker in active if ticker.upper() != benchmark_ticker]
 
     if not tradable:
         return ValidatedDecision(weights={}, cash=1.0)
@@ -353,20 +313,23 @@ class DcnPipeline:
             self.settings.decision,
             self.scenario,
             answered=decision.answered_noul,
+            universe=list(tickers),
         )
         return decision
 
     def candidates(self, data, as_of: date, holdings: dict[str, float]) -> list[str]:
-        """Which assets this decision asks about.
+        """Which assets this decision asks about, and may therefore hold.
 
         `per_asset` asks about **every investable asset**, one question each, so a
-        single asset's answer stands on its own and the portfolio covers the whole
-        universe. Every other form keeps the bounded momentum-ranked candidate set.
+        single asset's answer stands on its own. What is investable follows the
+        scenario: the whole pool, or, when the scenario declares `selection_top`,
+        only the strongest trailing performers as of this decision date. Every
+        other form keeps the bounded momentum-ranked candidate set.
         """
-        from .state import candidates
+        from .state import candidates, select_universe
 
         if self.question_form == "per_asset":
-            return [ticker.upper() for ticker in self.scenario.tradable]
+            return select_universe(data, self.scenario, as_of)
         return candidates(
             data,
             self.scenario,

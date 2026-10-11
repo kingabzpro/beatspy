@@ -98,6 +98,10 @@ def weekly_scenario():
         end="2022-03-31",
         frequency="weekly",
         tradable=["AAPL", "MSFT", "TLT"],
+        # The selection rule is part of the path under test: it ranks on trailing
+        # returns, so a leak there would show up as a changed pre-cut decision.
+        selection_top=2,
+        selection_lookback_days=63,
     )
 
 

@@ -64,8 +64,7 @@ def test_run_metadata_identifies_the_decision_model_and_policy(per_asset_run_dir
     assert decision["provider"] in ("openai_decisions", "typesafe", "cloudflare")
     assert decision["question_form"] == "per_asset"
     assert decision["policy"] == {
-        "selection": "core_satellite",
-        "core_weight": 0.85,
+        "selection": "graded_cs",
         "base_weight": 0.5,
         "min_probability": 0.5,
         "top_n": 3,
@@ -179,18 +178,15 @@ def test_one_question_per_asset_per_decision_by_default(per_asset_run_dir):
     assert metrics["calibration"]["observations"] == len(lines) * len(universe)
 
 
-def test_the_book_holds_the_index_core_and_every_asset(per_asset_run_dir):
-    """The core_satellite book: the benchmark as core, every asset in the sleeve."""
+def test_the_book_buys_the_universe_and_never_the_benchmark(per_asset_run_dir):
+    """Every asset carries weight and the index is never held: the score is the
+    model's choices, not the market's drift."""
     meta, _, lines = read_run(per_asset_run_dir)
-    policy = meta["decision"]["policy"]
-    assert policy["selection"] == "core_satellite"
     benchmark = meta["scenario"]["benchmark"]
     for line in lines:
         weights = line["validated"]["weights"]
-        # The index core is exactly the recorded share, exempt from the position
-        # cap, and every asked-about asset sits in the satellite sleeve.
-        assert weights[benchmark] == pytest.approx(policy["core_weight"])
-        assert set(line["tickers"]) <= set(weights), "every asset should carry weight"
+        assert benchmark not in weights, "the benchmark is the yardstick, not a holding"
+        assert set(line["tickers"]) <= set(weights), "every asked-about asset should carry weight"
         # `cash` is recorded rounded to 4 decimals, so allow for that alone.
         assert sum(weights.values()) + line["validated"]["cash"] == pytest.approx(1.0, abs=1e-3)
         assert all(weight > 0 for weight in weights.values())
@@ -219,6 +215,22 @@ class ExplodingClient:
 
     async def close(self):
         return None
+
+
+def test_a_narrowed_universe_gets_its_own_reference(tmp_path, scenario, frozen_data):
+    """A selection scenario reports what holding its own investable set would have earned."""
+    from conftest import OfflineDcnClient, run_offline
+
+    narrowed = scenario.model_copy(update={"selection_top": 2, "selection_lookback_days": 63})
+    run_dir = run_offline(tmp_path, narrowed, frozen_data, OfflineDcnClient())
+    _, metrics, lines = read_run(run_dir)
+    assert "selection_equal_weight" in metrics["baselines"]
+    equity = (run_dir / "equity_curve.csv").read_text(encoding="utf-8").splitlines()[0]
+    assert "selection_equal_weight" in equity
+    # The book holds exactly the selected names, never the benchmark.
+    for line in lines:
+        assert len(line["validated"]["weights"]) <= 2
+        assert "SPY" not in line["validated"]["weights"]
 
 
 def test_a_completely_failed_provider_holds_the_portfolio_and_records_it(tmp_path, scenario, frozen_data):

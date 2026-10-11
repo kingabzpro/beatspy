@@ -29,9 +29,26 @@ from ..engine.metrics import (
 )
 from ..schemas import ConfidenceInterval, RunMetrics
 from .calibration import build_report
+from .state import select_universe
 from .statistics import BOOTSTRAP_DRAWS, block_bootstrap_excess, block_bootstrap_returns
 
 BASELINES = ("equal_weight", "sixty_forty", "momentum_12_1")
+
+
+def selection_weight_fn(scenario, data):
+    """Equal weight over the scenario's point-in-time investable set.
+
+    The fair reference for a narrowed universe: hold the same names the model was
+    given, equally, with no model input at all. It answers "did the model's
+    choices beat simply holding what it was offered?"
+    """
+
+    def fn(day: date, state) -> dict:
+        names = select_universe(data, scenario, day)
+        weight = 1.0 / len(names)
+        return {"weights": {ticker: weight for ticker in names}}
+
+    return fn
 
 
 def estimate_cost(settings, input_tokens: int, output_tokens: int) -> float | None:
@@ -96,6 +113,12 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
         ("momentum_12_1", momentum_weight_fn(scenario, data)),
     ):
         baseline_equity[name] = (await run_backtest(data, decision_dates, fn, scenario)).equity
+    if scenario.selection_top and scenario.selection_top < len(scenario.tradable):
+        # A narrowed universe needs its own reference, or the model looks bad
+        # because the selection rule was bad. This holds the same names equally.
+        baseline_equity["selection_equal_weight"] = (
+            await run_backtest(data, decision_dates, selection_weight_fn(scenario, data), scenario)
+        ).equity
 
     daily_returns = result.equity.pct_change().dropna()
     p_windows = window_returns(result.equity, decision_dates)
@@ -158,13 +181,5 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
         excess_return_ci=excess_return_ci,
     )
 
-    equity_df = pd.DataFrame(
-        {
-            "portfolio": result.equity,
-            "spy_buy_hold": spy_equity,
-            "equal_weight": baseline_equity["equal_weight"],
-            "sixty_forty": baseline_equity["sixty_forty"],
-            "momentum_12_1": baseline_equity["momentum_12_1"],
-        }
-    )
+    equity_df = pd.DataFrame({"portfolio": result.equity, "spy_buy_hold": spy_equity, **baseline_equity})
     return metrics, equity_df

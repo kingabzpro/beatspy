@@ -6,9 +6,14 @@ recent_months = 6
 frequency = "weekly"
 max_decisions = 26
 benchmark = "SPY"
-# 25 investable assets: large companies across all 11 sectors, plus three ETFs.
-# SPY is not listed here: the scenario adds it to the state universe for
-# comparison, and the sizing policy decides whether the book holds it.
+# The pool of 25 assets: large companies across all 11 sectors, plus broad
+# equities and long Treasuries. SPY is not listed here: it is the yardstick,
+# never a holding.
+#
+# Each decision trades only the pool's strongest trailing performers, ranked
+# point-in-time against the benchmark (see `selection_top`). The ranking uses
+# closes dated on or before the decision date, so a name qualifies on what it
+# already did, never on what happens next.
 tradable = [
   "AAPL", "MSFT", "NVDA", "GOOGL", "META",
   "AMZN", "HD", "WMT", "PG", "COST",
@@ -16,5 +21,8 @@ tradable = [
   "XOM", "CVX", "CAT", "GE", "NEE",
   "LIN", "PLD", "AMT", "QQQ", "TLT",
 ]
+# Trade the 12 best trailing six-month performers versus SPY at each decision.
+selection_top = 12
+selection_lookback_days = 126
 max_candidates = 10
 lookback_days = 400
