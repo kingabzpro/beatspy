@@ -238,7 +238,7 @@ for the sequencing section at the very end.
 ## P2 - High (measurable improvement levers)
 
 ### H1. Add CI
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** there is no `.github/workflows`. The suite is hermetic (217 test
   functions across 12 modules, plus 13 node render tests, no network, no keys),
   so continuous integration is free and would have caught V1 the moment the
