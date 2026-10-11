@@ -54,10 +54,9 @@ rebalance band, so weekly noise does not become fees.
 Read it honestly:
 
 - **The return is the pool's beta, not forecasting.** Equal weight over the same
-  25 names made +9.09%; the models finished within a point of that, three of them
-  slightly ahead. Nothing here suggests the probabilities know which asset wins
-  next week: every Brier skill is negative and every AUC p-value is far from
-  significant.
+  25 names made +9.09%; the models finished between 3.1 points behind that and
+  1.5 points ahead, and the ordering does not track probability quality: every
+  Brier skill is negative and every AUC p-value is far from significant.
 - **What actually improved the number was removing a drag.** A trailing-performer
   filter, held equally with no model input, returned −0.94% at twelve names and
   +5.31% at twenty against +9.09% for the whole pool, so it is off. Volatility
@@ -121,34 +120,34 @@ text, and none offers prompt caching (pricing checked 2026-10-08). One run asks
 one question per asset and one call answers them all, so a complete 25-week
 benchmark of all ten models costs about **$0.22**.
 
-Two routers serve decision models from other providers, and the benchmark speaks
-their contract directly (verified live 2026-10-12):
+Twelve more decision models are reachable through aggregator APIs that speak the
+same typed-question contract, and the benchmark calls them directly (verified
+live 2026-10-12). Names here are display names; `beatspy models` prints the
+runnable ids and endpoints:
 
-| Model | Route | Upstream | Input price |
-| --- | --- | --- | --- |
-| `requesty-clef` | Requesty `/v1/decisions` | Sference Clef | $0.24 / 1M |
-| `openrouter-pplx-decider` | OpenRouter | Perplexity Decider 27B v1.1 | $0.02 / 1M |
-| `openrouter-solar-decide` | OpenRouter `/api/alpha/decisions` | Upstage Solar Decide | $0.05 / 1M |
-| `openrouter-mercury-decide` | OpenRouter | Inception Mercury Decide | $0.02 / 1M |
-| `openrouter-jev-1-13` | OpenRouter | TypeSafe Jev 1.13, pinned | $0.042 / 1M |
-| `openrouter-microsoft-decision-1` | OpenRouter | Microsoft Decision 1 | $0.042 / 1M |
-| `openrouter-liquid-d1` | OpenRouter | Liquid D1 | $0.04 / 1M |
-| `openrouter-clef-omni` | OpenRouter | Cloudflare Clef Omni | $0.15 / 1M |
-| `openrouter-drex` | OpenRouter | Nace AI Drex v1.5 | $0.04 / 1M |
-| `openrouter-kev-4b` | OpenRouter | Kev 4B, open weights | $0.042 / 1M |
-| `openrouter-solar-decide-flash` | OpenRouter | Upstage Solar Decide Flash | $0.05 / 1M |
-| `openrouter-tev1` | OpenRouter | Together Tev1 4B, experimental | $0.042 / 1M |
+| Model | Upstream | Input price |
+| --- | --- | --- |
+| `pplx-decider` | Perplexity Decider 27B v1.1 | $0.02 / 1M |
+| `solar-decide` | Upstage Solar Decide | $0.05 / 1M |
+| `mercury-decide` | Inception Mercury Decide | $0.02 / 1M |
+| `jev-1-13` | TypeSafe Jev 1.13, pinned | $0.042 / 1M |
+| `ms-decision-1` | Microsoft Decision 1 | $0.042 / 1M |
+| `liquid-d1` | Liquid D1 | $0.04 / 1M |
+| `clef-omni` | Cloudflare Clef Omni | $0.15 / 1M |
+| `drex-v1.5` | Nace AI Drex v1.5 | $0.04 / 1M |
+| `kev-4b` | Kev 4B, open weights | $0.042 / 1M |
+| `solar-decide-flash` | Upstage Solar Decide Flash | $0.05 / 1M |
+| `tev1` | Together Tev1 4B, experimental | $0.042 / 1M |
+| `requesty-clef` | Sference Clef | $0.24 / 1M |
 
-`openrouter.ai/api/v1/models?output_modalities=decisions` is the live list, and
-on 2026-10-12 it served nineteen decision models. Router-served models bill
-against the OpenRouter balance, and with a zero balance the platform returns
-HTTP 402 once its free allowance is spent, which shows up as missing coverage
-rather than an error; three models (both Upstage Solar builds and Together's
-Tev1) stopped part way for that reason and are not on the board. Two
-caveats worth knowing: OpenAI and TypeSafe expose native decision heads, while
-Anthropic and Google emulate them with structured output (their P(true) is a
-prompted estimate and their choice and score answers carry no distribution), so
-the emulated routes are not in the table yet.
+Aggregator-served models bill against the aggregator's balance, and with a zero
+balance the platform returns HTTP 402 once its free allowance is spent, which
+shows up as missing coverage rather than an error; three models (both Upstage
+Solar builds and Together's Tev1) stopped part way for that reason and are not
+on the board. Two caveats worth knowing: OpenAI and TypeSafe expose native
+decision heads, while Anthropic and Google emulate them with structured output
+(their P(true) is a prompted estimate and their choice and score answers carry
+no distribution), so the emulated routes are not in the table yet.
 
 ## Quick start
 
