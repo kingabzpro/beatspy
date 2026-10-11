@@ -40,6 +40,15 @@ class TestFreeze:
         assert first["prices_sha256"] == second["prices_sha256"]
         assert first_id == second_id
 
+    def test_manifest_records_library_versions_without_changing_the_id(self, scenario, tmp_path, monkeypatch):
+        monkeypatch.setattr(freeze, "download_ohlc", lambda *a, **k: make_prices(scenario.universe))
+        manifest = freeze.freeze_snapshot(scenario, root=tmp_path)
+        assert manifest["libraries"]["yfinance"] != ""
+        assert manifest["libraries"]["pandas"] != ""
+        # The id is computed from the data, so metadata cannot move it.
+        without = {key: value for key, value in manifest.items() if key != "libraries"}
+        assert freeze.snapshot_id(manifest) == freeze.snapshot_id(without)
+
     def test_tampered_snapshot_is_rejected(self, scenario, tmp_path, monkeypatch):
         monkeypatch.setattr(freeze, "download_ohlc", lambda *a, **k: make_prices(scenario.universe))
         freeze.freeze_snapshot(scenario, root=tmp_path)

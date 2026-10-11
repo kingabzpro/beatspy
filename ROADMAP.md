@@ -80,7 +80,7 @@ for the sequencing section at the very end.
   match it against `state_sha256`.
 
 ### L5. Record data library versions in the snapshot manifest
-`effort: S` · `status: todo`
+`effort: S` · `status: done`
 - **Why:** `data/freeze.py` records `source`, `fetched_at_utc`, and content hashes,
   but not the versions of yfinance, pandas, or exchange-calendars. Adjusted-price
   conventions can shift between yfinance releases, which would silently change a

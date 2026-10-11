@@ -61,6 +61,24 @@ def snapshot_id(manifest: dict) -> str:
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
 
+def _library_versions() -> dict[str, str]:
+    """Versions of the libraries whose conventions shape the frozen prices.
+
+    Adjusted-price conventions can change between yfinance releases, so the
+    manifest records what produced it. Purely informational: snapshot ids are
+    computed from the data itself and are unaffected.
+    """
+    import importlib.metadata as metadata
+
+    versions = {}
+    for name in ("yfinance", "pandas", "numpy", "exchange-calendars"):
+        try:
+            versions[name] = metadata.version(name)
+        except metadata.PackageNotFoundError:  # pragma: no cover - environment specific
+            versions[name] = "unknown"
+    return versions
+
+
 def validate_prices(prices: pd.DataFrame, scenario: Scenario) -> None:
     if prices.empty or list(prices.columns) != PRICE_COLUMNS:
         raise ValueError("missing prices or invalid price columns")
@@ -145,6 +163,7 @@ def freeze_snapshot(scenario: Scenario, root: Path | None = None) -> dict:
             "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
             "prices_sha256": sha256(staging / "prices.csv"),
             "fetched_at_utc": datetime.now(UTC).isoformat(timespec="seconds"),
+            "libraries": _library_versions(),
         }
         manifest["snapshot_id"] = snapshot_id(manifest)
         atomic_json(staging / "MANIFEST.json", manifest)
