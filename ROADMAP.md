@@ -228,7 +228,7 @@ for the sequencing section at the very end.
   credential-free check. Diagnostics go to stderr so `--json` stays parseable.
 
 ### M10. Write the power-analysis note
-`effort: M` · `status: todo` · `depends on: V3`
+`effort: M` · `status: done` · `depends on: V3`
 - **Why:** the README warns "one window is one draw" but gives no scale. With 25
   weekly clusters, the minimum detectable BSS or excess return is probably much
   larger than the differences between models.
@@ -236,6 +236,15 @@ for the sequencing section at the very end.
   clusters using the V3 bootstrap machinery, and put the numbers in the docs.
 - **Done when:** the docs state the smallest effect the current schedule can
   distinguish from noise.
+- **Progress (2026-10-11):** `examples/power_analysis.py` simulates both the
+  block bootstrap and both permutation tests. Findings now in the README: at
+  ~1% daily volatility a 25-window run detects a 20%/year excess 14% of the time
+  (250 windows for 80% power), and at the observed probability spread the
+  Brier-skill test is nearly blind (3% power against a perfectly calibrated
+  AUC-0.55 model even at 100 windows) while the AUC test finds it 68% of the
+  time at 25 windows. Both tests hold their nominal 5% rate under the null. This
+  is the evidence for V4: the published single window is a description, not a
+  test, and `auc_p_value` is the sensitive statistic to read.
 
 ---
 

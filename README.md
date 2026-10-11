@@ -192,6 +192,34 @@ forecasting one.
 ranking is a sample from a distribution wider than most differences between
 models. Report the dispersion, not the peak.
 
+**How much a window can tell you, measured.** `examples/power_analysis.py`
+simulates the benchmark's own tests (the block bootstrap and both permutation
+p-values) to estimate what they can detect. For a book with about 1% daily
+volatility, the share of simulated runs whose 95% interval excludes a true
+excess of a given size:
+
+| Decision windows | 2%/yr | 5%/yr | 10%/yr | 20%/yr |
+| --- | --- | --- | --- | --- |
+| 25 (the published run) | 6% | 6% | 7% | 14% |
+| 50 | 5% | 6% | 10% | 26% |
+| 100 | 4% | 6% | 14% | 44% |
+| 250 | 5% | 8% | 28% | 79% |
+
+A six-month, 25-decision benchmark cannot separate a 20%/year edge from luck;
+roughly 250 weekly windows are needed for 80% power at that effect size. The
+table is a description of the sample, not a test of the model.
+
+For calibration at the observed probability spread (sd about 0.05), the two
+p-values behave very differently, which is why every signal reports both. A
+perfectly calibrated informative model (AUC 0.55) is rejected by the
+Brier-skill test only 3% of the time even at 100 windows, because the Brier
+score is dominated by its calibration term when probabilities sit near 0.5;
+the AUC test catches the same model 68% of the time at 25 windows and
+essentially always at 100. Under the null both tests hold their nominal 5%
+rate. In short: at these spreads, `auc_p_value` is the test that can see a
+ranking edge, and `brier_skill_p_value` mostly cannot. The script prints the
+full tables and the assumptions behind them.
+
 **Brier alone cannot say which way a model is wrong.** It is invariant under
 flipping both the probability and the outcome distribution. The reliability bins
 and accuracy are what distinguish "confidently wrong" from "hedging".
