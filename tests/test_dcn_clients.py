@@ -542,7 +542,8 @@ class TestRouterProviders:
         "model",
         ["requesty-clef", "openrouter-pplx-decider", "openrouter-solar-decide", "openrouter-mercury-decide",
          "openrouter-jev-1-13", "openrouter-microsoft-decision-1", "openrouter-liquid-d1",
-         "openrouter-clef-omni", "openrouter-drex"],
+         "openrouter-clef-omni", "openrouter-drex", "openrouter-kev-4b",
+         "openrouter-solar-decide-flash", "openrouter-tev1"],
     )
     def test_router_models_parse_a_typed_answer(self, model, monkeypatch):
         key_env = DECISION_MODELS[model]["api_key_env"]

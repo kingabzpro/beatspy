@@ -1584,6 +1584,402 @@
       "synthetic": false,
       "trust": "local",
       "year": "2026"
+    },
+    {
+      "answer_coverage": 1.0,
+      "auc": 0.49423,
+      "auc_p_value": 0.381618,
+      "brier": 0.359388,
+      "brier_skill_p_value": 0.636364,
+      "brier_skill_score": -0.454264,
+      "calibration_gap": null,
+      "created_utc": "2026-10-11T19:53:43+00:00",
+      "data_cutoff": "2026-10-09",
+      "decisions": 25,
+      "dir": "runs/20261011-195343_2026-6m_openrouter-liquid-d1_733f138929",
+      "ece": 0.307905,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.07924,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.183123,
+        "method": "decision-window block bootstrap",
+        "upper": 0.039045
+      },
+      "group": "2f950c3d05d74409",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.91165,
+      "mean_latency_s": 0.994,
+      "metrics": {
+        "annual_volatility": 0.106953,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.2171,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.169898,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5328,
+              "auc": 0.49423,
+              "auc_p_value": 0.381618,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 288,
+                  "lower": 0.0,
+                  "mean_predicted": 0.034958,
+                  "observed_rate": 0.451389,
+                  "upper": 0.1
+                },
+                {
+                  "count": 75,
+                  "lower": 0.1,
+                  "mean_predicted": 0.140228,
+                  "observed_rate": 0.4,
+                  "upper": 0.2
+                },
+                {
+                  "count": 39,
+                  "lower": 0.2,
+                  "mean_predicted": 0.245158,
+                  "observed_rate": 0.410256,
+                  "upper": 0.3
+                },
+                {
+                  "count": 38,
+                  "lower": 0.3,
+                  "mean_predicted": 0.346105,
+                  "observed_rate": 0.394737,
+                  "upper": 0.4
+                },
+                {
+                  "count": 20,
+                  "lower": 0.4,
+                  "mean_predicted": 0.438731,
+                  "observed_rate": 0.6,
+                  "upper": 0.5
+                },
+                {
+                  "count": 37,
+                  "lower": 0.5,
+                  "mean_predicted": 0.550711,
+                  "observed_rate": 0.486486,
+                  "upper": 0.6
+                },
+                {
+                  "count": 34,
+                  "lower": 0.6,
+                  "mean_predicted": 0.647648,
+                  "observed_rate": 0.470588,
+                  "upper": 0.7
+                },
+                {
+                  "count": 51,
+                  "lower": 0.7,
+                  "mean_predicted": 0.752492,
+                  "observed_rate": 0.470588,
+                  "upper": 0.8
+                },
+                {
+                  "count": 38,
+                  "lower": 0.8,
+                  "mean_predicted": 0.846889,
+                  "observed_rate": 0.473684,
+                  "upper": 0.9
+                },
+                {
+                  "count": 5,
+                  "lower": 0.9,
+                  "mean_predicted": 0.91165,
+                  "observed_rate": 0.0,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.359388,
+              "brier_skill_p_value": 0.636364,
+              "brier_skill_score": -0.454264,
+              "expected_calibration_error": 0.307905,
+              "log_loss": 1.233851,
+              "max_calibration_error": 0.91165,
+              "mean_predicted": 0.271338,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.07924,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.183123,
+          "method": "decision-window block bootstrap",
+          "upper": 0.039045
+        },
+        "excess_return_vs_spy": -0.068616,
+        "input_tokens": 1981000,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.040398,
+        "mean_latency_s": 0.994,
+        "outperformance_hit_rate": 0.4,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.052653,
+          "method": "decision-window block bootstrap",
+          "upper": 0.2231
+        },
+        "risk_violations": 0,
+        "sharpe": 1.5206,
+        "spy_total_return": 0.150909,
+        "total_return": 0.082292,
+        "trades": 624
+      },
+      "model": "openrouter-liquid-d1",
+      "model_label": "Liquid D1 via OpenRouter",
+      "noul_brier": 0.359388,
+      "noul_ece": 0.307905,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.04,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "openrouter",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.052653,
+        "method": "decision-window block bootstrap",
+        "upper": 0.2231
+      },
+      "run_id": "20261011-195343_2026-6m_openrouter-liquid-d1_733f138929",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "answer_coverage": 1.0,
+      "auc": 0.545399,
+      "auc_p_value": 0.270729,
+      "brier": 0.265543,
+      "brier_skill_p_value": 0.569431,
+      "brier_skill_score": -0.074518,
+      "calibration_gap": null,
+      "created_utc": "2026-10-11T19:53:55+00:00",
+      "data_cutoff": "2026-10-09",
+      "decisions": 25,
+      "dir": "runs/20261011-195355_2026-6m_openrouter-kev-4b_c91bb44025",
+      "ece": 0.138954,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.00442,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.162832,
+        "method": "decision-window block bootstrap",
+        "upper": 0.073391
+      },
+      "group": "2f950c3d05d74409",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.182812,
+      "mean_latency_s": 1.449,
+      "metrics": {
+        "annual_volatility": 0.109117,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.185633,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.219923,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.4464,
+              "auc": 0.545399,
+              "auc_p_value": 0.270729,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 0,
+                  "lower": 0.2,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.3
+                },
+                {
+                  "count": 0,
+                  "lower": 0.3,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.4
+                },
+                {
+                  "count": 0,
+                  "lower": 0.4,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.5
+                },
+                {
+                  "count": 501,
+                  "lower": 0.5,
+                  "mean_predicted": 0.579196,
+                  "observed_rate": 0.451098,
+                  "upper": 0.6
+                },
+                {
+                  "count": 124,
+                  "lower": 0.6,
+                  "mean_predicted": 0.610231,
+                  "observed_rate": 0.427419,
+                  "upper": 0.7
+                },
+                {
+                  "count": 0,
+                  "lower": 0.7,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.265543,
+              "brier_skill_p_value": 0.569431,
+              "brier_skill_score": -0.074518,
+              "expected_calibration_error": 0.138954,
+              "log_loss": 0.724658,
+              "max_calibration_error": 0.182812,
+              "mean_predicted": 0.585354,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.00442,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.162832,
+          "method": "decision-window block bootstrap",
+          "upper": 0.073391
+        },
+        "excess_return_vs_spy": -0.045536,
+        "input_tokens": 105242,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.041162,
+        "mean_latency_s": 1.449,
+        "outperformance_hit_rate": 0.32,
+        "output_tokens": 15484,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.042336,
+          "method": "decision-window block bootstrap",
+          "upper": 0.288451
+        },
+        "risk_violations": 0,
+        "sharpe": 1.8765,
+        "spy_total_return": 0.150909,
+        "total_return": 0.105373,
+        "trades": 625
+      },
+      "model": "openrouter-kev-4b",
+      "model_label": "Kev 4B (open) via OpenRouter",
+      "noul_brier": 0.265543,
+      "noul_ece": 0.138954,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "openrouter",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.042336,
+        "method": "decision-window block bootstrap",
+        "upper": 0.288451
+      },
+      "run_id": "20261011-195355_2026-6m_openrouter-kev-4b_c91bb44025",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
     }
   ],
   "schema_version": 1,
