@@ -155,23 +155,30 @@ if (typeof document !== "undefined") {
     for (const [key, value] of Object.entries(attrs || {})) result.setAttribute(key, String(value));
     return result;
   };
-  // [row key, heading, formatter, source of the value]
+  // [row key, heading, formatter, source of the value]. "vs pool" is the number
+  // that isolates the model: its return minus simply holding the same universe
+  // equally, which is what the scenario hands it.
   const COLUMNS = [
-    ["model", "Decision model", "text", "row"],
+    ["model", "Model", "text", "row"],
     ["provider", "Provider", "text", "row"],
     ["total_return", "Return", "percent", "metrics"],
-    ["excess_return_vs_spy", "Excess vs SPY", "signed", "metrics"],
+    ["return_vs_pool", "vs pool", "signed", "computed"],
+    ["excess_return_vs_spy", "vs SPY", "signed", "metrics"],
     ["sharpe", "Sharpe", "ratio", "metrics"],
     ["max_drawdown", "Max DD", "percent", "metrics"],
+    ["avg_turnover", "Turnover", "percent", "metrics"],
     ["brier", "Brier", "score", "row"],
-    ["brier_skill_score", "Brier skill", "score", "row"],
+    ["brier_skill_score", "Skill", "score", "row"],
     ["auc", "AUC", "score", "row"],
-    ["ece", "ECE", "score", "row"],
+    ["auc_p_value", "p(AUC)", "score", "row"],
     ["estimated_cost_usd", "Cost", "money", "row"],
-    ["mean_latency_s", "Mean latency", "millis", "row"],
-    ["decisions", "Decisions", "count", "row"],
-    ["invalid_outputs", "Invalid", "count", "row"],
   ];
+  const COMPUTED = {
+    return_vs_pool: run => {
+      const total = run.metrics?.total_return, pool = run.metrics?.baselines?.equal_weight;
+      return Number.isFinite(total) && Number.isFinite(pool) ? total - pool : null;
+    },
+  };
   const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count,
     // Decision-model costs land in fractions of a cent, so four decimals would
     // render several providers as the same $0.0000. Show micro-dollars instead.
@@ -188,7 +195,11 @@ if (typeof document !== "undefined") {
       if (!Number.isFinite(ms)) return "n/a";
       return ms >= 1000 ? `${(ms / 1000).toFixed(1)} s` : `${Math.round(ms)} ms`;
     }};
-  const rowValue = (run, key, source) => key === "model" ? modelName(run.model) : source === "metrics" ? run.metrics?.[key] : run[key];
+  const rowValue = (run, key, source) => {
+    if (key === "model") return modelName(run.model);
+    if (source === "computed") return COMPUTED[key] ? COMPUTED[key](run) : null;
+    return source === "metrics" ? run.metrics?.[key] : run[key];
+  };
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
 
