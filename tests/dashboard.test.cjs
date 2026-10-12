@@ -315,7 +315,7 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
   // The front page carries the board and one paragraph that reads it.
   assert.match($('summary').textContent, /2 models, 9 weekly decisions\./);
-  assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, clef-flash, returned \+5\.00%\./);
+  assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, Clef-Flash, returned \+5\.00%\./);
   assert.match($('summary').textContent, /Every Brier skill is negative/);
   // The board carries the headline metrics only.
   const headers = table.children[0].descendants()
@@ -337,7 +337,7 @@ test('the run page loads one run from the query string', async () => {
   await settle();
   const $ = id => elements.get(id);
   assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
-  assert.match($('run-title').textContent, /clef-flash/);
+  assert.match($('run-title').textContent, /Clef-Flash/);
   // The run summary: sixteen tiles, each with the line that reads it.
   assert.equal($('metrics').children.length, 16);
   const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
@@ -380,7 +380,10 @@ test('the pricing page renders the standardized table', async () => {
   assert.equal(pricingRows.length, 3, 'header + one row per model on the board');
   assert.deepEqual(pricingRows[0].children.map(cell => cell.textContent),
     ['Model', 'Input $ / 1M', 'Tokens / decision', 'Cost / decision', 'Run cost', 'Source']);
-  assert.deepEqual(pricingRows.slice(1).map(row => row.children[0].textContent).sort(), ['clef', 'clef-flash']);
+  // The model cell carries the creator's logo plus the display name.
+  const cellText = row => row.children[0].descendants()
+    .map(child => (typeof child === "string" ? child : child.textContent)).join("");
+  assert.deepEqual(pricingRows.slice(1).map(row => cellText(row)).sort(), ['Clef', 'Clef-Flash']);
   for (const row of pricingRows.slice(1)) {
     assert.match(row.children[1].textContent, /^\$\d+\.\d{3}$/);   // list rate per 1M input tokens
     assert.equal(row.children[2].textContent, '111');              // 1000 billed tokens over 9 decisions

@@ -75,6 +75,26 @@ function modelName(model) {
   return String(model).replace(/^openrouter-/, "").split("/").at(-1);
 }
 
+// Presentation only: how each model reads, and the logo of the company that
+// built it. Raw ids stay in the artifacts; OpenRouter is deliberately absent
+// because it is the transport for the routed rows, not the creator.
+const MODEL_META = {
+  "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
+  "jev-latest": ["Jev-Latest", "typesafe.png"],
+  "clef": ["Clef", "cloudflare.svg"],
+  "clef-flash": ["Clef-Flash", "cloudflare.svg"],
+  "clef-omni": ["Clef-Omni", "cloudflare.svg"],
+  "pplx-decider": ["Pplx-Decider", "perplexity.svg"],
+  "microsoft-decision-1": ["Microsoft Decision 1", "microsoft.ico"],
+  "kev-4b": ["Kev-4B", "jaredpalmer.ico"],
+  "liquid-d1": ["Liquid D1", "liquid.ico"],
+  "drex": ["Drex v1.5", "nace.svg"],
+  "span-01-lite": ["Span-01 Lite", "respan.ico"],
+  "span-01": ["Span-01", "respan.ico"],
+};
+const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
+const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
+
 function leaderboardRuns(runs) {
   const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(a.run_id)));
   const models = new Map();
@@ -243,7 +263,16 @@ if (typeof document !== "undefined") {
     head.append(header); element.append(head, body);
     for (const {run, rates, tokens, perDecision, cost} of records) {
       const row = node("tr");
-      row.append(node("td", modelName(run.model)),
+      const modelCell = node("td");
+      const logo = companyLogo(run.model);
+      if (logo) {
+        const img = node("img");
+        img.className = "model-logo"; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+        img.src = `assets/logos/${logo}`;
+        modelCell.append(img);
+      }
+      modelCell.append(displayModel(run.model));
+      row.append(modelCell,
         node("td", typeof rates?.input === "number" ? `$${rates.input.toFixed(3)}` : "n/a", "num"),
         node("td", tokens === null ? "n/a" : tokens.toLocaleString(), "num"),
         node("td", preciseDollars(perDecision), "num"),
@@ -269,7 +298,7 @@ if (typeof document !== "undefined") {
         + "for the published 25-decision window."
       : "");
     runBars("model-costs", onBoard
-      .map(run => ({label: modelName(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
+      .map(run => ({label: displayModel(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
       .sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)));
   }
   function renderBoard() {
@@ -307,7 +336,7 @@ if (typeof document !== "undefined") {
     const signedPercent = value => Number.isFinite(value) && value > 0 ? `+${percent(value)}` : percent(value);
     if (visible.length) {
       const scored = visible.map(run => ({
-        name: modelName(run.model),
+        name: displayModel(run.model),
         total: Number(run.metrics?.total_return),
         excess: Number(run.metrics?.excess_return_vs_spy),
         skill: Number(run.brier_skill_score),
@@ -354,8 +383,15 @@ if (typeof document !== "undefined") {
       row.append(node("td", ranks.get(run.run_id), "col-rank"));
       // A real link: the run detail is its own page, so a row can be opened in a
       // new tab and shared as a URL.
-      const td = node("td", undefined, "col-model"), link = node("a", modelName(run.model), "run-button");
+      const td = node("td", undefined, "col-model"), link = node("a", displayModel(run.model), "run-button");
       link.href = `run.html?run=${encodeURIComponent(run.run_id)}`;
+      const logo = companyLogo(run.model);
+      if (logo) {
+        const img = node("img");
+        img.className = "model-logo"; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+        img.src = `assets/logos/${logo}`;
+        td.append(img);
+      }
       td.append(link);
       if (run.synthetic) {
         // Mark the row itself: the details panel is one click away, and a
@@ -551,7 +587,7 @@ if (typeof document !== "undefined") {
       const calibration = metrics.calibration || run.metrics.calibration || {};
       setHidden("run-details", false);
       setText("status", "");
-      $("run-title").textContent = `${modelName(run.model)} · ${run.question_form} questions`;
+      $("run-title").textContent = `${displayModel(run.model)} · ${run.question_form} questions`;
       $("run-trust").textContent = TRUST[run.trust] || "Unrecorded";
       $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
       $("metrics").replaceChildren();
