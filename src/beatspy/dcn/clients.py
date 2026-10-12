@@ -360,6 +360,16 @@ class OpenRouterDecisionsClient(TypeSafeClient):
 
     provider = "openrouter"
 
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        method, url, headers, body = super().build_request(state, questions)
+        # Respan takes the state only as text, noul questions only, and their
+        # instructions only as a plain string: the same JSON travels serialized.
+        if self.model.startswith("respan/"):
+            body["state"] = _state_text(state)
+            for question in body["questions"].values():
+                question["instructions"] = _flatten(question["instructions"])
+        return method, url, headers, body
+
 
 def _state_text(state: dict) -> str:
     import json
