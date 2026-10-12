@@ -14,7 +14,7 @@ import shutil
 from pathlib import Path
 
 from ..artifacts import RUN_FILES, atomic_json
-from .catalog import summary
+from .catalog import decision_actions, summary
 
 log = logging.getLogger(__name__)
 
@@ -47,6 +47,10 @@ def collect_runs(results_root: Path) -> list[dict]:
             meta.setdefault("run_id", directory.name)
             row = summary(meta, metrics, directory.name, "local")
             row.update(meta=meta, endpoint=(meta.get("decision") or {}).get("endpoint", "?"))
+            try:
+                row["actions"] = decision_actions(directory)
+            except (OSError, ValueError):
+                row["actions"] = None
             runs.append(row)
         except (OSError, ValueError, TypeError, AttributeError) as exc:
             log.warning("skipping unreadable run %s: %s", directory.name, exc)

@@ -113,6 +113,50 @@ def calibration_row(metrics) -> dict:
     return row
 
 
+def decision_actions(run_dir: Path, band: float = 0.02) -> dict | None:
+    """Share of name-level decisions that were buys, sells, and holds.
+
+    A name is a hold when its target moved less than the trading band, which is
+    exactly the case where nothing is traded; entering a name is a buy and
+    leaving one is a sell. The first decision is all buys from cash. Read from
+    the run's own recorded target books, so no policy is re-derived.
+    """
+    weights_by_date = []
+    for line in (Path(run_dir) / "decisions.jsonl").read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        record = json.loads(line)
+        if record.get("validated") and not record["validated"].get("invalid"):
+            weights = {str(t).upper(): float(w) for t, w in record["validated"].get("weights", {}).items()}
+            weights_by_date.append((record.get("date", ""), weights))
+    if len(weights_by_date) < 2:
+        return None
+    weights_by_date.sort(key=lambda item: item[0])
+    buys = sells = holds = 0
+    for index, (_, weights) in enumerate(weights_by_date):
+        previous = weights_by_date[index - 1][1] if index else {}
+        for ticker in set(previous) | set(weights):
+            before, after = previous.get(ticker, 0.0), weights.get(ticker, 0.0)
+            if after > before + band:
+                buys += 1
+            elif after < before - band:
+                sells += 1
+            else:
+                holds += 1
+    total = buys + sells + holds
+    if not total:
+        return None
+    count = len(weights_by_date)
+    return {
+        "buy": buys / total,
+        "sell": sells / total,
+        "hold": holds / total,
+        "avg_buys": buys / count,
+        "avg_sells": sells / count,
+        "avg_holds": holds / count,
+    }
+
+
 def summary(meta, metrics, directory, trust="replayed") -> dict:
     """Flatten one recorded run into a catalog row."""
     scenario = meta.get("scenario") or {}
@@ -167,7 +211,12 @@ def build_catalog(data_root: Path, *, validate: bool = True):
             continue
         meta = validate_run_meta(directory) if validate else read_json(directory / "run.json")
         metrics = read_json(directory / "metrics.json")
-        runs.append(summary(meta, metrics, f"runs/{directory.name}", "replayed"))
+        row = summary(meta, metrics, f"runs/{directory.name}", "replayed")
+        try:
+            row["actions"] = decision_actions(directory)
+        except (OSError, ValueError):
+            row["actions"] = None
+        runs.append(row)
     atomic_json(data_root / "index.json", {"schema_version": 1, "default_trust": "all", "runs": runs})
     return runs
 

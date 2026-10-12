@@ -2,6 +2,14 @@
   "default_trust": "all",
   "runs": [
     {
+      "actions": {
+        "avg_buys": 3.6,
+        "avg_holds": 18.0,
+        "avg_sells": 3.4,
+        "buy": 0.144,
+        "hold": 0.72,
+        "sell": 0.136
+      },
       "answer_coverage": 1.0,
       "auc": 0.47634,
       "auc_p_value": 0.556444,
@@ -199,6 +207,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 4.72,
+        "avg_holds": 16.12,
+        "avg_sells": 4.16,
+        "buy": 0.1888,
+        "hold": 0.6448,
+        "sell": 0.1664
+      },
       "answer_coverage": 1.0,
       "auc": 0.478023,
       "auc_p_value": 0.538462,
@@ -396,6 +412,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 4.0,
+        "avg_holds": 17.4,
+        "avg_sells": 3.6,
+        "buy": 0.16,
+        "hold": 0.696,
+        "sell": 0.144
+      },
       "answer_coverage": 1.0,
       "auc": 0.501766,
       "auc_p_value": 0.213786,
@@ -593,6 +617,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 3.64,
+        "avg_holds": 17.88,
+        "avg_sells": 3.48,
+        "buy": 0.1456,
+        "hold": 0.7152,
+        "sell": 0.1392
+      },
       "answer_coverage": 1.0,
       "auc": 0.490449,
       "auc_p_value": 0.465534,
@@ -790,6 +822,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 4.48,
+        "avg_holds": 16.56,
+        "avg_sells": 3.96,
+        "buy": 0.1792,
+        "hold": 0.6624,
+        "sell": 0.1584
+      },
       "answer_coverage": 1.0,
       "auc": 0.476464,
       "auc_p_value": 0.509491,
@@ -987,6 +1027,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 6.2,
+        "avg_holds": 13.0,
+        "avg_sells": 5.8,
+        "buy": 0.248,
+        "hold": 0.52,
+        "sell": 0.232
+      },
       "answer_coverage": 1.0,
       "auc": 0.471741,
       "auc_p_value": 0.735265,
@@ -1184,6 +1232,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 3.76,
+        "avg_holds": 17.8,
+        "avg_sells": 3.44,
+        "buy": 0.1504,
+        "hold": 0.712,
+        "sell": 0.1376
+      },
       "answer_coverage": 1.0,
       "auc": 0.489869,
       "auc_p_value": 0.613387,
@@ -1381,6 +1437,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 4.28,
+        "avg_holds": 17.0,
+        "avg_sells": 3.72,
+        "buy": 0.1712,
+        "hold": 0.68,
+        "sell": 0.1488
+      },
       "answer_coverage": 1.0,
       "auc": 0.462231,
       "auc_p_value": 0.816184,
@@ -1578,6 +1642,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 4.04,
+        "avg_holds": 17.28,
+        "avg_sells": 3.68,
+        "buy": 0.1616,
+        "hold": 0.6912,
+        "sell": 0.1472
+      },
       "answer_coverage": 1.0,
       "auc": 0.49423,
       "auc_p_value": 0.381618,
@@ -1775,6 +1847,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 4.52,
+        "avg_holds": 16.6,
+        "avg_sells": 3.88,
+        "buy": 0.1808,
+        "hold": 0.664,
+        "sell": 0.1552
+      },
       "answer_coverage": 1.0,
       "auc": 0.545399,
       "auc_p_value": 0.270729,
@@ -1972,6 +2052,14 @@
       "year": "2026"
     },
     {
+      "actions": {
+        "avg_buys": 1.4,
+        "avg_holds": 22.76,
+        "avg_sells": 0.84,
+        "buy": 0.056,
+        "hold": 0.9104,
+        "sell": 0.0336
+      },
       "answer_coverage": 1.0,
       "auc": 0.550904,
       "auc_p_value": 0.080919,

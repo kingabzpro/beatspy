@@ -18,6 +18,7 @@ from beatspy.reporting.catalog import (
     SAFE_ID,
     build_catalog,
     comparison_group,
+    decision_actions,
     read_json,
     sanitized,
     summary,
@@ -181,7 +182,7 @@ def test_build_catalog_index_carries_the_calibration_fields(dcn_run_dir: Path, t
     assert catalog["default_trust"] == "all"
     assert "selected" not in catalog
     row = catalog["runs"][0]
-    assert set(row) == INDEX_ROW_KEYS | {"noul_brier", "noul_ece", "choice_brier", "choice_ece"}
+    assert set(row) == INDEX_ROW_KEYS | {"noul_brier", "noul_ece", "choice_brier", "choice_ece", "actions"}
     assert row["trust"] == "replayed"
     for key in CALIBRATION_ROW_KEYS:
         assert row[key] is not None, key
@@ -189,6 +190,9 @@ def test_build_catalog_index_carries_the_calibration_fields(dcn_run_dir: Path, t
     assert 0.0 <= row["ece"] <= 1.0
     assert row["calibration_gap"] and row["calibration_gap"] > 0
     assert row["metrics"]["calibration"]["signals"]["choice"]["bins"]
+    # The fixture carries several decisions, so their buy/sell/hold split is present.
+    actions = row["actions"]
+    assert actions is not None and abs(actions["buy"] + actions["sell"] + actions["hold"] - 1.0) < 1e-9
 
 
 def test_build_catalog_rejects_symlinked_roots(tmp_path: Path):
@@ -200,6 +204,26 @@ def test_build_catalog_rejects_symlinked_roots(tmp_path: Path):
         pytest.skip("this host does not permit creating symlinks")
     with pytest.raises(ValueError, match="symlink"):
         build_catalog(data_root)
+
+
+def test_decision_actions_counts_band_holds_buys_and_sells(tmp_path: Path):
+    lines = [
+        {"date": "2026-01-02", "validated": {"invalid": False, "weights": {"AAPL": 0.10, "MSFT": 0.10}}},
+        # MSFT cut past the band (sell), NVDA entered (buy), AAPL unchanged (hold).
+        {"date": "2026-01-09", "validated": {"invalid": False, "weights": {"AAPL": 0.10, "MSFT": 0.05, "NVDA": 0.05}}},
+        # AAPL up 1.5pp stays inside the 2% band (hold), MSFT rebuilt (buy), NVDA steady (hold).
+        {"date": "2026-01-16", "validated": {"invalid": False, "weights": {"AAPL": 0.115, "MSFT": 0.10, "NVDA": 0.05}}},
+        # An invalid decision carries no target book, so it is skipped entirely.
+        {"date": "2026-01-23", "validated": {"invalid": True, "weights": {}}},
+    ]
+    (tmp_path / "decisions.jsonl").write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")
+    actions = decision_actions(tmp_path)
+    # 8 name-actions: 4 buys (2 openings, NVDA entering, MSFT rebuilt), 1 sell, 3 holds.
+    assert actions["buy"] == 4 / 8 and actions["sell"] == 1 / 8 and actions["hold"] == 3 / 8
+    assert actions["avg_buys"] == 4 / 3 and actions["avg_sells"] == 1 / 3 and actions["avg_holds"] == 1.0
+    # A run with a single recorded decision has nothing to compare against.
+    (tmp_path / "decisions.jsonl").write_text(json.dumps(lines[0]) + "\n", encoding="utf-8")
+    assert decision_actions(tmp_path) is None
 
 
 def test_sanitized_redacts_secrets_and_drops_credential_keys():

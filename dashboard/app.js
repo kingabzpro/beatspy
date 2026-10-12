@@ -226,6 +226,19 @@ if (typeof document !== "undefined") {
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
 
+  // How much of the book each model actually trades, from the catalog's
+  // recorded action shares. A hold is a name whose target stayed inside the
+  // policy's trading band, so nothing was bought or sold.
+  function holdsSentence(rows) {
+    const withActions = rows.filter(row => row.actions && Number.isFinite(Number(row.actions.hold)));
+    if (withActions.length < 2) return "";
+    const average = withActions.reduce((sum, row) => sum + Number(row.actions.hold), 0) / withActions.length;
+    const steadiest = withActions.reduce((a, b) => (Number(b.actions.hold) > Number(a.actions.hold) ? b : a));
+    const twitchiest = withActions.reduce((a, b) => (Number(b.actions.hold) < Number(a.actions.hold) ? b : a));
+    return `Weekly decisions are mostly holds: on average ${percent(average)} of the book stays put`
+      + ` (${displayModel(steadiest.model)} holds ${percent(steadiest.actions.hold)}, ${displayModel(twitchiest.model)} ${percent(twitchiest.actions.hold)}).`;
+  }
+
   async function fetchText(path) {
     const response = await fetch(path);
     if (!response.ok) throw new Error(`Could not load ${path} (${response.status})`);
@@ -368,6 +381,7 @@ if (typeof document !== "undefined") {
             + `${Number.isFinite(spy) ? `, ${usd(START_USD * (1 + spy))} in SPY` : ""}`
             + `${Number.isFinite(pool) ? `, ${usd(START_USD * (1 + pool))} holding the pool equally` : ""}.`
           : "",
+        holdsSentence(visible),
         Number.isFinite(bestSkill)
           ? (bestSkill > 0
             ? `Best Brier skill ${score(bestSkill)}.`
@@ -617,6 +631,23 @@ if (typeof document !== "undefined") {
       // line that says how to read it.
       const pool = run.metrics.baselines?.equal_weight;
       const vsPool = Number.isFinite(pool) ? run.metrics.total_return - pool : null;
+      // Buy/sell/hold straight from the recorded target books: a name is a hold
+      // when its target stayed inside the 2% trading band, so it was never
+      // traded. An invalid decision holds the previous book, as the engine did.
+      let buys = 0, sells = 0, holds = 0, held = {};
+      for (const decision of decisions) {
+        const target = decision?.validated && !decision.validated.invalid
+          ? Object.fromEntries(Object.entries(decision.validated.weights || {}).map(([ticker, weight]) => [ticker.toUpperCase(), Number(weight)]))
+          : held;
+        for (const ticker of new Set([...Object.keys(held), ...Object.keys(target)])) {
+          const before = held[ticker] || 0, after = target[ticker] || 0;
+          if (after > before + 0.02) buys += 1;
+          else if (after < before - 0.02) sells += 1;
+          else holds += 1;
+        }
+        held = target;
+      }
+      const perDecision = value => (value / Math.max(decisions.length, 1)).toFixed(1);
       const tiles = [
         ["Portfolio return", percent(run.metrics.total_return), run.metrics.total_return,
           `a $10,000 start ends at ${usd(START_USD * (1 + (Number.isFinite(Number(run.metrics.total_return)) ? run.metrics.total_return : 0)))}`
@@ -629,7 +660,8 @@ if (typeof document !== "undefined") {
         ["Annual volatility", percent(run.metrics.annual_volatility), null, "realized, annualized"],
         ["Maximum drawdown", percent(run.metrics.max_drawdown), run.metrics.max_drawdown, "peak to trough"],
         ["Turnover per decision", percent(run.metrics.avg_turnover), null, "share of the book traded, one-sided"],
-        ["Decisions", count(run.metrics.decisions), null, `${plural(run.metrics.trades, "fill")} filled`],
+        ["Decisions", count(run.metrics.decisions), null,
+          `${plural(run.metrics.trades, "fill")} filled · ${perDecision(buys)} buys, ${perDecision(sells)} sells, ${perDecision(holds)} holds per decision`],
         ["Answer coverage", percent(run.metrics.answer_coverage), null,
           `${plural(run.metrics.invalid_outputs, "invalid answer")}: missing answers stay unscored and carry no conviction`],
         ["Brier (noul)", score(noulStats.brier), null, `sample rate ${score(noulStats.base_rate)}: what a constant would score`],

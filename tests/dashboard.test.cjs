@@ -18,6 +18,7 @@ function catalogRun(overrides = {}) {
     label: null, group: 'abc123', decisions: 9, invalid_outputs: 0, answer_coverage: 1.0, mean_latency_s: 0.4,
     estimated_cost_usd: 0.0009, brier: 0.2, brier_skill_score: -0.17, auc: 0.71, ece: 0.2,
     max_calibration_error: 0.36, calibration_gap: 0.355,
+    actions: {buy: 0.06, sell: 0.03, hold: 0.91, avg_buys: 1.4, avg_sells: 0.8, avg_holds: 22.8},
     metrics: {total_return: 0.05, spy_total_return: 0.01, excess_return_vs_spy: 0.04, sharpe: -0.98,
       max_drawdown: -0.07, annual_volatility: 0.11, avg_turnover: 0.153, trades: 40,
       input_tokens: 1000, output_tokens: 0, requests: 9, answer_coverage: 1.0,
@@ -289,7 +290,8 @@ const settle = async () => {for (let i = 0; i < 50; i++) await new Promise(resol
 function siteFixture() {
   const first = catalogRun();
   const second = catalogRun({run_id: 'run-b', dir: 'runs/run-b', model: 'clef', provider: 'cloudflare',
-    question_form: 'noul', created_utc: '2026-10-08T09:00:00+00:00'});
+    question_form: 'noul', created_utc: '2026-10-08T09:00:00+00:00',
+    actions: {buy: 0.25, sell: 0.23, hold: 0.52, avg_buys: 6.2, avg_sells: 5.8, avg_holds: 13.0}});
   const meta = {
     run_id: first.run_id, scenario: {name: '2026-ytd'},
     decision: {pricing: {cost_per_m_input: 0.09, cost_per_m_output: 0}},
@@ -323,6 +325,8 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, Clef-Flash, returned \+5\.00%\./);
   assert.match($('summary').textContent,
     /A \$10,000 start ends at \$10,500 for Clef-Flash, \$10,100 in SPY, \$10,200 holding the pool equally\./);
+  assert.match($('summary').textContent,
+    /Weekly decisions are mostly holds: on average 71\.50% of the book stays put \(Clef-Flash holds 91\.00%, Clef 52\.00%\)\./);
   assert.match($('summary').textContent, /Every Brier skill is negative/);
   // The board carries the headline metrics only.
   const headers = table.children[0].descendants()
