@@ -37,10 +37,6 @@ tr.synthetic td{background:#1a1610}
 
 .metric strong + p{margin-top:10px;line-height:1.6}
 .metric p.metric-note{font-size:11px;color:var(--muted)}
-/* The one paragraph the front page is allowed: what the board adds up to. */
-.summary{margin:22px 0 0;padding:16px 18px;border-left:2px solid var(--accent);background:var(--panel);border-radius:0 8px 8px 0;
-  color:var(--muted);font-size:13px;line-height:1.9;max-width:900px}
-.summary:empty{display:none}
 
 /* Thirteen columns is a lot: trim the gutters so the whole board fits on a laptop. */
 #leaderboard-table th,#leaderboard-table td{padding-left:9px;padding-right:9px}
@@ -66,7 +62,7 @@ tr.leader .run-button{color:var(--accent)}
 .metric-hero{border-color:rgba(180,242,114,.4)}
 .metric-hero strong{font-size:36px}
 @media(max-width:760px){
-  .col-sharpe,.col-max_drawdown,.col-brier_skill_score,.col-auc{display:none}
+  .col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
   #leaderboard-table th,#leaderboard-table td{padding-top:16px;padding-bottom:16px}
   .metric-hero strong{font-size:30px}
 }

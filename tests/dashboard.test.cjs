@@ -254,7 +254,7 @@ function fakeElement(tag) {
 // listed separately: a page only gets the nodes its own HTML declares, which is
 // what the renderers guard on. Kept in sync with the dashboard/*.html files.
 const PAGE_IDS = {
-  'index.html': ['leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'summary', 'hero-scope'],
+  'index.html': ['leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'hero-scope'],
   'run.html': ['run-details', 'run-trust', 'run-title', 'run-meta', 'status', 'metrics', 'calibration', 'reliability',
     'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
     'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
@@ -320,19 +320,23 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('demo-banner').hidden, true, 'real results must not show the synthetic warning');
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
-  // The front page carries the board and one paragraph that reads it.
-  assert.match($('summary').textContent, /2 models, 9 weekly decisions\./);
-  assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, Clef-Flash, returned \+5\.00%\./);
-  assert.match($('summary').textContent,
-    /A \$10,000 start ends at \$10,500 for Clef-Flash, \$10,100 in SPY, \$10,200 holding the pool equally\./);
-  assert.match($('summary').textContent,
-    /Weekly decisions are mostly holds: on average 71\.50% of the book stays put, 15\.50% bought, 13\.00% sold \(Clef-Flash holds 91\.00%, Clef 52\.00%\)\./);
-  assert.match($('summary').textContent, /Every Brier skill is negative/);
-  // The board carries the headline metrics only.
+  // The board carries the headline metrics only, named in plain words: the
+  // statistical scores need a statistics background, so they stay off it.
   const headers = table.children[0].descendants()
     .filter(node => node.tagName === 'th')
     .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
-  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Sharpe', 'Max DD', 'Brier skill', 'AUC']);
+  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
+  // The plain-word columns render the recorded values for the leading row.
+  const firstRowCells = table.descendants().filter(node => node.tagName === 'tr')[1]
+    .children.map(node => node.textContent);
+  assert.equal(firstRowCells[5], '44.00%', 'the share of weeks the book beat SPY');
+  assert.equal(firstRowCells[6], '-7.00%', 'the worst peak-to-trough drop');
+  assert.equal(firstRowCells[7], '91.00%', 'the hold share of the book');
+  assert.equal(firstRowCells[8], '55.00%', 'the share of calls that proved right');
+  // The caption teaches the two columns a first read cannot guess, with the
+  // no-skill line taken from the catalog.
+  assert.match($('board-window').textContent, /Holds is the share of names left untraded each week/);
+  assert.match($('board-window').textContent, /always calling the same way scores 48\.00% here/);
   // A row is a real link to the run page, so it opens in a new tab and shares well.
   const runLink = table.descendants().find(node => node.className === 'run-button');
   assert.equal(runLink.tagName, 'a');
@@ -363,7 +367,7 @@ test('the run page loads one run from the query string', async () => {
   // The run summary: sixteen tiles, each with the line that reads it.
   assert.equal($('metrics').children.length, 16);
   const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
-  for (const label of ['Excess vs SPY', 'Excess vs pool', 'Turnover per decision', 'Decisions ahead of SPY',
+  for (const label of ['Excess vs SPY', 'Excess vs pool', 'Turnover per decision', 'Weeks beating SPY',
                        'Log loss', 'ECE (noul)', 'Answer coverage', '95% interval', 'permutation p =']) {
     assert.match(metricText, new RegExp(label.replace(/[()]/g, '\\$&')));
   }

@@ -198,19 +198,20 @@ if (typeof document !== "undefined") {
     for (const [key, value] of Object.entries(attrs || {})) result.setAttribute(key, String(value));
     return result;
   };
-  // The board keeps the numbers a first read needs: what it returned, whether
-  // that beat the benchmark, the two risk figures, and the two calibration
-  // figures. The supporting metrics live in the run summary, which opens on a
-  // click, so the full review happens in one place.
+  // The board is its own explanation: what it returned, what that did to
+  // $10,000, whether it beat SPY and how often, how bad it got, how much it
+  // actually traded, and whether its judgment was any good. The statistical
+  // scores (Brier skill, AUC, Sharpe) ask for background, so they live in the
+  // run page, which explains them.
   const COLUMNS = [
     ["model", "Model", "text", "row"],
     ["total_return", "Return", "percent", "metrics"],
     ["usd_10k", "on $10K", "money", "metrics"],
     ["excess_return_vs_spy", "vs SPY", "signed", "metrics"],
-    ["sharpe", "Sharpe", "ratio", "metrics"],
-    ["max_drawdown", "Max DD", "percent", "metrics"],
-    ["brier_skill_score", "Brier skill", "score", "row"],
-    ["auc", "AUC", "score", "row"],
+    ["outperformance_hit_rate", "Weeks beating SPY", "percent", "metrics"],
+    ["max_drawdown", "Worst drop", "percent", "metrics"],
+    ["hold", "Holds", "percent", "row"],
+    ["accuracy", "Right calls", "percent", "row"],
   ];
   const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count, money,
     // These models answer in tens to hundreds of milliseconds; "0.00 s" hides
@@ -224,27 +225,14 @@ if (typeof document !== "undefined") {
     if (key === "model") return modelName(run.model);
     // Derived, not recorded: what the recorded return does to a $10,000 start.
     if (key === "usd_10k") return Number(run.metrics?.total_return) * START_USD;
+    // The hold share lives one level down, in the catalog's action shares.
+    if (key === "hold") return run.actions?.hold;
+    // Call accuracy is the plain-words stand-in for the calibration scores.
+    if (key === "accuracy") return run.metrics?.calibration?.signals?.noul?.accuracy;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
-
-  // How much of the book each model actually trades, from the catalog's
-  // recorded action shares. A hold is a name whose target stayed inside the
-  // policy's trading band, so nothing was bought or sold.
-  function holdsSentence(rows) {
-    // All three shares must be recorded: the sentence splits the whole book
-    // across buys, sells and holds, so one missing share would misstate it.
-    const withActions = rows.filter(row => ["buy", "sell", "hold"].every(action =>
-      row.actions && Number.isFinite(Number(row.actions[action]))));
-    if (withActions.length < 2) return "";
-    const share = action => withActions.reduce((sum, row) => sum + Number(row.actions[action]), 0) / withActions.length;
-    const steadiest = withActions.reduce((a, b) => (Number(b.actions.hold) > Number(a.actions.hold) ? b : a));
-    const twitchiest = withActions.reduce((a, b) => (Number(b.actions.hold) < Number(a.actions.hold) ? b : a));
-    return `Weekly decisions are mostly holds: on average ${percent(share("hold"))} of the book stays put`
-      + `, ${percent(share("buy"))} bought, ${percent(share("sell"))} sold`
-      + ` (${displayModel(steadiest.model)} holds ${percent(steadiest.actions.hold)}, ${displayModel(twitchiest.model)} ${percent(twitchiest.actions.hold)}).`;
-  }
 
   async function fetchText(path) {
     const response = await fetch(path);
@@ -334,7 +322,15 @@ if (typeof document !== "undefined") {
   function renderBoard() {
     if (!$("leaderboard-table")) return;
     visible = leaderboardRuns(runs);
-    setText("board-window", "One row per model, latest completed result; open a model for its full run.");
+    // The caption teaches the two columns whose meaning a first read can't
+    // guess; the no-skill line comes from the catalog, not a hardcoded number.
+    const baseRate = Number(visible[0]?.metrics?.calibration?.signals?.noul?.base_rate);
+    setText("board-window", "One row per model, latest completed result. "
+      + "Holds is the share of names left untraded each week; Right calls is how often its calls proved right"
+      + (Number.isFinite(baseRate)
+        ? ` (always calling the same way scores ${percent(baseRate)} here, 50% is a coin flip)`
+        : " (50% is a coin flip)")
+      + ". Open a model for its full run.");
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
@@ -361,43 +357,6 @@ if (typeof document !== "undefined") {
     }
     const runCount = $("run-count");
     if (runCount) runCount.className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
-    // The front page is the board plus one paragraph that says what it means;
-    // the method, the caveats and the pricing live in the sections below it.
-    const signedPercent = value => Number.isFinite(value) && value > 0 ? `+${percent(value)}` : percent(value);
-    if (visible.length) {
-      const scored = visible.map(run => ({
-        name: displayModel(run.model),
-        total: Number(run.metrics?.total_return),
-        excess: Number(run.metrics?.excess_return_vs_spy),
-        skill: Number(run.brier_skill_score),
-      }));
-      const spy = Number(visible[0].metrics?.spy_total_return);
-      const pool = Number(visible[0].metrics?.baselines?.equal_weight);
-      const best = scored.reduce((a, b) => Number.isFinite(b.total) && !(Number.isFinite(a.total) && a.total >= b.total) ? b : a);
-      const beat = scored.filter(row => Number.isFinite(row.excess) && row.excess > 0).length;
-      const skills = scored.map(row => row.skill).filter(Number.isFinite);
-      const bestSkill = skills.length ? Math.max(...skills) : null;
-      const decisions = Number(visible[0].decisions ?? visible[0].metrics?.decisions);
-      setText("summary", [
-        `${count(visible.length)} models${Number.isFinite(decisions) && decisions > 0 ? `, ${plural(decisions, "weekly decision")}` : ""}.`,
-        beat === 0
-          ? `None beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`
-          : `${count(beat)} of ${count(scored.length)} beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`,
-        Number.isFinite(spy) || Number.isFinite(pool)
-          ? `A $10,000 start ends at ${usd(START_USD * (1 + (Number.isFinite(best.total) ? best.total : 0)))} for ${best.name}`
-            + `${Number.isFinite(spy) ? `, ${usd(START_USD * (1 + spy))} in SPY` : ""}`
-            + `${Number.isFinite(pool) ? `, ${usd(START_USD * (1 + pool))} holding the pool equally` : ""}.`
-          : "",
-        holdsSentence(visible),
-        Number.isFinite(bestSkill)
-          ? (bestSkill > 0
-            ? `Best Brier skill ${score(bestSkill)}.`
-            : `Every Brier skill is negative, best ${score(bestSkill)}: none shows measurable probability skill.`)
-          : "",
-      ].filter(Boolean).join(" "));
-    } else {
-      setText("summary", "");
-    }
     setText("status", visible.length ? "" : (runs.length
       ? "No completed results yet."
       : "No results yet. Record a decision-model run and re-render this page."));
@@ -664,8 +623,8 @@ if (typeof document !== "undefined") {
           + `, SPY's at ${usd(START_USD * (1 + (Number.isFinite(Number(run.metrics.spy_total_return)) ? run.metrics.spy_total_return : 0)))}`],
         ["Excess vs SPY", percent(run.metrics.excess_return_vs_spy), run.metrics.excess_return_vs_spy, ciNote],
         ["Excess vs pool", percent(vsPool), vsPool, "above 0 beats holding the same universe equally"],
-        ["Decisions ahead of SPY", percent(run.metrics.outperformance_hit_rate), null,
-          "share of decisions the book ended ahead"],
+        ["Weeks beating SPY", percent(run.metrics.outperformance_hit_rate), null,
+          "share of weeks the book out-returned SPY"],
         ["Sharpe", ratio(run.metrics.sharpe), run.metrics.sharpe, "zero risk-free rate"],
         ["Annual volatility", percent(run.metrics.annual_volatility), null, "realized, annualized"],
         ["Maximum drawdown", percent(run.metrics.max_drawdown), run.metrics.max_drawdown, "peak to trough"],
