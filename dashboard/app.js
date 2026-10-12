@@ -336,9 +336,9 @@ if (typeof document !== "undefined") {
       ? "No completed results yet."
       : "No results yet. Record a decision-model run and re-render this page."));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
-    header.append(node("th", "Rank"));
+    header.append(node("th", "Rank", "col-rank"));
     for (const [key, title, kind] of COLUMNS) {
-      const th = node("th", undefined, kind === "text" ? "" : "num");
+      const th = node("th", undefined, `${kind === "text" ? "" : "num"} col-${key}`);
       const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
       button.onclick = () => {descending = sortKey === key ? !descending : true; sortKey = key; renderBoard();};
@@ -349,10 +349,12 @@ if (typeof document !== "undefined") {
       const row = node("tr");
       if (run.run_id === selected) row.className = "selected";
       if (run.synthetic) row.classList.add("synthetic");
-      row.append(node("td", ranks.get(run.run_id)));
+      // Rank 1 earns the eye; a fabricated row keeps its warning tint instead.
+      if (ranks.get(run.run_id) === 1 && !run.synthetic) row.classList.add("leader");
+      row.append(node("td", ranks.get(run.run_id), "col-rank"));
       // A real link: the run detail is its own page, so a row can be opened in a
       // new tab and shared as a URL.
-      const td = node("td"), link = node("a", modelName(run.model), "run-button");
+      const td = node("td", undefined, "col-model"), link = node("a", modelName(run.model), "run-button");
       link.href = `run.html?run=${encodeURIComponent(run.run_id)}`;
       td.append(link);
       if (run.synthetic) {
@@ -363,13 +365,22 @@ if (typeof document !== "undefined") {
         td.append(chip);
       }
       row.append(td);
+      // The whole row opens the run; clicks that carry their own intent (the
+      // link, new-tab modifiers) fall through to the browser.
+      row.onclick = event => {
+        if (event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
+        location.href = link.href;
+      };
       for (const [key, , kind, source] of COLUMNS.slice(1)) {
         const raw = rowValue(run, key, source), value = Number(raw);
         // Tone only the columns whose neutral point is zero; Sharpe, drawdown
         // and the calibration scores are all read against their own scales.
         const tone = Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy")
           ? (value >= 0 ? "positive" : "negative") : "";
-        row.append(node("td", FORMAT[kind](raw), `num ${tone}`));
+        const cell = node("td", undefined, `num col-${key}`);
+        if (tone) cell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${FORMAT[kind](raw)}`, `chip ${tone}`));
+        else cell.textContent = FORMAT[kind](raw);
+        row.append(cell);
       }
       body.append(row);
     }
@@ -577,13 +588,15 @@ if (typeof document !== "undefined") {
           `expected calibration error; worst bin ${score(noulStats.max_calibration_error)}`],
         ["Accuracy (noul)", percent(noulStats.accuracy), null, "share of labels the called side got right"],
       ];
-      for (const [title, formatted, value, note] of tiles) {
-        const tile = node("div", undefined, "metric");
+      tiles.forEach(([title, formatted, value, note], index) => {
+        // The first two tiles are the headline: what it returned and whether
+        // that beat SPY. They render larger so the page has a focal point.
+        const tile = node("div", undefined, index < 2 ? "metric metric-hero" : "metric");
         tile.append(node("p", title), node("strong", formatted,
           Number.isFinite(Number(value)) ? (Number(value) >= 0 ? "positive" : "negative") : ""));
         if (note) tile.append(node("p", note, "metric-note"));
         $("metrics").append(tile);
-      }
+      });
       const series = Object.keys(equity[0] || {}).filter(key => key !== "date");
       chart("performance", equity, series, value => `$${value.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
       const peaks = {}; const drawdown = equity.map(row => {

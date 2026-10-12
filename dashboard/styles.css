@@ -45,3 +45,25 @@ tr.synthetic td{background:#1a1610}
 /* Thirteen columns is a lot: trim the gutters so the whole board fits on a laptop. */
 #leaderboard-table th,#leaderboard-table td{padding-left:9px;padding-right:9px}
 #leaderboard-table table{font-size:11.5px}
+
+/* Board polish: rank 1 earns the eye, return deltas read as chips, and a row
+   opens its run. On phones the four columns that need context to read (Sharpe,
+   drawdown, both calibration scores) wait for the run page, and rows get
+   taller so a tap lands. */
+#leaderboard-table tbody tr{cursor:pointer}
+tr.leader td{background:rgba(180,242,114,.07)}
+tr.leader td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
+tr.leader .run-button{color:var(--accent)}
+.chip{display:inline-block;border-radius:99px;padding:2px 8px;white-space:nowrap}
+.chip.positive{color:var(--accent);background:rgba(180,242,114,.09);border:1px solid rgba(180,242,114,.35)}
+.chip.negative{color:var(--red);background:rgba(255,146,146,.09);border:1px solid rgba(255,146,146,.35)}
+#leaderboard{margin-top:18px}
+
+/* Run page: the two headline tiles (portfolio return, excess vs SPY) read first. */
+.metric-hero{border-color:rgba(180,242,114,.4)}
+.metric-hero strong{font-size:36px}
+@media(max-width:760px){
+  .col-sharpe,.col-max_drawdown,.col-brier_skill_score,.col-auc{display:none}
+  #leaderboard-table th,#leaderboard-table td{padding-top:16px;padding-bottom:16px}
+  .metric-hero strong{font-size:30px}
+}
