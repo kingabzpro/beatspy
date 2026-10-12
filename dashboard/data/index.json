@@ -192,7 +192,6 @@
       },
       "run_id": "20261011-190722_2026-6m_gpt-6-luna_1b60842af9",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -390,7 +389,6 @@
       },
       "run_id": "20261011-190726_2026-6m_jev-latest_e752a395f0",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -588,7 +586,6 @@
       },
       "run_id": "20261011-190743_2026-6m_clef_09ad66c709",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -786,7 +783,6 @@
       },
       "run_id": "20261011-190758_2026-6m_clef-flash_e8756209c1",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -984,7 +980,6 @@
       },
       "run_id": "20261011-193022_2026-6m_openrouter-pplx-decider_79b50fb1f1",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -1182,7 +1177,6 @@
       },
       "run_id": "20261011-194115_2026-6m_openrouter-microsoft-decision-1_740daf36bc",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -1380,7 +1374,6 @@
       },
       "run_id": "20261011-194808_2026-6m_openrouter-clef-omni_9f65b5bb4e",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -1578,7 +1571,6 @@
       },
       "run_id": "20261011-194829_2026-6m_openrouter-drex_060f8b0a02",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -1776,7 +1768,6 @@
       },
       "run_id": "20261011-195343_2026-6m_openrouter-liquid-d1_733f138929",
       "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "start": "2026-04-09",
       "synthetic": false,
@@ -1973,6 +1964,203 @@
         "upper": 0.288451
       },
       "run_id": "20261011-195355_2026-6m_openrouter-kev-4b_c91bb44025",
+      "scenario": "2026-6m",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "answer_coverage": 1.0,
+      "auc": 0.550904,
+      "auc_p_value": 0.080919,
+      "brier": 0.257049,
+      "brier_skill_p_value": 0.922078,
+      "brier_skill_score": -0.040151,
+      "calibration_gap": null,
+      "created_utc": "2026-10-12T08:50:17+00:00",
+      "data_cutoff": "2026-10-09",
+      "decisions": 25,
+      "dir": "runs/20261012-085017_2026-6m_openrouter-span-01-lite_fbc334378a",
+      "ece": 0.105427,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.146392,
+        "method": "decision-window block bootstrap",
+        "upper": 0.070368
+      },
+      "group": "2f950c3d05d74409",
+      "invalid_outputs": 0,
+      "label": "published board run",
+      "max_calibration_error": 0.225728,
+      "mean_latency_s": 1.482,
+      "metrics": {
+        "annual_volatility": 0.088688,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.05939,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.244824,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5264,
+              "auc": 0.550904,
+              "auc_p_value": 0.080919,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 0,
+                  "lower": 0.2,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.3
+                },
+                {
+                  "count": 22,
+                  "lower": 0.3,
+                  "mean_predicted": 0.373829,
+                  "observed_rate": 0.409091,
+                  "upper": 0.4
+                },
+                {
+                  "count": 152,
+                  "lower": 0.4,
+                  "mean_predicted": 0.458148,
+                  "observed_rate": 0.348684,
+                  "upper": 0.5
+                },
+                {
+                  "count": 287,
+                  "lower": 0.5,
+                  "mean_predicted": 0.551004,
+                  "observed_rate": 0.473868,
+                  "upper": 0.6
+                },
+                {
+                  "count": 149,
+                  "lower": 0.6,
+                  "mean_predicted": 0.644171,
+                  "observed_rate": 0.489933,
+                  "upper": 0.7
+                },
+                {
+                  "count": 14,
+                  "lower": 0.7,
+                  "mean_predicted": 0.725728,
+                  "observed_rate": 0.5,
+                  "upper": 0.8
+                },
+                {
+                  "count": 1,
+                  "lower": 0.8,
+                  "mean_predicted": 0.801932,
+                  "observed_rate": 1.0,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.257049,
+              "brier_skill_p_value": 0.922078,
+              "brier_skill_score": -0.040151,
+              "expected_calibration_error": 0.105427,
+              "log_loss": 0.708103,
+              "max_calibration_error": 0.225728,
+              "mean_predicted": 0.548711,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.146392,
+          "method": "decision-window block bootstrap",
+          "upper": 0.070368
+        },
+        "excess_return_vs_spy": -0.034222,
+        "input_tokens": 106652,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.035088,
+        "mean_latency_s": 1.482,
+        "outperformance_hit_rate": 0.4,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.025574,
+          "method": "decision-window block bootstrap",
+          "upper": 0.283394
+        },
+        "risk_violations": 2,
+        "sharpe": 2.5143,
+        "spy_total_return": 0.150909,
+        "total_return": 0.116687,
+        "trades": 625
+      },
+      "model": "openrouter-span-01-lite",
+      "model_label": "Respan Span-01 Lite (free) via OpenRouter",
+      "noul_brier": 0.257049,
+      "noul_ece": 0.105427,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "openrouter",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.025574,
+        "method": "decision-window block bootstrap",
+        "upper": 0.283394
+      },
+      "run_id": "20261012-085017_2026-6m_openrouter-span-01-lite_fbc334378a",
       "scenario": "2026-6m",
       "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
