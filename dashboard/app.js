@@ -1,7 +1,10 @@
 "use strict";
 
 const COLORS = ["#b4f272", "#79b6ff", "#ffbc79", "#cb9aff", "#ff9292", "#74d8cb", "#f0b9da", "#d1d7de", "#8d9969"];
-const TRUST = {replayed: "Replay checked", local: "Local", synthetic: "Synthetic demo"};
+// Only the states that change how the numbers read earn a pill. "local" (a run
+// executed here against the live providers) is every real run's state, so it
+// says nothing a reader can use and shows nothing.
+const TRUST = {replayed: "Replay checked", synthetic: "Synthetic demo"};
 // Every decision model bills input only; output tokens are free and no provider
 // offers prompt caching. Rates checked 2026-10-08 against the cited sources.
 const PRICES = {
@@ -230,12 +233,16 @@ if (typeof document !== "undefined") {
   // recorded action shares. A hold is a name whose target stayed inside the
   // policy's trading band, so nothing was bought or sold.
   function holdsSentence(rows) {
-    const withActions = rows.filter(row => row.actions && Number.isFinite(Number(row.actions.hold)));
+    // All three shares must be recorded: the sentence splits the whole book
+    // across buys, sells and holds, so one missing share would misstate it.
+    const withActions = rows.filter(row => ["buy", "sell", "hold"].every(action =>
+      row.actions && Number.isFinite(Number(row.actions[action]))));
     if (withActions.length < 2) return "";
-    const average = withActions.reduce((sum, row) => sum + Number(row.actions.hold), 0) / withActions.length;
+    const share = action => withActions.reduce((sum, row) => sum + Number(row.actions[action]), 0) / withActions.length;
     const steadiest = withActions.reduce((a, b) => (Number(b.actions.hold) > Number(a.actions.hold) ? b : a));
     const twitchiest = withActions.reduce((a, b) => (Number(b.actions.hold) < Number(a.actions.hold) ? b : a));
-    return `Weekly decisions are mostly holds: on average ${percent(average)} of the book stays put`
+    return `Weekly decisions are mostly holds: on average ${percent(share("hold"))} of the book stays put`
+      + `, ${percent(share("buy"))} bought, ${percent(share("sell"))} sold`
       + ` (${displayModel(steadiest.model)} holds ${percent(steadiest.actions.hold)}, ${displayModel(twitchiest.model)} ${percent(twitchiest.actions.hold)}).`;
   }
 
@@ -618,7 +625,10 @@ if (typeof document !== "undefined") {
       setHidden("run-details", false);
       setText("status", "");
       $("run-title").textContent = `${displayModel(run.model)} · ${run.question_form} questions`;
-      $("run-trust").textContent = TRUST[run.trust] || "Unrecorded";
+      // The pill keeps its border when empty, so hide it unless a trust state
+      // earns a label.
+      $("run-trust").textContent = TRUST[run.trust] || "";
+      $("run-trust").hidden = !TRUST[run.trust];
       $("run-meta").textContent = `${run.scenario} · ${run.start} → ${run.end} · Data cutoff ${run.data_cutoff} · Snapshot ${run.snapshot_id || "unknown"}`;
       $("metrics").replaceChildren();
       const noulStats = calibration?.signals?.noul || {};

@@ -326,7 +326,7 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.match($('summary').textContent,
     /A \$10,000 start ends at \$10,500 for Clef-Flash, \$10,100 in SPY, \$10,200 holding the pool equally\./);
   assert.match($('summary').textContent,
-    /Weekly decisions are mostly holds: on average 71\.50% of the book stays put \(Clef-Flash holds 91\.00%, Clef 52\.00%\)\./);
+    /Weekly decisions are mostly holds: on average 71\.50% of the book stays put, 15\.50% bought, 13\.00% sold \(Clef-Flash holds 91\.00%, Clef 52\.00%\)\./);
   assert.match($('summary').textContent, /Every Brier skill is negative/);
   // The board carries the headline metrics only.
   const headers = table.children[0].descendants()
@@ -349,6 +349,17 @@ test('the run page loads one run from the query string', async () => {
   const $ = id => elements.get(id);
   assert.equal($('run-details').hidden, false, `run details shown (status: ${$('status').textContent})`);
   assert.match($('run-title').textContent, /Clef-Flash/);
+  // A replay still earns its pill; a locally executed run is every real run,
+  // so its pill stays empty and hidden.
+  assert.equal($('run-trust').textContent, 'Replay checked');
+  assert.equal($('run-trust').hidden, false);
+  const local = siteFixture();
+  local.site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all', selected: null,
+    runs: [local.first, local.second].map(run => ({...run, trust: 'local'}))});
+  const localElements = mountSite(local.site, 'run.html', `?run=${encodeURIComponent(local.first.run_id)}`);
+  await settle();
+  assert.equal(localElements.get('run-trust').textContent, '');
+  assert.equal(localElements.get('run-trust').hidden, true);
   // The run summary: sixteen tiles, each with the line that reads it.
   assert.equal($('metrics').children.length, 16);
   const metricText = $('metrics').descendants().map(node => node.textContent).join(' ');
