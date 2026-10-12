@@ -38,6 +38,13 @@ const dollars = value => {
   return `$${number.toFixed(Math.abs(number) < 0.01 ? 6 : 4)}`;
 };
 const count = value => !missing(value) && Number.isInteger(Number(value)) ? String(Number(value)) : "n/a";
+// Runs record equity in dollars from a $100,000 start, so a $10,000 book is
+// the same journey at a tenth. Profit reads as signed whole dollars.
+const START_USD = 10_000;
+const money = value => !missing(value) && Number.isFinite(Number(value))
+  ? `${Number(value) >= 0 ? "+" : "-"}$${Math.abs(Math.round(Number(value))).toLocaleString("en-US")}`
+  : "n/a";
+const usd = value => Number.isFinite(Number(value)) ? `$${Math.round(Number(value)).toLocaleString("en-US")}` : "n/a";
 // Costs in this section span two orders of magnitude, so those columns keep
 // three significant digits instead of a fixed number of decimals.
 const preciseDollars = value => {
@@ -85,7 +92,7 @@ const MODEL_META = {
   "clef-flash": ["Clef-Flash", "cloudflare.svg"],
   "clef-omni": ["Clef-Omni", "cloudflare.svg"],
   "pplx-decider": ["Pplx-Decider", "perplexity.svg"],
-  "microsoft-decision-1": ["Microsoft Decision 1", "microsoft.ico"],
+  "microsoft-decision-1": ["Microsoft Decision 1", "microsoft.svg"],
   "kev-4b": ["Kev-4B", "jaredpalmer.ico"],
   "liquid-d1": ["Liquid D1", "liquid.ico"],
   "drex": ["Drex v1.5", "nace.svg"],
@@ -167,7 +174,7 @@ function catalogProblems(catalog) {
 }
 
 if (typeof module !== "undefined") module.exports = {
-  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost,
+  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
 };
 
@@ -195,13 +202,14 @@ if (typeof document !== "undefined") {
   const COLUMNS = [
     ["model", "Model", "text", "row"],
     ["total_return", "Return", "percent", "metrics"],
+    ["usd_10k", "on $10K", "money", "metrics"],
     ["excess_return_vs_spy", "vs SPY", "signed", "metrics"],
     ["sharpe", "Sharpe", "ratio", "metrics"],
     ["max_drawdown", "Max DD", "percent", "metrics"],
     ["brier_skill_score", "Brier skill", "score", "row"],
     ["auc", "AUC", "score", "row"],
   ];
-  const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count,
+  const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count, money,
     // These models answer in tens to hundreds of milliseconds; "0.00 s" hides
     // every difference between them.
     millis: value => {
@@ -211,6 +219,8 @@ if (typeof document !== "undefined") {
     }};
   const rowValue = (run, key, source) => {
     if (key === "model") return modelName(run.model);
+    // Derived, not recorded: what the recorded return does to a $10,000 start.
+    if (key === "usd_10k") return Number(run.metrics?.total_return) * START_USD;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
   let runs = [], visible = [], selected = null, loading = 0;
@@ -342,6 +352,7 @@ if (typeof document !== "undefined") {
         skill: Number(run.brier_skill_score),
       }));
       const spy = Number(visible[0].metrics?.spy_total_return);
+      const pool = Number(visible[0].metrics?.baselines?.equal_weight);
       const best = scored.reduce((a, b) => Number.isFinite(b.total) && !(Number.isFinite(a.total) && a.total >= b.total) ? b : a);
       const beat = scored.filter(row => Number.isFinite(row.excess) && row.excess > 0).length;
       const skills = scored.map(row => row.skill).filter(Number.isFinite);
@@ -352,6 +363,11 @@ if (typeof document !== "undefined") {
         beat === 0
           ? `None beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`
           : `${count(beat)} of ${count(scored.length)} beat SPY (${signedPercent(spy)}); the best, ${best.name}, returned ${signedPercent(best.total)}.`,
+        Number.isFinite(spy) || Number.isFinite(pool)
+          ? `A $10,000 start ends at ${usd(START_USD * (1 + (Number.isFinite(best.total) ? best.total : 0)))} for ${best.name}`
+            + `${Number.isFinite(spy) ? `, ${usd(START_USD * (1 + spy))} in SPY` : ""}`
+            + `${Number.isFinite(pool) ? `, ${usd(START_USD * (1 + pool))} holding the pool equally` : ""}.`
+          : "",
         Number.isFinite(bestSkill)
           ? (bestSkill > 0
             ? `Best Brier skill ${score(bestSkill)}.`
@@ -411,7 +427,7 @@ if (typeof document !== "undefined") {
         const raw = rowValue(run, key, source), value = Number(raw);
         // Tone only the columns whose neutral point is zero; Sharpe, drawdown
         // and the calibration scores are all read against their own scales.
-        const tone = Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy")
+        const tone = Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy" || key === "usd_10k")
           ? (value >= 0 ? "positive" : "negative") : "";
         const cell = node("td", undefined, `num col-${key}`);
         if (tone) cell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${FORMAT[kind](raw)}`, `chip ${tone}`));
@@ -603,7 +619,8 @@ if (typeof document !== "undefined") {
       const vsPool = Number.isFinite(pool) ? run.metrics.total_return - pool : null;
       const tiles = [
         ["Portfolio return", percent(run.metrics.total_return), run.metrics.total_return,
-          `vs the benchmark's ${percent(run.metrics.spy_total_return)}`],
+          `a $10,000 start ends at ${usd(START_USD * (1 + (Number.isFinite(Number(run.metrics.total_return)) ? run.metrics.total_return : 0)))}`
+          + `, SPY's at ${usd(START_USD * (1 + (Number.isFinite(Number(run.metrics.spy_total_return)) ? run.metrics.spy_total_return : 0)))}`],
         ["Excess vs SPY", percent(run.metrics.excess_return_vs_spy), run.metrics.excess_return_vs_spy, ciNote],
         ["Excess vs pool", percent(vsPool), vsPool, "above 0 beats holding the same universe equally"],
         ["Decisions ahead of SPY", percent(run.metrics.outperformance_hit_rate), null,
@@ -634,7 +651,8 @@ if (typeof document !== "undefined") {
         $("metrics").append(tile);
       });
       const series = Object.keys(equity[0] || {}).filter(key => key !== "date");
-      chart("performance", equity, series, value => `$${value.toLocaleString(undefined, {maximumFractionDigits: 0})}`);
+      // Equity is recorded from a $100,000 start; the page reads a $10,000 book.
+      chart("performance", equity, series, value => usd(Number(value) * (START_USD / 100_000)));
       const peaks = {}; const drawdown = equity.map(row => {
         const result = {date: row.date};
         for (const key of series) {peaks[key] = Math.max(peaks[key] || -Infinity, Number(row[key])); result[key] = Number(row[key]) / peaks[key] - 1;}

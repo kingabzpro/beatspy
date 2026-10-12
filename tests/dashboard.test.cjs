@@ -2,7 +2,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
-  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost,
+  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS
 } = require('../dashboard/app.js');
 
@@ -81,6 +81,11 @@ test('one leaderboard row per decision model, chosen by execution time, never be
   assert.equal(preciseDollars(undefined), 'n/a');
   assert.equal(ratio(-0.9822), '-0.98');
   assert.equal(score(0.2), '0.200');
+  // The $10,000 view: signed whole dollars for a column, plain for a sentence.
+  assert.equal(money(500), '+$500');
+  assert.equal(money(-1234.6), '-$1,235');
+  assert.equal(money(null), 'n/a');
+  assert.equal(usd(10500), '$10,500');
   assert.equal(count(9), '9');
   assert.equal(count(undefined), 'n/a');
   assert.equal(plural(1, 'request'), '1 request');
@@ -316,12 +321,14 @@ test('the leaderboard page renders the board and links each row to its run page'
   // The front page carries the board and one paragraph that reads it.
   assert.match($('summary').textContent, /2 models, 9 weekly decisions\./);
   assert.match($('summary').textContent, /2 of 2 beat SPY \(\+1\.00%\); the best, Clef-Flash, returned \+5\.00%\./);
+  assert.match($('summary').textContent,
+    /A \$10,000 start ends at \$10,500 for Clef-Flash, \$10,100 in SPY, \$10,200 holding the pool equally\./);
   assert.match($('summary').textContent, /Every Brier skill is negative/);
   // The board carries the headline metrics only.
   const headers = table.children[0].descendants()
     .filter(node => node.tagName === 'th')
     .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
-  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'vs SPY', 'Sharpe', 'Max DD', 'Brier skill', 'AUC']);
+  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Sharpe', 'Max DD', 'Brier skill', 'AUC']);
   // A row is a real link to the run page, so it opens in a new tab and shares well.
   const runLink = table.descendants().find(node => node.className === 'run-button');
   assert.equal(runLink.tagName, 'a');
