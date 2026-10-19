@@ -2,7 +2,7 @@ const {test} = require('node:test');
 const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
-  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
+  parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd, monthLabel, scoredWindows, allPeriodRows,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS
 } = require('../dashboard/app.js');
 
@@ -136,8 +136,8 @@ test('cost is input-only: output tokens are free and missing usage is never pric
   // A recorded run rate wins over the published list price; a junk row falls back to it.
   const meta = {decision: {pricing: {cost_per_m_input: 1, cost_per_m_output: 0}}};
   assert.equal(ratesFor('clef-flash', meta).input, 1);
-  assert.equal(ratesFor('clef-flash', {decision: {pricing: {}}}).input, 0.09);
-  assert.equal(ratesFor('clef-flash', undefined).input, 0.09);
+  assert.equal(ratesFor('clef-flash', {decision: {pricing: {}}}).input, 0.038);
+  assert.equal(ratesFor('clef-flash', undefined).input, 0.038);
 });
 
 test('the pricing table covers the three providers and four decision models, input only', () => {
@@ -146,7 +146,7 @@ test('the pricing table covers the three providers and four decision models, inp
     'gpt-6-luna': {provider: 'openai_decisions', input: 0.10, source: 'https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877'},
     'jev-latest': {provider: 'typesafe', input: 0.042, source: 'https://docs.typesafe.ai/models'},
     'clef': {provider: 'cloudflare', input: 0.24, source: 'https://developers.cloudflare.com/workers-ai/models/clef/index.md'},
-    'clef-flash': {provider: 'cloudflare', input: 0.09, source: 'https://developers.cloudflare.com/workers-ai/models/clef/index.md'}
+    'clef-flash': {provider: 'cloudflare', input: 0.038, source: 'https://developers.cloudflare.com/workers-ai/models/clef/index.md'}
   };
   for (const [model, spec] of Object.entries(expected)) {
     assert.equal(PRICES[model].provider, spec.provider);
@@ -254,7 +254,7 @@ function fakeElement(tag) {
 // listed separately: a page only gets the nodes its own HTML declares, which is
 // what the renderers guard on. Kept in sync with the dashboard/*.html files.
 const PAGE_IDS = {
-  'index.html': ['leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'hero-scope'],
+  'index.html': ['leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'hero-scope', 'period-tabs'],
   'run.html': ['run-details', 'run-trust', 'run-title', 'run-meta', 'status', 'metrics', 'calibration', 'reliability',
     'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
     'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
@@ -318,6 +318,8 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('run-count').textContent, '2 results');
   assert.equal($('status').textContent, '');
   assert.equal($('demo-banner').hidden, true, 'real results must not show the synthetic warning');
+  // One scored window: the toggle stays hidden and the board is unchanged.
+  assert.equal($('period-tabs').hidden, true);
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
   // The board carries the headline metrics only, named in plain words: the
@@ -344,6 +346,92 @@ test('the leaderboard page renders the board and links each row to its run page'
   // Widgets that belong to other pages are absent here, and the script must cope.
   assert.equal($('run-details'), undefined);
   assert.equal($('pricing-table'), undefined);
+});
+
+test('scored windows group runs by frozen window and average gaps per model', () => {
+  assert.equal(monthLabel('2026-04-09'), 'Apr 26');
+  const gap = value => ({metrics: {...catalogRun().metrics, excess_return_vs_spy: value}});
+  const rows = [
+    {...catalogRun({run_id: 'w1-flash'}), start: '2026-01-02', end: '2026-06-30', ...gap(0.001)},
+    {...catalogRun({run_id: 'w1-clef', model: 'clef'}), start: '2026-01-02', end: '2026-06-30', ...gap(-0.01)},
+    // Same display model through a second route: the window keeps one row.
+    {...catalogRun({run_id: 'w1-clef-older', model: 'openrouter-clef', created_utc: '2026-10-01T00:00:00+00:00'}),
+      start: '2026-01-02', end: '2026-06-30', ...gap(0.9)},
+    {...catalogRun({run_id: 'w2-flash'}), start: '2026-07-01', end: '2026-10-07', ...gap(0.002)},
+    {...catalogRun({run_id: 'w2-clef', model: 'clef'}), start: '2026-07-01', end: '2026-10-07', ...gap(0.05)},
+    {...catalogRun({run_id: 'w2-jev', model: 'jev-latest'}), start: '2026-07-01', end: '2026-10-07', ...gap(0.01)},
+  ];
+  const windows = scoredWindows(rows);
+  assert.deepEqual(windows.map(w => [w.label, w.runs.length]), [['Jan 26 - Jun 26', 2], ['Jul 26 - Oct 26', 3]]);
+  // Inside a window the newest execution of a display model wins, never the
+  // better score: openrouter-clef ran first, so clef's row is w1-clef (-0.01).
+  assert.deepEqual(windows[0].runs.map(run => run.run_id).sort(), ['w1-clef', 'w1-flash']);
+  const aggregate = allPeriodRows(windows);
+  // The default order is the average gap with windows beaten as the tiebreak:
+  // clef's fatter average leads even though flash won both its windows.
+  assert.deepEqual(aggregate.map(row => [modelName(row.model), row.windows, row.beatIn, Math.round(row.avgGap * 1e6) / 1e6]),
+    [['clef', 2, 1, 0.02], ['jev-latest', 1, 1, 0.01], ['clef-flash', 2, 2, 0.0015]]);
+  const clef = aggregate.find(row => modelName(row.model) === 'clef');
+  assert.equal(clef.best.gap, 0.05);
+  assert.equal(clef.best.window, 'Jul 26 - Oct 26');
+  assert.equal(clef.worst.gap, -0.01);
+  assert.equal(clef.beatIn, 1);
+  assert.equal(clef.latest.run_id, 'w2-clef');
+});
+
+test('the leaderboard toggles between all-window averages and one window at a time', async () => {
+  const first = catalogRun({run_id: 'w1-flash'});
+  const clef = catalogRun({run_id: 'w1-clef', model: 'clef'});
+  const flash2 = catalogRun({run_id: 'w2-flash', created_utc: '2026-10-09T09:00:00+00:00'});
+  const clef2 = catalogRun({run_id: 'w2-clef', model: 'clef', created_utc: '2026-10-09T09:00:00+00:00'});
+  for (const [run, start, end, gap] of [[first, '2026-01-02', '2026-06-30', 0.02], [clef, '2026-01-02', '2026-06-30', -0.01],
+                                        [flash2, '2026-07-01', '2026-10-07', -0.03], [clef2, '2026-07-01', '2026-10-07', 0.05]]) {
+    run.start = start; run.end = end;
+    run.metrics = {...run.metrics, excess_return_vs_spy: gap, spy_total_return: 0.10};
+  }
+  const site = {'data/index.json': JSON.stringify({schema_version: 1, default_trust: 'all', selected: null,
+    runs: [first, clef, flash2, clef2]})};
+  const elements = mountSite(site, 'index.html');
+  await settle();
+  const $ = id => elements.get(id);
+  const headers = () => $('leaderboard-table').children[0].children[0].descendants()
+    .filter(node => node.tagName === 'th')
+    .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
+  // Two windows: the toggle appears and the default view averages them.
+  assert.equal($('period-tabs').hidden, false);
+  assert.deepEqual(headers(), ['Rank', 'Model', 'Windows', 'Avg vs SPY', 'Best window', 'Worst window', 'Beat SPY in']);
+  assert.equal($('run-count').textContent, '2 models · 2 windows');
+  const rows = $('leaderboard-table').children[0].children[1].children;
+  assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'averages, not best runs, order the all-windows view');
+  assert.equal(rows[0].children[2].textContent, '2/2');
+  assert.equal(rows[0].children[3].children[0].textContent, '▲ 2.00%');
+  assert.equal(rows[0].children[6].textContent, '1 of 2');
+  // A window chip narrows the board to that window, plain columns and all.
+  const chips = $('period-tabs').children;
+  assert.equal(chips.length, 3);
+  chips[2].onclick();
+  assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
+  assert.equal($('run-count').textContent, '2 results');
+  assert.match($('board-window').textContent, /Jul 26 - Oct 26 window, SPY 10\.00%\./);
+});
+
+test('per-window rank numbers follow the displayed vs-SPY order', async () => {
+  const make = (id, model, created, gap) => {
+    const run = catalogRun({run_id: id, model, created_utc: created});
+    run.metrics = {...run.metrics, excess_return_vs_spy: gap, spy_total_return: 0.10};
+    run.start = '2026-01-02'; run.end = '2026-06-30';
+    return run;
+  };
+  // Created newest-first so the old execution-time ranks would disagree with
+  // the vs-SPY display order.
+  const site = {'data/index.json': JSON.stringify({schema_version: 1, default_trust: 'all', selected: null,
+    runs: [make('late', 'clef', '2026-10-09T09:00:00+00:00', -0.02), make('early', 'clef-flash', '2026-10-01T09:00:00+00:00', 0.03)]})};
+  const elements = mountSite(site, 'index.html');
+  await settle();
+  const rows = elements.get('leaderboard-table').children[0].children[1].children;
+  assert.equal(rows[0].children[0].textContent, '1');
+  assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef-Flash');
+  assert.equal(rows[1].children[0].textContent, '2');
 });
 
 test('the run page loads one run from the query string', async () => {

@@ -61,8 +61,18 @@ tr.leader .run-button{color:var(--accent)}
 /* Run page: the two headline tiles (portfolio return, excess vs SPY) read first. */
 .metric-hero{border-color:rgba(180,242,114,.4)}
 .metric-hero strong{font-size:36px}
+
+/* Window toggle: the board scores consecutive six-month windows; the chips
+   pick one window or the all-windows average. */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+.tab{border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--muted);padding:8px 14px;font-size:12px;cursor:pointer}
+.tab:hover{color:var(--text);border-color:var(--muted)}
+.tab.active{color:#12220a;background:var(--accent);border-color:var(--accent);font-weight:600}
+.cell-note{display:block;font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap}
+
 @media(max-width:760px){
   .col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
+  .col-worst_gap,.col-beat_in{display:none}
   #leaderboard-table th,#leaderboard-table td{padding-top:16px;padding-bottom:16px}
   .metric-hero strong{font-size:30px}
 }

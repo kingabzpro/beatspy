@@ -30,7 +30,7 @@
         <li><strong>Ask typed questions.</strong>One probability question per asset, phrased identically for every model. Answers must be typed probabilities; a refusal counts as missing coverage, never invented.</li>
         <li><strong>Size the book.</strong>A fixed policy turns probabilities into weights across the whole pool. The index is never bought, and the rule was recorded before any result was seen.</li>
         <li><strong>Fill the orders.</strong>Trades fire only when a weight moves past the 2% rebalance band, and fill at the next session's open with fees and slippage. Most names sit inside the band, so a typical weekly decision is mostly holds: on the published board models keep 52% to 91% of the book steady.</li>
-        <li><strong>Score it twice.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built, against SPY and fixed baselines.</li>
+        <li><strong>Score it twice, on three windows.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built, against SPY and fixed baselines. The same steps run on three consecutive six-month windows, so a model must hold up in a rally, a flat stretch, and a run it cannot simply ride; the board shows each window and the average.</li>
       </ol>
       <h3 class="how-sub">What keeps it honest</h3>
       <div class="how-notes">

@@ -362,7 +362,7 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
     assert "textContent" in js
     # Each widget lives on the page that owns it; the ids are what app.js binds to.
     owners = {
-        "index.html": ("leaderboard", "leaderboard-table", "status", "run-count", "hero-scope"),
+        "index.html": ("leaderboard", "leaderboard-table", "status", "run-count", "hero-scope", "period-tabs"),
         "run.html": ("run-details", "calibration", "reliability", "reliability-bins", "performance", "drawdown",
                      "allocations", "run-cost", "metrics", "downloads"),
         "pricing.html": ("pricing-table", "model-costs", "cost-window"),
@@ -393,7 +393,7 @@ def test_pricing_table_covers_the_four_decision_models():
         ("gpt-6-luna", "0.10", "https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877"),
         ("jev-latest", "0.042", "https://docs.typesafe.ai/models"),
         ("clef", "0.24", "https://developers.cloudflare.com/workers-ai/models/clef/index.md"),
-        ("clef-flash", "0.09", "https://developers.cloudflare.com/workers-ai/models/clef/index.md"),
+        ("clef-flash", "0.038", "https://developers.cloudflare.com/workers-ai/models/clef/index.md"),
     ):
         assert f'"{model}"' in js, model
         assert rate in js, model

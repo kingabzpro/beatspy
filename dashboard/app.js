@@ -21,9 +21,9 @@ const PRICES = {
     source: "https://developers.cloudflare.com/workers-ai/models/clef/index.md",
     note: "Workers AI list price, input only."},
   "clef-flash": {
-    label: "Cloudflare Clef-flash (9B)", provider: "cloudflare", input: 0.09, output: 0,
-    source: "https://developers.cloudflare.com/workers-ai/models/clef/index.md",
-    note: "Workers AI list price, input only."},
+    label: "Cloudflare Clef-flash (9B)", provider: "cloudflare", input: 0.038, output: 0,
+    source: "https://developers.cloudflare.com/workers-ai/models/clef-flash/index.md",
+    note: "Workers AI list price, input only; cut from $0.09 on 2026-10-09."},
 };
 const SIGNALS = ["noul", "choice", "rank"];
 // A JSON null (or an empty string) is "not measured", not zero: Number(null) is
@@ -82,19 +82,22 @@ function parseCSV(text) {
 function modelName(model) {
   // Router-served models carry their route as a key prefix ("route-model"); the
   // board names the model, not the transport that happened to serve it.
-  return String(model).replace(/^openrouter-/, "").split("/").at(-1);
+  return String(model).replace(/^(?:openrouter|requesty)-/, "").split("/").at(-1);
 }
 
 // Presentation only: how each model reads, and the logo of the company that
-// built it. Raw ids stay in the artifacts; OpenRouter is deliberately absent
-// because it is the transport for the routed rows, not the creator.
+// built it. Raw ids stay in the artifacts; OpenRouter and Requesty are
+// deliberately absent because they are the transport for the routed rows,
+// not the creator.
 const MODEL_META = {
   "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
   "jev-latest": ["Jev-Latest", "typesafe.png"],
+  "jev-1-14": ["Jev 1.14", "typesafe.png"],
   "clef": ["Clef", "cloudflare.svg"],
   "clef-flash": ["Clef-Flash", "cloudflare.svg"],
   "clef-omni": ["Clef-Omni", "cloudflare.svg"],
   "pplx-decider": ["Pplx-Decider", "perplexity.svg"],
+  "decision-1": ["Microsoft Decision 1", "microsoft.svg"],
   "microsoft-decision-1": ["Microsoft Decision 1", "microsoft.svg"],
   "kev-4b": ["Kev-4B", "jaredpalmer.ico"],
   "liquid-d1": ["Liquid D1", "liquid.ico"],
@@ -106,10 +109,72 @@ const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(mod
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
 
 function leaderboardRuns(runs) {
-  const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(a.run_id)));
+  const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(b.run_id)));
   const models = new Map();
   for (const run of ordered) if (!models.has(run.model)) models.set(run.model, run);
   return [...models.values()].sort((a, b) => (Number(b.metrics?.excess_return_vs_spy) || 0) - (Number(a.metrics?.excess_return_vs_spy) || 0));
+}
+
+// The board scores consecutive six-month windows. A run's window is its frozen
+// start/end pair, so the board can be read one window at a time or averaged
+// across all of them; one window alone keeps the old single-period behavior.
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const monthLabel = iso => {
+  const match = /^(\d{4})-(\d{2})/.exec(String(iso || ""));
+  return match ? `${MONTHS[Number(match[2]) - 1]} ${match[1].slice(2)}` : "";
+};
+const windowLabel = run => `${monthLabel(run.start)} - ${monthLabel(run.end)}`;
+const windowKey = run => `${run.start}..${run.end}`;
+
+function scoredWindows(allRuns) {
+  // Newest run per display model inside each window: routes merge (the board
+  // names the model, not the transport) and a re-run replaces its own older
+  // attempt by execution time, never by score.
+  const grouped = new Map();
+  for (const run of allRuns) {
+    if (!run.start || !run.end) continue;
+    const key = windowKey(run);
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(run);
+  }
+  return [...grouped.entries()].map(([key, rows]) => {
+    const ordered = [...rows].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(b.run_id)));
+    const models = new Map();
+    for (const run of ordered) {
+      const name = modelName(run.model);
+      if (!models.has(name)) models.set(name, run);
+    }
+    return {
+      key, label: windowLabel(rows[0]), start: rows[0].start, end: rows[0].end,
+      spy: Number(rows[0].metrics?.spy_total_return), runs: [...models.values()],
+    };
+  }).sort((a, b) => String(a.end).localeCompare(String(b.end)));
+}
+
+function allPeriodRows(windows) {
+  // One aggregate row per display model. A model that has not run a window yet
+  // shows n-of-N rather than borrowing a number from another window.
+  const models = new Map();
+  for (const w of windows) for (const run of w.runs) {
+    const name = modelName(run.model);
+    if (!models.has(name)) models.set(name, {model: run.model, entries: []});
+    models.get(name).entries.push({run, window: w.label, gap: Number(run.metrics?.excess_return_vs_spy)});
+  }
+  return [...models.values()].map(row => {
+    row.entries.sort((a, b) => String(a.run.end).localeCompare(String(b.run.end)));
+    const gaps = row.entries.map(entry => entry.gap).filter(Number.isFinite);
+    const ranked = row.entries.filter(entry => Number.isFinite(entry.gap)).sort((a, b) => b.gap - a.gap);
+    row.windows = row.entries.length;
+    row.avgGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+    row.best = ranked[0] || null;
+    row.worst = ranked[ranked.length - 1] || null;
+    row.beatIn = row.entries.filter(entry => entry.gap > 0).length;
+    row.latest = row.entries[row.entries.length - 1]?.run;
+    return row;
+    // The default order is the average gap, with windows beaten as the
+    // tiebreak: both readings of "who beat SPY" agree on the top, and the
+    // Beat SPY in column can flip to wins-first with one click.
+  }).sort((a, b) => (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity) || b.beatIn - a.beatIn);
 }
 
 function inputCost(metrics, rates) {
@@ -179,6 +244,7 @@ function catalogProblems(catalog) {
 if (typeof module !== "undefined") module.exports = {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
+  monthLabel, windowLabel, scoredWindows, allPeriodRows,
 };
 
 if (typeof document !== "undefined") {
@@ -260,7 +326,10 @@ if (typeof document !== "undefined") {
     // billed; the columns standardize that to one decision (the unit the board
     // is scored in) and to the run, and the caption explains why two providers
     // report far more tokens than the rest for the same frozen state.
-    const onBoard = leaderboardRuns(runs);
+    // The pricing page prices one window, the latest scored one, so a model
+    // is exactly one row even when several windows are published.
+    const windows = scoredWindows(runs);
+    const onBoard = windows.length ? windows[windows.length - 1].runs : [];
     const records = onBoard.map(run => {
       const rates = runRates(run);
       const decisions = Number(run.decisions ?? run.metrics?.decisions);
@@ -308,30 +377,114 @@ if (typeof document !== "undefined") {
     }
     $("pricing-table").replaceChildren(element);
     setHidden("cost-overview", !onBoard.length);
-    setText("cost-window", onBoard.length
-      ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
+      setText("cost-window", onBoard.length
+        ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
         + "A run's bill is its rate times the tokens the provider counts, and providers count the same frozen state very differently: most "
-        + "bill the shared state once per request, while d1 and pplx-decider bill it once per question, so a decision that asks 25 questions "
-        + "is billed as 25 passes over the same state. Compare models on tokens per decision and cost per decision; the run cost is the total "
-        + "for the published 25-decision window."
-      : "");
+        + "bill the shared state once per request, while d1 and pplx-decider bill it once per question on OpenRouter, so a decision that asks 25 questions "
+        + "is billed as 25 passes over the same state. That is why the published pplx-decider row is served through Requesty, whose route "
+        + "bills the state once per request. Compare models on tokens per decision and cost per decision; the run cost is the total "
+        + "for one scored window of weekly decisions (the latest)."
+        : "");
     runBars("model-costs", onBoard
       .map(run => ({label: displayModel(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
       .sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)));
   }
+  // One window at a time, or every window averaged: the toggle picks the lens.
+  const ALL_COLUMNS = [
+    ["model", "Model", "text"],
+    ["windows", "Windows", "count"],
+    ["avg_gap", "Avg vs SPY", "signed"],
+    ["best_gap", "Best window", "signed"],
+    ["worst_gap", "Worst window", "signed"],
+    ["beat_in", "Beat SPY in", "text"],
+  ];
+  let period = "all";
+
+  function renderTabs(windows) {
+    const bar = $("period-tabs");
+    if (!bar) return;
+    bar.replaceChildren();
+    // One scored window needs no toggle; the board stays exactly as it was.
+    bar.hidden = windows.length < 2;
+    if (bar.hidden) return;
+    const chip = (id, text, title) => {
+      const button = node("button", text, `tab${period === id ? " active" : ""}`);
+      button.type = "button";
+      if (title) button.title = title;
+      button.setAttribute("aria-pressed", period === id ? "true" : "false");
+      button.onclick = () => {
+        period = id;
+        sortKey = id === "all" ? "avg_gap" : "excess_return_vs_spy";
+        descending = true;
+        renderBoard();
+      };
+      return button;
+    };
+    bar.append(chip("all", `All ${windows.length} windows`, "Every scored window, averaged per model"));
+    for (const w of windows) {
+      bar.append(chip(w.key, w.label, `${w.start} to ${w.end}`
+        + (Number.isFinite(w.spy) ? `, SPY ${percent(w.spy)}` : "")));
+    }
+  }
+
   function renderBoard() {
     if (!$("leaderboard-table")) return;
-    visible = leaderboardRuns(runs);
+    const windows = scoredWindows(runs);
+    if (period !== "all" && !windows.some(w => w.key === period)) period = "all";
+    renderTabs(windows);
+    // A single window (or the single-window fallback) renders the plain board.
+    if (period !== "all" || windows.length < 2) {
+      const w = period === "all" ? windows[windows.length - 1] : windows.find(x => x.key === period);
+      visible = w ? w.runs : [];
+      renderWindowBoard(w, windows.length >= 2);
+    } else {
+      visible = [];
+      renderAllBoard(windows);
+    }
+    updateBoardChrome(windows);
+  }
+
+  function updateBoardChrome(windows) {
+    const source = visible.length ? visible : [];
+    const allMode = period === "all" && windows.length >= 2;
+    setText("run-count", allMode
+      ? `${plural(allPeriodRows(windows).length, "model")} · ${plural(windows.length, "window")}`
+      : `${visible.length} result${visible.length === 1 ? "" : "s"}`);
+    if (allMode) {
+      setText("hero-scope", `${windows[0].start} → ${windows[windows.length - 1].end} · ${plural(windows.length, "window")}`);
+    } else if (source.length) {
+      const first = source.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
+      const last = source.reduce((a, b) => (String(a.end) >= String(b.end) ? a : b));
+      const decisions = source[0].decisions ?? source[0].metrics?.decisions;
+      setText("hero-scope", `${first.start} → ${last.end} · ${plural(decisions, "decision")}`);
+    }
+    const syntheticCount = source.filter(run => run.synthetic).length;
+    setHidden("demo-banner", syntheticCount === 0);
+    if (syntheticCount) {
+      setText("demo-banner", syntheticCount === source.length
+        ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
+        : `Synthetic demo data: ${syntheticCount} of ${source.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
+    }
+    const runCount = $("run-count");
+    if (runCount) runCount.className = syntheticCount === source.length && source.length ? "pill warn" : "pill";
+    setText("status", source.length || !allMode ? (source.length ? "" : (runs.length
+      ? "No completed results yet."
+      : "No results yet. Record a decision-model run and re-render this page.")) : "");
+  }
+
+  function renderWindowBoard(w, multiWindow) {
     // The caption teaches the two columns whose meaning a first read can't
     // guess; the no-skill line comes from the catalog, not a hardcoded number.
     const baseRate = Number(visible[0]?.metrics?.calibration?.signals?.noul?.base_rate);
-    setText("board-window", "One row per model, latest completed result. "
+    setText("board-window", (multiWindow && w
+      ? `${w.label} window${Number.isFinite(w.spy) ? `, SPY ${percent(w.spy)}` : ""}. `
+      : "One row per model, latest completed result. ")
+      + "Ranked by vs SPY, the gap to the index in this window; click any column to re-sort. "
       + "Holds is the share of names left untraded each week; Right calls is how often its calls proved right"
       + (Number.isFinite(baseRate)
         ? ` (always calling the same way scores ${percent(baseRate)} here, 50% is a coin flip)`
         : " (50% is a coin flip)")
       + ". Open a model for its full run.");
-    const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
       const av = rowValue(a, column[0], column[3]), bv = rowValue(b, column[0], column[3]);
@@ -339,27 +492,9 @@ if (typeof document !== "undefined") {
       if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
       return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
     });
-    setText("run-count", `${visible.length} result${visible.length === 1 ? "" : "s"}`);
-    // Keep the banner honest about scope, derived from the runs rather than a
-    // hardcoded sentence that drifts the moment the benchmark changes.
-    if (visible.length) {
-      const first = visible.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
-      const last = visible.reduce((a, b) => (String(a.end) >= String(b.end) ? a : b));
-      const decisions = visible[0].decisions ?? visible[0].metrics?.decisions;
-      setText("hero-scope", `${first.start} → ${last.end} · ${plural(decisions, "decision")}`);
-    }
-    const syntheticCount = visible.filter(run => run.synthetic).length;
-    setHidden("demo-banner", syntheticCount === 0);
-    if (syntheticCount) {
-      setText("demo-banner", syntheticCount === visible.length
-        ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
-        : `Synthetic demo data: ${syntheticCount} of ${visible.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
-    }
-    const runCount = $("run-count");
-    if (runCount) runCount.className = syntheticCount === visible.length && visible.length ? "pill warn" : "pill";
-    setText("status", visible.length ? "" : (runs.length
-      ? "No completed results yet."
-      : "No results yet. Record a decision-model run and re-render this page."));
+    // Rank follows the sorted order the reader sees, so the numbers can never
+    // disagree with the rows under the current sort.
+    const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank", "col-rank"));
     for (const [key, title, kind] of COLUMNS) {
@@ -403,8 +538,8 @@ if (typeof document !== "undefined") {
         if (event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
         location.href = link.href;
       };
-      for (const [key, , kind, source] of COLUMNS.slice(1)) {
-        const raw = rowValue(run, key, source), value = Number(raw);
+      for (const [key, , kind, source_] of COLUMNS.slice(1)) {
+        const raw = rowValue(run, key, source_), value = Number(raw);
         // Tone only the columns whose neutral point is zero; Sharpe, drawdown
         // and the calibration scores are all read against their own scales.
         const tone = Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy" || key === "usd_10k")
@@ -416,6 +551,90 @@ if (typeof document !== "undefined") {
       }
       body.append(row);
     }
+    $("leaderboard-table").replaceChildren(element);
+  }
+
+  function renderAllBoard(windows) {
+    const rows = allPeriodRows(windows);
+    const total = windows.length;
+    setText("board-window", `Every model on every scored window, oldest to newest. `
+      + `Ranked by Avg vs SPY, the mean gap across its windows, with windows beaten as the tiebreak; click any column to re-sort (Beat SPY in ranks by wins first). `
+      + `Windows shows how many of the ${total} windows a model has run in; `
+      + `Best and Worst name the extremes. Open a model for its most recent full run.`);
+    const value = (row, key) => key === "model" ? displayModel(row.model)
+      : key === "windows" ? `${row.windows}`
+      : key === "avg_gap" ? row.avgGap
+      : key === "best_gap" ? row.best?.gap
+      : key === "worst_gap" ? row.worst?.gap
+      : key === "beat_in" ? row.beatIn
+      : null;
+    rows.sort((a, b) => {
+      const column = ALL_COLUMNS.find(([key]) => key === sortKey) || ALL_COLUMNS[2];
+      const av = value(a, column[0]), bv = value(b, column[0]);
+      // The headline ranking: average gap first, windows beaten as the tiebreak.
+      // The Beat SPY in column flips that: wins first, average as the tiebreak.
+      if (column[0] === "avg_gap" || column[0] === "beat_in") {
+        const avgFirst = column[0] === "avg_gap";
+        const primary = avgFirst ? (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity) : b.beatIn - a.beatIn;
+        const secondary = avgFirst ? b.beatIn - a.beatIn : (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity);
+        return descending ? primary || secondary : -(primary || secondary);
+      }
+      if (column[2] === "text") return descending ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
+      if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
+      return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
+    });
+    const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
+    header.append(node("th", "Rank", "col-rank"));
+    for (const [key, title, kind] of ALL_COLUMNS) {
+      const th = node("th", undefined, `${kind === "text" ? "" : "num"} col-${key}`);
+      const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
+      th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
+      button.onclick = () => {descending = sortKey === key ? !descending : true; sortKey = key; renderBoard();};
+      th.append(button); header.append(th);
+    }
+    head.append(header); element.append(head, body);
+    rows.forEach((row, index) => {
+      const tr = node("tr");
+      if (index === 0) tr.classList.add("leader");
+      tr.append(node("td", index + 1, "col-rank"));
+      const td = node("td", undefined, "col-model"), link = node("a", displayModel(row.model), "run-button");
+      if (row.latest) {
+        link.href = `run.html?run=${encodeURIComponent(row.latest.run_id)}`;
+        if (row.latest.run_id === selected) tr.classList.add("selected");
+      }
+      const logo = companyLogo(row.model);
+      if (logo) {
+        const img = node("img");
+        img.className = "model-logo"; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
+        img.src = `assets/logos/${logo}`;
+        td.append(img);
+      }
+      td.append(link);
+      tr.append(td);
+      tr.onclick = event => {
+        if (!row.latest || event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
+        location.href = `run.html?run=${encodeURIComponent(row.latest.run_id)}`;
+      };
+      const gapCell = (entry) => {
+        const cell = node("td", undefined, "num col-gap");
+        if (entry && Number.isFinite(entry.gap)) {
+          const tone = entry.gap >= 0 ? "positive" : "negative";
+          cell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${percent(entry.gap)}`, `chip ${tone}`));
+          const note = node("span", entry.window, "cell-note");
+          cell.append(note);
+        } else cell.textContent = "n/a";
+        return cell;
+      };
+      tr.append(node("td", `${row.windows}/${total}`, "num col-windows"));
+      const avgCell = node("td", undefined, "num col-avg_gap");
+      if (Number.isFinite(row.avgGap)) {
+        const tone = row.avgGap >= 0 ? "positive" : "negative";
+        avgCell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${percent(row.avgGap)}`, `chip ${tone}`));
+      } else avgCell.textContent = "n/a";
+      tr.append(avgCell, gapCell(row.best), gapCell(row.worst));
+      tr.append(node("td", `${row.beatIn} of ${row.windows}`, "num col-beat_in"));
+      body.append(tr);
+    });
     $("leaderboard-table").replaceChildren(element);
   }
   function runBars(target, rows) {
