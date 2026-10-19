@@ -1,0 +1,17 @@
+title = "Six months to April 2026"
+description = "Fixed window 2025-10-09 to 2026-04-09: the second of three consecutive six-month periods the board scores, with weekly decisions over the same 25 stocks and ETFs."
+start = "2025-10-09"
+end = "2026-04-09"
+frequency = "weekly"
+max_decisions = 26
+benchmark = "SPY"
+# The same pool as 2026-6m, so a model's three windows differ only in time.
+tradable = [
+  "AAPL", "MSFT", "NVDA", "GOOGL", "META",
+  "AMZN", "HD", "WMT", "PG", "COST",
+  "JPM", "V", "LLY", "JNJ", "UNH",
+  "XOM", "CVX", "CAT", "GE", "NEE",
+  "LIN", "PLD", "AMT", "QQQ", "TLT",
+]
+max_candidates = 10
+lookback_days = 400
