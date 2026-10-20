@@ -4,7 +4,7 @@
 
 **Decision models, not chat models.**
 
-Eleven decision models read the same frozen point-in-time market state, answer
+Thirteen decision models read the same frozen point-in-time market state, answer
 the same typed probability questions, and are scored twice: were the
 probabilities calibrated, and did the portfolio they built beat SPY?
 
@@ -13,7 +13,7 @@ probabilities calibrated, and did the portfolio they built beat SPY?
 [![CI](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml/badge.svg)](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Full 11-model run](https://img.shields.io/badge/full%2011--model%20run-%240.22-brightgreen.svg)](#the-models)
+[![Full 13-model run](https://img.shields.io/badge/full%2013--model%20run-%240.23-brightgreen.svg)](#the-models)
 
 </div>
 
@@ -41,12 +41,14 @@ spreads across them by conviction, and SPY is the yardstick, never held.
 | `liquid-d1` | +8.23% | −6.86% |
 | `pplx-decider` | +8.16% | −6.93% |
 | `clef-omni` | +7.72% | −7.37% |
+| `liquid-d1-ultra` | +7.70% | −7.39% |
 | `drex-v1.5` | +7.08% | −8.01% |
 | `ms-decision-1` | +5.96% | −9.13% |
+| `standard-one-8b` | +4.38% | −10.71% |
 | *pool, equal weight* | *+9.09%* | *−6.00%* |
 | *SPY buy-and-hold* | *+15.09%* | *n/a* |
 
-The spread between models (+5.96% to +11.67%) straddles the pool's +9.09%, and
+The spread between models (+4.38% to +11.67%) straddles the pool's +9.09%, and
 the return ordering does not track probability quality. The SPY gap is
 structural: SPY is cap-weighted and this book is not. Three more models (both
 Upstage Solar builds and Together Tev1) stalled on a zero aggregator balance and
@@ -54,12 +56,14 @@ are off the board.
 
 ## The models
 
-Four providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
-(`jev-latest`), and Cloudflare Workers AI (`clef`, `clef-flash`). Seven more run
-through OpenRouter: `span-01-lite` (free), `kev-4b`, `liquid-d1`, `pplx-decider`,
-`clef-omni`, `drex-v1.5`, and `ms-decision-1`. All bill input tokens only, and
-one call answers every question, so the full 11-model benchmark above cost about
-**$0.22**. `beatspy models` prints every runnable id, endpoint, and price.
+Six providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
+(`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`), Requesty
+(`jev-1.14`), Standard Thinking (`standard-one-8b`), and Liquid
+(`liquid-d1-ultra`). Seven more run through OpenRouter: `span-01-lite` (free),
+`kev-4b`, `liquid-d1`, `pplx-decider`, `clef-omni`, `drex-v1.5`, and
+`ms-decision-1`. All bill input tokens only, and
+one call answers every question, so the full 13-model benchmark above cost about
+**$0.23**. `beatspy models` prints every runnable id, endpoint, and price.
 
 ## Quick start
 

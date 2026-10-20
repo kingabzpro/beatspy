@@ -101,9 +101,11 @@ const MODEL_META = {
   "microsoft-decision-1": ["Microsoft Decision 1", "microsoft.svg"],
   "kev-4b": ["Kev-4B", "jaredpalmer.ico"],
   "liquid-d1": ["Liquid D1", "liquid.ico"],
+  "liquid-d1-ultra": ["Liquid D1 Ultra", "liquid.ico"],
   "drex": ["Drex v1.5", "nace.svg"],
   "span-01-lite": ["Span-01 Lite", "respan.ico"],
   "span-01": ["Span-01", "respan.ico"],
+  "standard-one-8b": ["Standard One 8B", "standardthinking.png"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
