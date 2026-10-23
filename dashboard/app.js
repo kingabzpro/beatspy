@@ -185,11 +185,14 @@ function allPeriodRows(windows) {
     row.worst = ranked[ranked.length - 1] || null;
     row.beatIn = row.entries.filter(entry => entry.gap > 0).length;
     row.latest = row.entries[row.entries.length - 1]?.run;
+    // A model that has run every window outranks one that has not, whatever
+    // the averages say: one lucky window must never top a three-window record.
+    row.complete = row.windows === windows.length;
     return row;
-    // The default order is the average gap, with windows beaten as the
-    // tiebreak: both readings of "who beat SPY" agree on the top, and the
-    // Beat SPY in column can flip to wins-first with one click.
-  }).sort((a, b) => (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity) || b.beatIn - a.beatIn);
+    // The default order is completeness first, then the average gap, with
+    // windows beaten as the tiebreak: both readings of "who beat SPY" agree on
+    // the top, and the Beat SPY in column can flip to wins-first with one click.
+  }).sort((a, b) => (b.complete - a.complete) || (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity) || b.beatIn - a.beatIn);
 }
 
 function inputCost(metrics, rates) {
@@ -581,7 +584,7 @@ if (typeof document !== "undefined") {
     const rows = allPeriodRows(windows);
     const total = windows.length;
     setText("board-window", `Every model on every scored window, oldest to newest. `
-      + `Ranked by Avg vs SPY, the mean gap across its windows, with windows beaten as the tiebreak; click any column to re-sort (Beat SPY in ranks by wins first). `
+      + `Models that ran every window rank first, then by Avg vs SPY, the mean gap across its windows, with windows beaten as the tiebreak, so one lucky window cannot top a full record; click any column to re-sort (Beat SPY in ranks by wins first). `
       + `Windows shows how many of the ${total} windows a model has run in; `
       + `Best and Worst name the extremes. Open a model for its most recent full run.`);
     const value = (row, key) => key === "model" ? displayModel(row.model)
@@ -594,13 +597,16 @@ if (typeof document !== "undefined") {
     rows.sort((a, b) => {
       const column = ALL_COLUMNS.find(([key]) => key === sortKey) || ALL_COLUMNS[2];
       const av = value(a, column[0]), bv = value(b, column[0]);
-      // The headline ranking: average gap first, windows beaten as the tiebreak.
-      // The Beat SPY in column flips that: wins first, average as the tiebreak.
+      // The headline ranking: complete records first (a model that ran every
+      // window outranks one that has not, whatever a lucky average says), then
+      // average gap, windows beaten as the tiebreak. The Beat SPY in column
+      // flips the last two: wins first, average as the tiebreak.
       if (column[0] === "avg_gap" || column[0] === "beat_in") {
         const avgFirst = column[0] === "avg_gap";
         const primary = avgFirst ? (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity) : b.beatIn - a.beatIn;
         const secondary = avgFirst ? b.beatIn - a.beatIn : (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity);
-        return descending ? primary || secondary : -(primary || secondary);
+        const completeness = (b.complete ? 1 : 0) - (a.complete ? 1 : 0);
+        return descending ? completeness || primary || secondary : -(completeness || primary || secondary);
       }
       if (column[2] === "text") return descending ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
       if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
