@@ -24,8 +24,9 @@ sector label, because under v1 the models mostly echoed the momentum column.
 > **The honest result.** Across all three v2 windows (18 months of weekly
 > decisions), the best average gap to SPY is +0.48pp, no Brier skill is
 > positive, and only one window of one model reaches a nominal AUC p-value
-> under 0.05 (`span-01-free`, latest window, p 0.026 - expected once by chance
-> at this many runs, and not significant after correction). Only `jev-latest` and
+> under 0.05 (`span-01-free` p 0.026, `mammoth-1` p 0.009 - at this many runs
+> roughly two such hits are expected by chance, so neither is significant after
+> correction, though mammoth-1 also ties the board's best Brier, 0.254). Only `jev-latest` and
 > `subq-snap-1.1` beat SPY in two of three windows, and both margins sit inside
 > their bootstrap intervals. The single-window leader (Clef Omni) dropped to
 > fourth once the other windows ran, which is exactly why the board scores
@@ -45,11 +46,13 @@ yardstick, never held.
 | --- | --- | --- | --- | --- | --- |
 | `span-01-free` (first-party) | -3.52pp | +6.29pp | -1.34pp | **+0.48pp** | 1/3 |
 | `clef` via Requesty | -0.10pp | **+8.28pp** | -6.92pp | +0.42pp | 1/3 |
+| `mammoth-1` (Baseten, free) | +0.35pp | +8.03pp | -7.54pp | +0.28pp | **2/3** |
 | `gpt-6-luna` | -0.11pp | +6.48pp | -6.15pp | +0.07pp | 1/3 |
 | `clef` | -0.77pp | +7.36pp | -6.53pp | +0.02pp | 1/3 |
 | `clef-omni` | -1.21pp | +4.74pp | -4.10pp | -0.19pp | 1/3 |
 | `subq-snap-1.1` | +2.06pp | +4.94pp | -8.35pp | -0.45pp | **2/3** |
 | `jev-latest` | +1.39pp | +3.52pp | -6.59pp | -0.56pp | **2/3** |
+| `elephant-1` (Baseten, free) | -1.31pp | +6.35pp | -6.83pp | -0.60pp | 1/3 |
 | `clef-flash` | -1.68pp | +3.74pp | -4.79pp | -0.91pp | 1/3 |
 | `d3-turbo` (free) | -0.59pp | +5.26pp | -8.77pp | -1.36pp | 1/3 |
 | `ms-decision-1` | -3.85pp | +7.23pp | -7.49pp | -1.37pp | 1/3 |
@@ -61,7 +64,7 @@ yardstick, never held.
 | `standard-one-8b` | -1.44pp | +3.05pp | -11.44pp | -3.28pp | 1/3 |
 
 Each column is the model's gap to SPY in one six-month window (SPY made
-+23.04%, +1.88% and +15.09%). The Apr 26 window lifted 15 of 16 models above
++23.04%, +1.88% and +15.09%). The Apr 26 window lifted 17 of 18 models above
 SPY because the pool itself outran a flat index there; the other two windows
 are the honest test, and there the gaps are negative or inside noise. The
 single-window returns live on the dashboard, one chip per window, with the

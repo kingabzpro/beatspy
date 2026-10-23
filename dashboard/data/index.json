@@ -16974,6 +16974,1248 @@
       "synthetic": false,
       "trust": "local",
       "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.92,
+        "avg_holds": 15.6,
+        "avg_sells": 4.48,
+        "buy": 0.1968,
+        "hold": 0.624,
+        "sell": 0.1792
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.519506,
+      "auc_p_value": 0.093906,
+      "brier": 0.253857,
+      "brier_skill_p_value": 0.882118,
+      "brier_skill_score": -0.027233,
+      "calibration_gap": null,
+      "created_utc": "2026-10-23T11:21:53+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261023-112153_2026-6m_baseten-mammoth-1_1f23694f42",
+      "ece": 0.071666,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.188775,
+        "method": "decision-window block bootstrap",
+        "upper": 0.033203
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.225113,
+      "mean_latency_s": 1.266,
+      "metrics": {
+        "annual_volatility": 0.102732,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.246257,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.15547,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5376,
+              "auc": 0.519506,
+              "auc_p_value": 0.093906,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 4,
+                  "lower": 0.1,
+                  "mean_predicted": 0.185177,
+                  "observed_rate": 0.25,
+                  "upper": 0.2
+                },
+                {
+                  "count": 45,
+                  "lower": 0.2,
+                  "mean_predicted": 0.263775,
+                  "observed_rate": 0.488889,
+                  "upper": 0.3
+                },
+                {
+                  "count": 145,
+                  "lower": 0.3,
+                  "mean_predicted": 0.358078,
+                  "observed_rate": 0.441379,
+                  "upper": 0.4
+                },
+                {
+                  "count": 227,
+                  "lower": 0.4,
+                  "mean_predicted": 0.449812,
+                  "observed_rate": 0.418502,
+                  "upper": 0.5
+                },
+                {
+                  "count": 176,
+                  "lower": 0.5,
+                  "mean_predicted": 0.536994,
+                  "observed_rate": 0.482955,
+                  "upper": 0.6
+                },
+                {
+                  "count": 28,
+                  "lower": 0.6,
+                  "mean_predicted": 0.632317,
+                  "observed_rate": 0.428571,
+                  "upper": 0.7
+                },
+                {
+                  "count": 0,
+                  "lower": 0.7,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.253857,
+              "brier_skill_p_value": 0.882118,
+              "brier_skill_score": -0.027233,
+              "expected_calibration_error": 0.071666,
+              "log_loss": 0.70227,
+              "max_calibration_error": 0.225113,
+              "mean_predicted": 0.446168,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.188775,
+          "method": "decision-window block bootstrap",
+          "upper": 0.033203
+        },
+        "excess_return_vs_spy": -0.075364,
+        "input_tokens": 189339,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.035986,
+        "mean_latency_s": 1.266,
+        "outperformance_hit_rate": 0.4,
+        "output_tokens": 625,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.057268,
+          "method": "decision-window block bootstrap",
+          "upper": 0.2192
+        },
+        "risk_violations": 0,
+        "sharpe": 1.458,
+        "spy_total_return": 0.150909,
+        "total_return": 0.075545,
+        "trades": 625
+      },
+      "model": "baseten-mammoth-1",
+      "model_label": "Base Labs Mammoth 1 (27B)",
+      "noul_brier": 0.253857,
+      "noul_ece": 0.071666,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.057268,
+        "method": "decision-window block bootstrap",
+        "upper": 0.2192
+      },
+      "run_id": "20261023-112153_2026-6m_baseten-mammoth-1_1f23694f42",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.44,
+        "avg_holds": 16.32,
+        "avg_sells": 4.24,
+        "buy": 0.1776,
+        "hold": 0.6528,
+        "sell": 0.1696
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.507386,
+      "auc_p_value": 0.288711,
+      "brier": 0.272322,
+      "brier_skill_p_value": 0.722278,
+      "brier_skill_score": -0.10195,
+      "calibration_gap": null,
+      "created_utc": "2026-10-23T11:22:19+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261023-112219_2026-6m_baseten-elephant-1_e5b9ad7d26",
+      "ece": 0.129592,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.183742,
+        "method": "decision-window block bootstrap",
+        "upper": 0.036184
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.570078,
+      "mean_latency_s": 0.821,
+      "metrics": {
+        "annual_volatility": 0.101006,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.199607,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.170684,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5296,
+              "auc": 0.507386,
+              "auc_p_value": 0.288711,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 3,
+                  "lower": 0.0,
+                  "mean_predicted": 0.06496,
+                  "observed_rate": 0.0,
+                  "upper": 0.1
+                },
+                {
+                  "count": 14,
+                  "lower": 0.1,
+                  "mean_predicted": 0.164988,
+                  "observed_rate": 0.357143,
+                  "upper": 0.2
+                },
+                {
+                  "count": 130,
+                  "lower": 0.2,
+                  "mean_predicted": 0.25655,
+                  "observed_rate": 0.469231,
+                  "upper": 0.3
+                },
+                {
+                  "count": 127,
+                  "lower": 0.3,
+                  "mean_predicted": 0.344087,
+                  "observed_rate": 0.417323,
+                  "upper": 0.4
+                },
+                {
+                  "count": 104,
+                  "lower": 0.4,
+                  "mean_predicted": 0.444869,
+                  "observed_rate": 0.423077,
+                  "upper": 0.5
+                },
+                {
+                  "count": 93,
+                  "lower": 0.5,
+                  "mean_predicted": 0.549453,
+                  "observed_rate": 0.483871,
+                  "upper": 0.6
+                },
+                {
+                  "count": 111,
+                  "lower": 0.6,
+                  "mean_predicted": 0.645732,
+                  "observed_rate": 0.504505,
+                  "upper": 0.7
+                },
+                {
+                  "count": 39,
+                  "lower": 0.7,
+                  "mean_predicted": 0.739447,
+                  "observed_rate": 0.358974,
+                  "upper": 0.8
+                },
+                {
+                  "count": 4,
+                  "lower": 0.8,
+                  "mean_predicted": 0.820078,
+                  "observed_rate": 0.25,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.272322,
+              "brier_skill_p_value": 0.722278,
+              "brier_skill_score": -0.10195,
+              "expected_calibration_error": 0.129592,
+              "log_loss": 0.744967,
+              "max_calibration_error": 0.570078,
+              "mean_predicted": 0.449145,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.183742,
+          "method": "decision-window block bootstrap",
+          "upper": 0.036184
+        },
+        "excess_return_vs_spy": -0.06825,
+        "input_tokens": 189359,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.03544,
+        "mean_latency_s": 0.821,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 625,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.041052,
+          "method": "decision-window block bootstrap",
+          "upper": 0.212506
+        },
+        "risk_violations": 0,
+        "sharpe": 1.6107,
+        "spy_total_return": 0.150909,
+        "total_return": 0.082658,
+        "trades": 624
+      },
+      "model": "baseten-elephant-1",
+      "model_label": "Base Labs Elephant 1 (9B)",
+      "noul_brier": 0.272322,
+      "noul_ece": 0.129592,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.041052,
+        "method": "decision-window block bootstrap",
+        "upper": 0.212506
+      },
+      "run_id": "20261023-112219_2026-6m_baseten-elephant-1_e5b9ad7d26",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.653846153846154,
+        "avg_holds": 14.153846153846153,
+        "avg_sells": 5.1923076923076925,
+        "buy": 0.22615384615384615,
+        "hold": 0.5661538461538461,
+        "sell": 0.2076923076923077
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.487155,
+      "auc_p_value": 0.493506,
+      "brier": 0.257015,
+      "brier_skill_p_value": 0.641359,
+      "brier_skill_score": -0.029034,
+      "calibration_gap": null,
+      "created_utc": "2026-10-23T11:22:58+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261023-112258_2026-04-6m_baseten-mammoth-1_6f8bd33a2f",
+      "ece": 0.094932,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.004544,
+        "method": "decision-window block bootstrap",
+        "upper": 0.144517
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.286783,
+      "mean_latency_s": 1.316,
+      "metrics": {
+        "annual_volatility": 0.11983,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.261382,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.211757,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.472308,
+              "auc": 0.487155,
+              "auc_p_value": 0.493506,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 0,
+                  "lower": 0.2,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.3
+                },
+                {
+                  "count": 70,
+                  "lower": 0.3,
+                  "mean_predicted": 0.371819,
+                  "observed_rate": 0.528571,
+                  "upper": 0.4
+                },
+                {
+                  "count": 228,
+                  "lower": 0.4,
+                  "mean_predicted": 0.454537,
+                  "observed_rate": 0.552632,
+                  "upper": 0.5
+                },
+                {
+                  "count": 261,
+                  "lower": 0.5,
+                  "mean_predicted": 0.542714,
+                  "observed_rate": 0.471264,
+                  "upper": 0.6
+                },
+                {
+                  "count": 89,
+                  "lower": 0.6,
+                  "mean_predicted": 0.630852,
+                  "observed_rate": 0.52809,
+                  "upper": 0.7
+                },
+                {
+                  "count": 2,
+                  "lower": 0.7,
+                  "mean_predicted": 0.713217,
+                  "observed_rate": 1.0,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.257015,
+              "brier_skill_p_value": 0.641359,
+              "brier_skill_score": -0.029034,
+              "expected_calibration_error": 0.094932,
+              "log_loss": 0.70744,
+              "max_calibration_error": 0.286783,
+              "mean_predicted": 0.505973,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.004544,
+          "method": "decision-window block bootstrap",
+          "upper": 0.144517
+        },
+        "excess_return_vs_spy": 0.080316,
+        "input_tokens": 197075,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.056114,
+        "mean_latency_s": 1.316,
+        "outperformance_hit_rate": 0.5769,
+        "output_tokens": 650,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.04453,
+          "method": "decision-window block bootstrap",
+          "upper": 0.279786
+        },
+        "risk_violations": 0,
+        "sharpe": 1.6629,
+        "spy_total_return": 0.018805,
+        "total_return": 0.099121,
+        "trades": 649
+      },
+      "model": "baseten-mammoth-1",
+      "model_label": "Base Labs Mammoth 1 (27B)",
+      "noul_brier": 0.257015,
+      "noul_ece": 0.094932,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.04453,
+        "method": "decision-window block bootstrap",
+        "upper": 0.279786
+      },
+      "run_id": "20261023-112258_2026-04-6m_baseten-mammoth-1_6f8bd33a2f",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.346153846153846,
+        "avg_holds": 16.884615384615383,
+        "avg_sells": 3.769230769230769,
+        "buy": 0.17384615384615384,
+        "hold": 0.6753846153846154,
+        "sell": 0.15076923076923077
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.487562,
+      "auc_p_value": 0.61039,
+      "brier": 0.274503,
+      "brier_skill_p_value": 0.394605,
+      "brier_skill_score": -0.099052,
+      "calibration_gap": null,
+      "created_utc": "2026-10-23T11:23:25+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261023-112324_2026-04-6m_baseten-elephant-1_0c01bed855",
+      "ece": 0.135772,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.051504,
+        "method": "decision-window block bootstrap",
+        "upper": 0.169584
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.615603,
+      "mean_latency_s": 0.82,
+      "metrics": {
+        "annual_volatility": 0.109433,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.16402,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.174276,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.489231,
+              "auc": 0.487562,
+              "auc_p_value": 0.61039,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 5,
+                  "lower": 0.1,
+                  "mean_predicted": 0.184397,
+                  "observed_rate": 0.8,
+                  "upper": 0.2
+                },
+                {
+                  "count": 43,
+                  "lower": 0.2,
+                  "mean_predicted": 0.267191,
+                  "observed_rate": 0.581395,
+                  "upper": 0.3
+                },
+                {
+                  "count": 110,
+                  "lower": 0.3,
+                  "mean_predicted": 0.358492,
+                  "observed_rate": 0.527273,
+                  "upper": 0.4
+                },
+                {
+                  "count": 141,
+                  "lower": 0.4,
+                  "mean_predicted": 0.45367,
+                  "observed_rate": 0.503546,
+                  "upper": 0.5
+                },
+                {
+                  "count": 130,
+                  "lower": 0.5,
+                  "mean_predicted": 0.549318,
+                  "observed_rate": 0.461538,
+                  "upper": 0.6
+                },
+                {
+                  "count": 139,
+                  "lower": 0.6,
+                  "mean_predicted": 0.64858,
+                  "observed_rate": 0.52518,
+                  "upper": 0.7
+                },
+                {
+                  "count": 80,
+                  "lower": 0.7,
+                  "mean_predicted": 0.73905,
+                  "observed_rate": 0.525,
+                  "upper": 0.8
+                },
+                {
+                  "count": 2,
+                  "lower": 0.8,
+                  "mean_predicted": 0.811621,
+                  "observed_rate": 1.0,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.274503,
+              "brier_skill_p_value": 0.394605,
+              "brier_skill_score": -0.099052,
+              "expected_calibration_error": 0.135772,
+              "log_loss": 0.747082,
+              "max_calibration_error": 0.615603,
+              "mean_predicted": 0.520191,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.051504,
+          "method": "decision-window block bootstrap",
+          "upper": 0.169584
+        },
+        "excess_return_vs_spy": 0.063454,
+        "input_tokens": 197057,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.057548,
+        "mean_latency_s": 0.82,
+        "outperformance_hit_rate": 0.5769,
+        "output_tokens": 650,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.036936,
+          "method": "decision-window block bootstrap",
+          "upper": 0.235617
+        },
+        "risk_violations": 0,
+        "sharpe": 1.5229,
+        "spy_total_return": 0.018805,
+        "total_return": 0.082259,
+        "trades": 649
+      },
+      "model": "baseten-elephant-1",
+      "model_label": "Base Labs Elephant 1 (9B)",
+      "noul_brier": 0.274503,
+      "noul_ece": 0.135772,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.036936,
+        "method": "decision-window block bootstrap",
+        "upper": 0.235617
+      },
+      "run_id": "20261023-112324_2026-04-6m_baseten-elephant-1_0c01bed855",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.32,
+        "avg_holds": 14.84,
+        "avg_sells": 4.84,
+        "buy": 0.2128,
+        "hold": 0.5936,
+        "sell": 0.1936
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.528172,
+      "auc_p_value": 0.008991,
+      "brier": 0.256478,
+      "brier_skill_p_value": 0.977023,
+      "brier_skill_score": -0.025979,
+      "calibration_gap": null,
+      "created_utc": "2026-10-23T11:24:01+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261023-112401_2025-10-6m_baseten-mammoth-1_de74bcaab4",
+      "ece": 0.06171,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.124902,
+        "method": "decision-window block bootstrap",
+        "upper": 0.116385
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.280667,
+      "mean_latency_s": 1.252,
+      "metrics": {
+        "annual_volatility": 0.120453,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.25035,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.522382,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5184,
+              "auc": 0.528172,
+              "auc_p_value": 0.008991,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 29,
+                  "lower": 0.2,
+                  "mean_predicted": 0.271057,
+                  "observed_rate": 0.551724,
+                  "upper": 0.3
+                },
+                {
+                  "count": 114,
+                  "lower": 0.3,
+                  "mean_predicted": 0.356017,
+                  "observed_rate": 0.394737,
+                  "upper": 0.4
+                },
+                {
+                  "count": 226,
+                  "lower": 0.4,
+                  "mean_predicted": 0.451925,
+                  "observed_rate": 0.526549,
+                  "upper": 0.5
+                },
+                {
+                  "count": 196,
+                  "lower": 0.5,
+                  "mean_predicted": 0.54252,
+                  "observed_rate": 0.530612,
+                  "upper": 0.6
+                },
+                {
+                  "count": 60,
+                  "lower": 0.6,
+                  "mean_predicted": 0.630274,
+                  "observed_rate": 0.516667,
+                  "upper": 0.7
+                },
+                {
+                  "count": 0,
+                  "lower": 0.7,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.256478,
+              "brier_skill_p_value": 0.977023,
+              "brier_skill_score": -0.025979,
+              "expected_calibration_error": 0.06171,
+              "log_loss": 0.707529,
+              "max_calibration_error": 0.280667,
+              "mean_predicted": 0.471571,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.124902,
+          "method": "decision-window block bootstrap",
+          "upper": 0.116385
+        },
+        "excess_return_vs_spy": 0.00347,
+        "input_tokens": 189961,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.047828,
+        "mean_latency_s": 1.252,
+        "outperformance_hit_rate": 0.52,
+        "output_tokens": 625,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.090219,
+          "method": "decision-window block bootstrap",
+          "upper": 0.383455
+        },
+        "risk_violations": 0,
+        "sharpe": 3.5518,
+        "spy_total_return": 0.230379,
+        "total_return": 0.233849,
+        "trades": 625
+      },
+      "model": "baseten-mammoth-1",
+      "model_label": "Base Labs Mammoth 1 (27B)",
+      "noul_brier": 0.256478,
+      "noul_ece": 0.06171,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.090219,
+        "method": "decision-window block bootstrap",
+        "upper": 0.383455
+      },
+      "run_id": "20261023-112401_2025-10-6m_baseten-mammoth-1_de74bcaab4",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.24,
+        "avg_holds": 16.76,
+        "avg_sells": 4.0,
+        "buy": 0.1696,
+        "hold": 0.6704,
+        "sell": 0.16
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.514255,
+      "auc_p_value": 0.070929,
+      "brier": 0.274272,
+      "brier_skill_p_value": 0.926074,
+      "brier_skill_score": -0.097156,
+      "calibration_gap": null,
+      "created_utc": "2026-10-23T11:24:25+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261023-112425_2025-10-6m_baseten-elephant-1_ea9de8d40d",
+      "ece": 0.130731,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.150814,
+        "method": "decision-window block bootstrap",
+        "upper": 0.100829
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.441682,
+      "mean_latency_s": 0.754,
+      "metrics": {
+        "annual_volatility": 0.111371,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.176961,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.481783,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5088,
+              "auc": 0.514255,
+              "auc_p_value": 0.070929,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 2,
+                  "lower": 0.0,
+                  "mean_predicted": 0.087333,
+                  "observed_rate": 0.5,
+                  "upper": 0.1
+                },
+                {
+                  "count": 15,
+                  "lower": 0.1,
+                  "mean_predicted": 0.158318,
+                  "observed_rate": 0.6,
+                  "upper": 0.2
+                },
+                {
+                  "count": 90,
+                  "lower": 0.2,
+                  "mean_predicted": 0.262651,
+                  "observed_rate": 0.455556,
+                  "upper": 0.3
+                },
+                {
+                  "count": 102,
+                  "lower": 0.3,
+                  "mean_predicted": 0.349598,
+                  "observed_rate": 0.509804,
+                  "upper": 0.4
+                },
+                {
+                  "count": 114,
+                  "lower": 0.4,
+                  "mean_predicted": 0.45177,
+                  "observed_rate": 0.5,
+                  "upper": 0.5
+                },
+                {
+                  "count": 130,
+                  "lower": 0.5,
+                  "mean_predicted": 0.543887,
+                  "observed_rate": 0.515385,
+                  "upper": 0.6
+                },
+                {
+                  "count": 102,
+                  "lower": 0.6,
+                  "mean_predicted": 0.645828,
+                  "observed_rate": 0.490196,
+                  "upper": 0.7
+                },
+                {
+                  "count": 60,
+                  "lower": 0.7,
+                  "mean_predicted": 0.753498,
+                  "observed_rate": 0.516667,
+                  "upper": 0.8
+                },
+                {
+                  "count": 10,
+                  "lower": 0.8,
+                  "mean_predicted": 0.826575,
+                  "observed_rate": 0.7,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.274272,
+              "brier_skill_p_value": 0.926074,
+              "brier_skill_score": -0.097156,
+              "expected_calibration_error": 0.130731,
+              "log_loss": 0.7504,
+              "max_calibration_error": 0.441682,
+              "mean_predicted": 0.485447,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.150814,
+          "method": "decision-window block bootstrap",
+          "upper": 0.100829
+        },
+        "excess_return_vs_spy": -0.013093,
+        "input_tokens": 189555,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.047601,
+        "mean_latency_s": 0.754,
+        "outperformance_hit_rate": 0.4,
+        "output_tokens": 625,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.076453,
+          "method": "decision-window block bootstrap",
+          "upper": 0.360693
+        },
+        "risk_violations": 0,
+        "sharpe": 3.5889,
+        "spy_total_return": 0.230379,
+        "total_return": 0.217285,
+        "trades": 625
+      },
+      "model": "baseten-elephant-1",
+      "model_label": "Base Labs Elephant 1 (9B)",
+      "noul_brier": 0.274272,
+      "noul_ece": 0.130731,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.076453,
+        "method": "decision-window block bootstrap",
+        "upper": 0.360693
+      },
+      "run_id": "20261023-112425_2025-10-6m_baseten-elephant-1_ea9de8d40d",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2025"
     }
   ],
   "schema_version": 1,
