@@ -60,6 +60,7 @@ class DcnResult:
     output_tokens: int = 0
     latency_s: float = 0.0
     attempts: int = 1
+    requests: int = 1
     raw: dict | None = None
 
 
@@ -98,12 +99,18 @@ class HttpDcnClient:
         max_retries: int = 4,
         account_id: str | None = None,
         client: httpx.AsyncClient | None = None,
+        question_batch: int | None = None,
     ):
         self.model = model
         self.endpoint = endpoint
         self.api_key = api_key
         self.account_id = account_id
         self.max_retries = max_retries
+        # Some endpoints re-read the whole state once per question and enforce a
+        # request-token limit on that product, so 25 questions on a 5K-token
+        # state can exceed a 131K limit. When set, one decide() becomes several
+        # smaller requests over the same state, merged into one result.
+        self.question_batch = question_batch
         self._client = client or httpx.AsyncClient(timeout=timeout_s)
         self._owns_client = client is None
 
@@ -164,6 +171,31 @@ class HttpDcnClient:
         await asyncio.sleep(delay)
 
     async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
+        if self.question_batch and len(questions) > self.question_batch:
+            return await self._decide_batched(state, questions)
+        return await self._decide_once(state, questions)
+
+    async def _decide_batched(self, state: dict, questions: dict[str, Question]) -> DcnResult:
+        ids = list(questions)
+        merged: DcnResult | None = None
+        for start in range(0, len(ids), self.question_batch or len(ids)):
+            chunk = {qid: questions[qid] for qid in ids[start : start + self.question_batch]}
+            result = await self._decide_once(state, chunk)
+            if merged is None:
+                merged = result
+                continue
+            merged.answers.update(result.answers)
+            merged.missing_ids.extend(result.missing_ids)
+            merged.input_tokens += result.input_tokens
+            merged.output_tokens += result.output_tokens
+            merged.latency_s = round(merged.latency_s + result.latency_s, 3)
+            merged.attempts += result.attempts
+            merged.requests += result.requests
+            merged.raw = result.raw
+        assert merged is not None
+        return merged
+
+    async def _decide_once(self, state: dict, questions: dict[str, Question]) -> DcnResult:
         method, url, headers, body = self.build_request(state, questions)
         if method != "POST":
             raise DcnError(f"unsupported method {method}")
@@ -428,6 +460,7 @@ def make_client(settings, *, client: httpx.AsyncClient | None = None) -> HttpDcn
         max_retries=decision.max_retries,
         account_id=cloudflare_account_id(),
         client=client,
+        question_batch=decision.spec.get("question_batch"),
     )
 
 
@@ -446,7 +479,7 @@ def build_call_record(result: DcnResult, state_text: str, question_ids: list[str
         missing_ids=result.missing_ids,
         input_tokens=result.input_tokens,
         output_tokens=result.output_tokens,
-        requests=1,
+        requests=result.requests,
         latency_s=result.latency_s,
         attempts=result.attempts,
     )

@@ -4,25 +4,30 @@
 
 **Decision models, not chat models.**
 
-Thirteen decision models read the same frozen point-in-time market state, answer
-the same typed probability questions, and are scored twice: were the
-probabilities calibrated, and did the portfolio they built beat SPY?
+Seventeen decision models across two protocol versions read the same frozen
+point-in-time market state, answer the same typed probability questions, and are
+scored twice: were the probabilities calibrated, and did the portfolio they built
+beat SPY? Protocol v2 (2026-10-23) adds risk and context to the state: RSI-14,
+30-day realized volatility, distance from the 52-week high, a volume ratio, and a
+sector label, because under v1 the models mostly echoed the momentum column.
 
 [Live dashboard](https://beatspy.vercel.app) · [Architecture](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
 [![CI](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml/badge.svg)](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![Full 13-model run](https://img.shields.io/badge/full%2013--model%20run-%240.23-brightgreen.svg)](#the-models)
+[![v2 15-model run](https://img.shields.io/badge/v2%2015--model%20run-%240.19-brightgreen.svg)](#the-models)
 
 </div>
 
 > [!IMPORTANT]
-> **The honest result.** In the published window no model beat SPY (+15.09%), and
-> no model's probabilities show measurable skill: every Brier skill is negative
-> and no AUC p-value reaches significance (the closest, `span-01-lite`, sits at
-> 0.08). The equal-weight pool made +9.09%, so most of every model's return is
-> the pool's beta, not forecasting.
+> **The honest result.** Under protocol v2, in the published window no model beat
+> SPY (+15.09%), no Brier skill is positive, and no AUC p-value reaches
+> significance (the closest sits at 0.10). The equal-weight pool made +9.09%, so
+> most of every model's return is the pool's beta, not forecasting. v2 moved
+> several models' discrimination above a coin flip (AUC up to 0.519, from 0.39
+> under the momentum-only form comparison), which is a reason to keep testing,
+> not a claim of edge.
 
 ## Latest benchmark
 
@@ -32,38 +37,43 @@ spreads across them by conviction, and SPY is the yardstick, never held.
 
 | Decision model | Return | vs SPY |
 | --- | --- | --- |
-| `span-01-lite` (free) | **+11.67%** | −3.42% |
-| `kev-4b` | +10.54% | −4.55% |
-| `gpt-6-luna` | +9.84% | −5.25% |
-| `clef` | +9.82% | −5.27% |
-| `clef-flash` | +9.78% | −5.31% |
-| `jev-latest` | +8.29% | −6.80% |
-| `liquid-d1` | +8.23% | −6.86% |
-| `pplx-decider` | +8.16% | −6.93% |
-| `clef-omni` | +7.72% | −7.37% |
-| `liquid-d1-ultra` | +7.70% | −7.39% |
-| `drex-v1.5` | +7.08% | −8.01% |
-| `ms-decision-1` | +5.96% | −9.13% |
-| `standard-one-8b` | +4.38% | −10.71% |
+| `clef-omni` | **+10.99%** | −4.10% |
+| `clef-flash` | +10.30% | −4.79% |
+| `pplx-decider` (Requesty) | +9.70% | −5.39% |
+| `gpt-6-luna` | +8.94% | −6.15% |
+| `clef` | +8.56% | −6.53% |
+| `jev-latest` | +8.50% | −6.59% |
+| `clef` via Requesty | +8.17% | −6.92% |
+| `ms-decision-1` (Requesty) | +7.60% | −7.49% |
+| `d3-edge` (free) | +7.27% | −7.82% |
+| `jev-1.14` (Requesty) | +7.22% | −7.87% |
+| `d3-mini` (free) | +6.78% | −8.31% |
+| `subq-snap-1.1` | +6.74% | −8.35% |
+| `d3-turbo` (free) | +6.32% | −8.77% |
+| `liquid-d1-ultra` | +3.66% | −11.43% |
+| `standard-one-8b` | +3.65% | −11.44% |
 | *pool, equal weight* | *+9.09%* | *−6.00%* |
 | *SPY buy-and-hold* | *+15.09%* | *n/a* |
 
-The spread between models (+4.38% to +11.67%) straddles the pool's +9.09%, and
-the return ordering does not track probability quality. The SPY gap is
-structural: SPY is cap-weighted and this book is not. Three more models (both
-Upstage Solar builds and Together Tev1) stalled on a zero aggregator balance and
-are off the board.
+The spread between models (+3.65% to +10.99%) straddles the pool's +9.09%, and
+the return ordering still does not track probability quality. The SPY gap is
+structural: SPY is cap-weighted and this book is not. Four models that ran v1
+through OpenRouter (`span-01-lite`, `kev-4b`, `liquid-d1`, `drex-v1.5`) wait on a
+zero aggregator balance and are absent from the v2 board; their v1 windows stay
+published.
 
 ## The models
 
-Six providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
-(`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`), Requesty
-(`jev-1.14`), Standard Thinking (`standard-one-8b`), and Liquid
-(`liquid-d1-ultra`). Seven more run through OpenRouter: `span-01-lite` (free),
-`kev-4b`, `liquid-d1`, `pplx-decider`, `clef-omni`, `drex-v1.5`, and
-`ms-decision-1`. All bill input tokens only, and
-one call answers every question, so the full 13-model benchmark above cost about
-**$0.23**. `beatspy models` prints every runnable id, endpoint, and price.
+Eight providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
+(`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`, `clef-omni`),
+Requesty (`jev-1.14`, `pplx-decider`, `ms-decision-1`), Standard Thinking
+(`standard-one-8b`), Liquid (`liquid-d1-ultra`), vLLM SR (`d3-turbo`, `d3-mini`,
+`d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). Seven more routes run
+through OpenRouter while its balance is zero: `span-01-lite` (free), `kev-4b`,
+`liquid-d1`, `pplx-decider`, `clef-omni`, `drex-v1.5`, and `ms-decision-1`. All
+bill input tokens only, and one call answers every question, so the full 15-model
+v2 board above cost about **$0.19**. `beatspy models` prints every runnable id,
+endpoint, and price.
 
 ## Quick start
 

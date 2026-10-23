@@ -13,6 +13,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
+from beatspy.config import DecisionConfig
 from beatspy.data.service import DataService
 from beatspy.dcn.state import (
     build_state,
@@ -105,7 +106,8 @@ def test_state_stays_compact_for_a_large_universe(scenario):
     big = scenario.model_copy(update={"tradable": tickers})
     state = _state(prices, big, date(2022, 3, 1), question_tickers=tickers)
     estimate = state_token_estimate(render_state(state))
-    assert estimate < 1800, f"state would be truncated by Workers AI at ~2K tokens (est {estimate})"
+    budget = DecisionConfig().max_state_tokens
+    assert estimate < budget, f"state exceeds its own configured budget (est {estimate} vs {budget})"
 
 
 BIG_UNIVERSE = [
@@ -143,12 +145,13 @@ def test_a_fully_invested_book_exceeds_the_budget_before_enforcement(scenario):
 
     big = scenario.model_copy(update={"tradable": BIG_UNIVERSE})
     state = _full_book_state(make_prices(big.universe), big, BIG_UNIVERSE, date(2022, 2, 15))
-    assert state_token_estimate(render_state(state)) > 1800  # the raw state is over
-    trimmed_state, trimmed = enforce_budget(state, 1800)
-    assert state_token_estimate(render_state(trimmed_state)) <= 1800
+    budget = DecisionConfig().max_state_tokens
+    assert state_token_estimate(render_state(state)) > budget  # the raw state is over
+    trimmed_state, trimmed = enforce_budget(state, budget)
+    assert state_token_estimate(render_state(trimmed_state)) <= budget
     assert "recent_decisions" in trimmed
     # Deterministic: the same input trims the same way every time.
-    again, trimmed_again = enforce_budget(state, 1800)
+    again, trimmed_again = enforce_budget(state, budget)
     assert render_state(again) == render_state(trimmed_state)
     assert trimmed_again == trimmed
 

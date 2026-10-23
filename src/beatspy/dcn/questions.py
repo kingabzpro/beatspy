@@ -68,10 +68,11 @@ class QuestionSet:
 
 
 def _horizon(horizon_trading_days: int) -> str:
-    return f"the next {horizon_trading_days} trading days"
+    plural = "" if horizon_trading_days == 1 else "s"
+    return f"the next {horizon_trading_days} trading day{plural}"
 
 
-def _outperform_instructions(ticker: str, benchmark: str, horizon: str) -> str:
+def _outperform_instructions(ticker: str, benchmark: str, horizon: str) -> dict:
     return {
         "question": (
             f"Will `{ticker}` deliver a higher total return than `{benchmark}` over {horizon}, "
@@ -80,7 +81,6 @@ def _outperform_instructions(ticker: str, benchmark: str, horizon: str) -> str:
         "ticker": ticker,
         "benchmark": benchmark,
         "horizon": horizon,
-        "state_fields": "market",
     }
 
 
@@ -126,7 +126,6 @@ def build_questions(
                     "ticker": name,
                     "benchmark": bench,
                     "horizon": horizon,
-                    "state_fields": "market",
                 },
                 criteria=list(RANK_LEVELS),
             )

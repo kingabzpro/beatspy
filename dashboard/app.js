@@ -125,8 +125,11 @@ const monthLabel = iso => {
   const match = /^(\d{4})-(\d{2})/.exec(String(iso || ""));
   return match ? `${MONTHS[Number(match[2]) - 1]} ${match[1].slice(2)}` : "";
 };
-const windowLabel = run => `${monthLabel(run.start)} - ${monthLabel(run.end)}`;
-const windowKey = run => `${run.start}..${run.end}`;
+// Same dates can be scored under two benchmark protocols; they stay separate
+// windows so a v2 run never quietly replaces a v5 row it is not comparable with.
+const protocolOf = run => Number(run.dcn_protocol) > 0 ? Number(run.dcn_protocol) : 5;
+const windowLabel = run => `${monthLabel(run.start)} - ${monthLabel(run.end)}` + (protocolOf(run) >= 6 ? " · v2" : "");
+const windowKey = run => `${run.start}..${run.end}#v${protocolOf(run)}`;
 
 function scoredWindows(allRuns) {
   // Newest run per display model inside each window: routes merge (the board
@@ -148,9 +151,10 @@ function scoredWindows(allRuns) {
     }
     return {
       key, label: windowLabel(rows[0]), start: rows[0].start, end: rows[0].end,
+      proto: protocolOf(rows[0]),
       spy: Number(rows[0].metrics?.spy_total_return), runs: [...models.values()],
     };
-  }).sort((a, b) => String(a.end).localeCompare(String(b.end)));
+  }).sort((a, b) => String(a.end).localeCompare(String(b.end)) || (a.proto - b.proto));
 }
 
 function allPeriodRows(windows) {
@@ -401,6 +405,9 @@ if (typeof document !== "undefined") {
     ["beat_in", "Beat SPY in", "text"],
   ];
   let period = "all";
+  // The board opens on the newest protocol's window (v2 when present), not the
+  // all-windows average, so the current benchmark version is the landing view.
+  let periodOpened = false;
 
   function renderTabs(windows) {
     const bar = $("period-tabs");
@@ -432,6 +439,11 @@ if (typeof document !== "undefined") {
   function renderBoard() {
     if (!$("leaderboard-table")) return;
     const windows = scoredWindows(runs);
+    if (!periodOpened) {
+      periodOpened = true;
+      const newest = windows.filter(w => w.proto >= 6).pop();
+      if (newest) period = newest.key;
+    }
     if (period !== "all" && !windows.some(w => w.key === period)) period = "all";
     renderTabs(windows);
     // A single window (or the single-window fallback) renders the plain board.

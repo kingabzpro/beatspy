@@ -27,6 +27,7 @@ from beatspy.reporting.catalog import (
 from beatspy.reporting.dashboard import PAGES, collect_runs, render_dashboard, static_dir
 
 INDEX_ROW_KEYS = {
+    "dcn_protocol",
     "run_id",
     "dir",
     "model",

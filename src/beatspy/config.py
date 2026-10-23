@@ -47,6 +47,8 @@ PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrout
 #   mercury free, first-party Perplexity / Standard Thinking / Liquid) was verified
 #   against the live OpenRouter decisions catalog and the vendors' doc pages; the
 #   three first-party endpoints answer 401 to a keyless probe, so the routes exist.
+# - vLLM SR D3 Turbo was verified live 2026-10-23 against decision.vllm-sr.ai
+#   /v1/systemone and its /v1/models and /api/info: a free API, $0 per token.
 DECISION_MODELS: dict[str, dict] = {
     "gpt-6-luna": {
         "provider": "openai_decisions",
@@ -435,6 +437,56 @@ DECISION_MODELS: dict[str, dict] = {
         "max_questions": 64,
         "state_note": "Endpoint verified 2026-10-21 (401 without a key); first-party rates undisclosed, $0.042 is the OpenRouter listing",
     },
+    "d3-turbo": {
+        "provider": "typesafe",
+        "model": "vllm-sr/d3-turbo",
+        "label": "vLLM SR D3 Turbo 27B",
+        "base_url": "https://decision.vllm-sr.ai/v1/systemone",
+        "api_key_env": "VLLM_SR_API_KEY",
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "state_note": "Free API (one-click key, no account) at $0; same System One contract, 131k request tokens and a 35s endpoint timeout per /api/info; verified live 2026-10-23",
+    },
+    "d3-mini": {
+        "provider": "typesafe",
+        "model": "vllm-sr/d3-mini",
+        "label": "vLLM SR D3 Mini 4B",
+        "base_url": "https://decision.vllm-sr.ai/v1/systemone",
+        "api_key_env": "VLLM_SR_API_KEY",
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "question_batch": 14,
+        "state_note": "Free API at $0; same System One contract, 32k state chars and 64 questions per /api/info; verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 to stay under the 131k request-token limit",
+    },
+    "d3-edge": {
+        "provider": "typesafe",
+        "model": "vllm-sr/d3-edge",
+        "label": "vLLM SR D3 Edge 0.6B",
+        "base_url": "https://decision.vllm-sr.ai/v1/systemone",
+        "api_key_env": "VLLM_SR_API_KEY",
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "question_batch": 14,
+        "state_note": "Free API at $0, the smallest of the family (0.6B); same System One contract per /api/info; verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 to stay under the 131k request-token limit",
+    },
+    "subq-snap-1-1": {
+        "provider": "typesafe",
+        "model": "subq-snap-1.1",
+        "label": "SubQ Snap 1.1",
+        "base_url": "https://api.subq.ai/v1/systemone",
+        "api_key_env": "SUBQ_API_KEY",
+        "cost_per_m_input": 0.05,
+        "cost_per_m_output": 0.0,
+        "context_window": 393_216,
+        "max_questions": 64,
+        "state_note": "Long-context (384K) decision model, released 2026-10-12 at $0.05/M input; same System One contract, verified live 2026-10-23; a subq-snap-preview sibling exists on their /v1/models",
+    },
     "clef-flash": {
         "provider": "cloudflare",
         "model": "clef-flash",
@@ -499,8 +551,11 @@ class DecisionConfig(BaseModel):
     top_n: int = 3
     min_names: int = 2
     # Workers AI silently truncates long state to ~2K tokens, so the state is
-    # budgeted conservatively for every provider and the budget is recorded.
-    max_state_tokens: int = 1800
+    # budgeted for every provider and the budget is recorded. Protocol 6 widened
+    # the rows (risk, 52-week position, volume, sector) and raised the budget to
+    # 2900; the Cloudflare ceiling is checked against reported input tokens, not
+    # assumed.
+    max_state_tokens: int = 2900
 
     @model_validator(mode="after")
     def check_model(self):

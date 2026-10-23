@@ -26,6 +26,22 @@ BENCHMARK_NOTE = (
     "The benchmark column is the comparison index itself; it is not investable."
 )
 
+# Sector labels for the scenario pools, so a model can see what a name is, not
+# only what it did. Short strings keep the state inside its token budget; a
+# ticker without an entry simply carries no sector field.
+SECTORS = {
+    "AAPL": "Tech", "MSFT": "Tech", "NVDA": "Tech", "GOOGL": "Tech", "META": "Tech",
+    "AMZN": "Consumer Disc.", "HD": "Consumer Disc.",
+    "WMT": "Consumer Staples", "PG": "Consumer Staples", "COST": "Consumer Staples",
+    "JPM": "Financials", "V": "Financials",
+    "LLY": "Healthcare", "JNJ": "Healthcare", "UNH": "Healthcare",
+    "XOM": "Energy", "CVX": "Energy",
+    "CAT": "Industrials", "GE": "Industrials",
+    "NEE": "Utilities", "LIN": "Materials",
+    "PLD": "Real Estate", "AMT": "Real Estate",
+    "QQQ": "Broad equity ETF", "TLT": "Long Treasury ETF",
+}
+
 
 def _round(value: float | None, digits: int = 2) -> float | None:
     return None if value is None else round(float(value), digits)
@@ -38,6 +54,16 @@ def _position(weights: dict[str, float], cash: float) -> dict:
         if weight > 0
     ]
     return {"cash_weight_pct": _round(cash * 100.0, 1), "holdings": rows}
+
+
+def _volume_ratio(data, ticker: str, as_of: date) -> float | None:
+    """Last 10 sessions of volume against the 50 before them; ~1 is normal attention."""
+    sub = data.window(ticker, as_of, 60)
+    if sub is None or len(sub) < 60 or "volume" not in sub:
+        return None
+    recent = float(sub["volume"].tail(10).mean())
+    prior = float(sub["volume"].iloc[:-10].mean())
+    return _round(recent / prior, 2) if prior else None
 
 
 def _ticker_row(data, ticker: str, as_of: date, benchmark_return: float | None) -> dict | None:
@@ -58,6 +84,19 @@ def _ticker_row(data, ticker: str, as_of: date, benchmark_return: float | None) 
     own = row["return_90d_pct"]
     if own is not None and benchmark_return is not None:
         row["return_90d_vs_benchmark_pct"] = _round(own - benchmark_return)
+    # Protocol 6: risk and context, so the model has more than momentum to read.
+    # RSI adds reversal pressure, realized volatility adds risk, the 52-week-high
+    # distance adds level, the volume ratio adds attention, the sector adds what
+    # the name is. Fields that cannot be computed point-in-time are omitted.
+    indicators = data.indicators(ticker, as_of) or {}
+    extras = {
+        "rsi_14": indicators.get("rsi_14"),
+        "annualized_vol_30d_pct": indicators.get("annualized_vol_30d_pct"),
+        "off_52w_high_pct": indicators.get("off_52w_high_pct"),
+        "volume_ratio_10_50": _volume_ratio(data, ticker, as_of),
+        "sector": SECTORS.get(row["ticker"]),
+    }
+    row.update({key: value for key, value in extras.items() if value is not None})
     return row
 
 

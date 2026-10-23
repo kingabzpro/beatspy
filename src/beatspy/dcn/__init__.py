@@ -31,6 +31,11 @@ from __future__ import annotations
 # 5: the state carries a point-in-time base rate, the sizing signal defaults to
 #    a consensus across every question form answered, and the policy trades with
 #    a rebalance band so small weekly moves are not turned into fees.
-DCN_PROTOCOL = 5
+# 6: the state carries risk and context beyond momentum (RSI-14, 30-day realized
+#    volatility, distance from the 52-week high, a 10-vs-50 volume ratio, and a
+#    sector label), the question text drops a filler key and phrases a one-day
+#    horizon grammatically, and the state budget rises to 2900 tokens to carry
+#    the wider rows. Recorded protocol-5 runs stay readable but no longer verify.
+DCN_PROTOCOL = 6
 
 __all__ = ["DCN_PROTOCOL"]

@@ -39,6 +39,12 @@
         <p><strong>Replayable.</strong>Each run ships its state hash, decisions, fills and metrics; <code>beatspy verify</code> re-derives the scores offline.</p>
         <p><strong>Uncertainty is reported.</strong>Returns carry block-bootstrap intervals and every calibration score a permutation p-value: one window cannot prove an edge.</p>
       </div>
+      <h3 class="how-sub">Protocol v2 (protocol 6), from 2026-10-23</h3>
+      <div class="how-notes">
+        <p><strong>Why it exists.</strong>Under protocol 5 the state carried only price momentum. Measured across every decision, model probabilities tracked the last five days of returns at rank correlation +0.75 for the strongest follower: the models were largely reading one momentum column and echoing it, and no answer type (yes/no, two-option choice, five-level score) changed that. v2 hands them more to read.</p>
+        <p><strong>What changed.</strong>Every asset row now also carries RSI-14 (reversal pressure), 30-day realized volatility (risk), distance from the 52-week high (level), a 10-vs-50-day volume ratio (attention), and a sector label (what the name is). The question text drops a filler key and phrases a one-day horizon grammatically. The token budget rose from 1,800 to 2,900 to carry the wider rows; no provider truncated the wider state (each one's own token count confirms it).</p>
+        <p><strong>What did not change.</strong>The pool, the windows, the sizing policy, the fees, and the scoring. v2 runs are scored on the same frozen prices and labels, so a model's v2 row and v5 row on the same window answer the same market question with different information. The board keeps both: the v2 window is the current benchmark, the earlier windows stay as recorded.</p>
+      </div>
       <div class="how-links">
         <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
         <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>

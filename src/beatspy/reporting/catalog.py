@@ -185,6 +185,7 @@ def summary(meta, metrics, directory, trust="replayed") -> dict:
         "trust": "synthetic" if meta.get("synthetic") else trust,
         "label": meta.get("label"),
         "group": comparison_group(meta),
+        "dcn_protocol": meta.get("dcn_protocol"),
         "decisions": metrics.get("decisions"),
         "invalid_outputs": metrics.get("invalid_outputs"),
         "answer_coverage": metrics.get("answer_coverage"),

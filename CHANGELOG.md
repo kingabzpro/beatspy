@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.4.0 - protocol 6 (v2): a state worth reading
+
+**Breaking for recorded runs:** `DCN_PROTOCOL` is 6. Protocol-5 runs stay readable
+and stay published on their own windows, but `beatspy verify` no longer re-scores
+them under the new rules.
+
+Why: measured across every 2026-6m decision, model probabilities tracked the last
+five days of returns at rank correlation +0.75 (d3-turbo) and +0.55 (SubQ Snap):
+with only momentum fields in the state, the models echoed the freshest column, and
+no answer type changed their below-random ordering (every AUC 0.39-0.47).
+
+Added
+
+- Risk and context in every market row: RSI-14, 30-day annualized realized
+  volatility, distance from the 52-week high, a 10-vs-50-session volume ratio, and
+  a sector label. Computed point-in-time from the frozen snapshot; fields that
+  cannot be computed are omitted rather than invented.
+- New decision models: vLLM SR D3 Turbo 27B, D3 Mini 4B, D3 Edge 0.6B (free API at
+  decision.vllm-sr.ai) and SubQ Snap 1.1 (api.subq.ai, $0.05/M). Keys resolve from
+  `VLLM_SR_API_KEY` and `SUBQ_API_KEY`.
+- Question batching in the shared DCN client (`question_batch` in the model spec):
+  endpoints that re-read the whole state once per question (the smaller d3 models)
+  get their 25 questions split across smaller requests and one merged result.
+- `dcn_protocol` on every catalog and dashboard row, and the site boards separate
+  windows by protocol, so a v2 run never replaces a v5 row it is not comparable
+  with. The board opens on the v2 window when one is present.
+
+Changed
+
+- The state budget rose from 1,800 to 2,900 tokens for the wider rows. No provider
+  truncated the wider state; each one's own reported input-token count (about 6.5K
+  to 7K per request) confirms the full state was read.
+- Question text: a one-day horizon now reads "the next 1 trading day", and the
+  meaningless `state_fields` key is gone from the instructions.
+
 ## 0.3.0 - decision-model benchmark
 
 **Breaking: the five-agent pipeline is gone.** This release replaces the chat-model
