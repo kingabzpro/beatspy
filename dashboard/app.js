@@ -184,6 +184,8 @@ function allPeriodRows(windows) {
     const ranked = row.entries.filter(entry => Number.isFinite(entry.gap)).sort((a, b) => b.gap - a.gap);
     row.windows = row.entries.length;
     row.avgGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+    const returns = row.entries.map(entry => Number(entry.run.metrics?.total_return)).filter(Number.isFinite);
+    row.avgReturn = returns.length ? returns.reduce((a, b) => a + b, 0) / returns.length : null;
     row.best = ranked[0] || null;
     row.worst = ranked[ranked.length - 1] || null;
     row.beatIn = row.entries.filter(entry => entry.gap > 0).length;
@@ -414,10 +416,11 @@ if (typeof document !== "undefined") {
   const ALL_COLUMNS = [
     ["model", "Model", "text"],
     ["windows", "Windows", "count"],
+    ["beat_in", "Beat SPY in", "text"],
+    ["avg_return", "Avg return", "signed"],
     ["avg_gap", "Avg vs SPY", "signed"],
     ["best_gap", "Best window", "signed"],
     ["worst_gap", "Worst window", "signed"],
-    ["beat_in", "Beat SPY in", "text"],
   ];
   let period = "all";
   // The board opens on the newest protocol's window (v2 when present), not the
@@ -438,7 +441,7 @@ if (typeof document !== "undefined") {
       button.setAttribute("aria-pressed", period === id ? "true" : "false");
       button.onclick = () => {
         period = id;
-        sortKey = id === "all" ? "avg_gap" : "excess_return_vs_spy";
+        sortKey = id === "all" ? "beat_in" : "excess_return_vs_spy";
         descending = true;
         renderBoard();
       };
@@ -587,12 +590,13 @@ if (typeof document !== "undefined") {
     const rows = allPeriodRows(windows);
     const total = windows.length;
     setText("board-window", `Every model on every scored window, oldest to newest. `
-      + `Models that ran every window rank first, then by Avg vs SPY, the mean gap across its windows, with windows beaten as the tiebreak, so one lucky window cannot top a full record; click any column to re-sort (Beat SPY in ranks by wins first). `
+      + `Models that ran every window rank first, then by windows beaten, with average return settling ties; Avg return is the mean total return across a model's windows, Avg vs SPY the mean gap. Click any column to re-sort. `
       + `Windows shows how many of the ${total} windows a model has run in; `
       + `Best and Worst name the extremes. Open a model for its most recent full run.`);
     const value = (row, key) => key === "model" ? displayModel(row.model)
       : key === "windows" ? `${row.windows}`
       : key === "avg_gap" ? row.avgGap
+      : key === "avg_return" ? row.avgReturn
       : key === "best_gap" ? row.best?.gap
       : key === "worst_gap" ? row.worst?.gap
       : key === "beat_in" ? row.beatIn
@@ -602,14 +606,18 @@ if (typeof document !== "undefined") {
       const av = value(a, column[0]), bv = value(b, column[0]);
       // The headline ranking: complete records first (a model that ran every
       // window outranks one that has not, whatever a lucky average says), then
-      // average gap, windows beaten as the tiebreak. The Beat SPY in column
-      // flips the last two: wins first, average as the tiebreak.
-      if (column[0] === "avg_gap" || column[0] === "beat_in") {
-        const avgFirst = column[0] === "avg_gap";
-        const primary = avgFirst ? (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity) : b.beatIn - a.beatIn;
-        const secondary = avgFirst ? b.beatIn - a.beatIn : (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity);
+      // windows beaten, then average return - wins lead, return settles ties.
+      // Clicking Avg return or Avg vs SPY simply makes that column the lead.
+      if (["beat_in", "avg_return", "avg_gap"].includes(column[0])) {
+        const score = key => key === "beat_in" ? b.beatIn - a.beatIn
+          : key === "avg_return" ? (b.avgReturn ?? -Infinity) - (a.avgReturn ?? -Infinity)
+          : (b.avgGap ?? -Infinity) - (a.avgGap ?? -Infinity);
+        const order = column[0] === "avg_return" ? ["avg_return", "beat_in", "avg_gap"]
+          : column[0] === "avg_gap" ? ["avg_gap", "beat_in", "avg_return"]
+          : ["beat_in", "avg_return", "avg_gap"];
+        const ranked = order.reduce((acc, key) => acc || score(key), 0);
         const completeness = (b.complete ? 1 : 0) - (a.complete ? 1 : 0);
-        return descending ? completeness || primary || secondary : -(completeness || primary || secondary);
+        return descending ? (completeness || ranked) : -(completeness || ranked);
       }
       if (column[2] === "text") return descending ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
       if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
@@ -658,13 +666,16 @@ if (typeof document !== "undefined") {
         return cell;
       };
       tr.append(node("td", `${row.windows}/${total}`, "num col-windows"));
-      const avgCell = node("td", undefined, "num col-avg_gap");
-      if (Number.isFinite(row.avgGap)) {
-        const tone = row.avgGap >= 0 ? "positive" : "negative";
-        avgCell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${percent(row.avgGap)}`, `chip ${tone}`));
-      } else avgCell.textContent = "n/a";
-      tr.append(avgCell, gapCell(row.best), gapCell(row.worst));
       tr.append(node("td", `${row.beatIn} of ${row.windows}`, "num col-beat_in"));
+      const pctCell = (v, cls) => {
+        const cell = node("td", undefined, `num col-${cls}`);
+        if (Number.isFinite(v)) {
+          const tone = v >= 0 ? "positive" : "negative";
+          cell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${percent(v)}`, `chip ${tone}`));
+        } else cell.textContent = "n/a";
+        return cell;
+      };
+      tr.append(pctCell(row.avgReturn, "avg_return"), pctCell(row.avgGap, "avg_gap"), gapCell(row.best), gapCell(row.worst));
       body.append(tr);
     });
     $("leaderboard-table").replaceChildren(element);
