@@ -48,7 +48,7 @@ tr.synthetic td{background:#1a1610}
    taller so a tap lands. */
 .model-logo{width:16px;height:16px;border-radius:3px;margin-right:7px;vertical-align:-3px;object-fit:contain}
 /* TypeSafe, Liquid, Jared Palmer, vLLM SR, SubQ and Baseten ship black marks: invert for the dark page. */
-img.model-logo[src$="typesafe.png"],img.model-logo[src$="liquid.ico"],img.model-logo[src$="jaredpalmer.ico"],img.model-logo[src$="vllmsr.png"],img.model-logo[src$="subq.png"],img.model-logo[src$="baseten.png"]{filter:invert(1)}
+img.model-logo[src$="typesafe.png"],img.model-logo[src$="liquid.ico"],img.model-logo[src$="jaredpalmer.ico"],img.model-logo[src$="vllmsr.png"],img.model-logo[src$="subq.png"],img.model-logo[src$="baselabs.png"]{filter:invert(1)}
 #leaderboard-table tbody tr{cursor:pointer}
 tr.leader td{background:rgba(180,242,114,.07)}
 tr.leader td:first-child{box-shadow:inset 2px 0 0 var(--accent)}
