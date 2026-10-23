@@ -18,7 +18,7 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="topbar"><a class="brand" href="index.html"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
-    <nav aria-label="Main navigation"><a href="index.html">Results</a><a href="pricing.html">Pricing</a><a href="method.html" aria-current="page">Method</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+    <nav aria-label="Main navigation"><a href="index.html">Results</a><a href="pricing.html">Pricing</a><a href="method.html" aria-current="page">Method</a><a href="archive.html">Archive</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
   </header>
   <main id="main-content" tabindex="-1">
     <section id="how" class="how" aria-labelledby="how-title">
@@ -43,7 +43,7 @@
       <div class="how-notes">
         <p><strong>Why it exists.</strong>Under protocol 5 the state carried only price momentum. Measured across every decision, model probabilities tracked the last five days of returns at rank correlation +0.75 for the strongest follower: the models were largely reading one momentum column and echoing it, and no answer type (yes/no, two-option choice, five-level score) changed that. v2 hands them more to read.</p>
         <p><strong>What changed.</strong>Every asset row now also carries RSI-14 (reversal pressure), 30-day realized volatility (risk), distance from the 52-week high (level), a 10-vs-50-day volume ratio (attention), and a sector label (what the name is). The question text drops a filler key and phrases a one-day horizon grammatically. The token budget rose from 1,800 to 2,900 to carry the wider rows; no provider truncated the wider state (each one's own token count confirms it).</p>
-        <p><strong>What did not change.</strong>The pool, the windows, the sizing policy, the fees, and the scoring. v2 runs are scored on the same frozen prices and labels, so a model's v2 row and v5 row on the same window answer the same market question with different information. The board keeps both: v2 has been scored on all three windows (45 v2 runs beside the 33 recorded under v5), the v2 window is the current benchmark, and the earlier protocol-5 windows stay as recorded.</p>
+        <p><strong>What did not change.</strong>The pool, the windows, the sizing policy, the fees, and the scoring. v2 runs are scored on the same frozen prices and labels, so a model's v2 row and its protocol-5 row on the same window answer the same market question with different information. The two protocols are not comparable, so the board scores v2 only and every protocol-5 run lives in the <a href="archive.html">archive</a>, still replayable, still linked.</p>
       </div>
       <div class="how-links">
         <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>

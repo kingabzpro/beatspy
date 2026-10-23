@@ -4,4 +4,7 @@
   <url><loc>https://beatspy.vercel.app/pricing.html</loc></url>
   <url><loc>https://beatspy.vercel.app/method.html</loc></url>
   <url><loc>https://beatspy.vercel.app/contribute.html</loc></url>
+  <url>
+    <loc>https://beatspy.vercel.app/archive.html</loc>
+  </url>
 </urlset>

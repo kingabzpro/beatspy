@@ -22,7 +22,7 @@ SNAPSHOT_ID = re.compile(r"[a-f0-9]{64}")
 COPIED_FILES = ("run.json", *RUN_FILES)
 # The site is a handful of static pages that share one stylesheet and script:
 # results on the front page, one run per detail page, then pricing and method.
-PAGES = ("index.html", "run.html", "pricing.html", "method.html", "contribute.html")
+PAGES = ("index.html", "run.html", "pricing.html", "method.html", "archive.html", "contribute.html")
 
 
 def static_dir() -> Path:

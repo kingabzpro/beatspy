@@ -62,7 +62,8 @@ Each column is the model's gap to SPY in one six-month window (SPY made
 SPY because the pool itself outran a flat index there; the other two windows
 are the honest test, and there the gaps are negative or inside noise. The
 single-window returns live on the dashboard, one chip per window, with the
-three-window average as the default lens.
+three-window average as the default lens. Protocol-5 results are never mixed
+in: they live on the site's archive page.
 
 ## The models
 
@@ -70,12 +71,14 @@ Eight providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
 (`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`, `clef-omni`),
 Requesty (`jev-1.14`, `pplx-decider`, `ms-decision-1`), Standard Thinking
 (`standard-one-8b`), Liquid (`liquid-d1-ultra`), vLLM SR (`d3-turbo`, `d3-mini`,
-`d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). Seven more routes run
-through OpenRouter while its balance is zero: `span-01-lite` (free), `kev-4b`,
-`liquid-d1`, `pplx-decider`, `clef-omni`, `drex-v1.5`, and `ms-decision-1`. All
-bill input tokens only, and one call answers every question, so the full 15-model
-v2 board above cost about **$0.19**. `beatspy models` prints every runnable id,
-endpoint, and price.
+`d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). More routes run through
+OpenRouter: `span-01-lite` (free) just scored one v2 window, because OpenRouter
+caps free models at 50 requests a day without credits and that quota ran out
+mid-sweep; its remaining v2 windows run when the quota resets. The paid routes
+(`kev-4b`, `liquid-d1`, `drex-v1.5`) still wait on a zero balance, and
+`mercury-decide:free` keeps answering 403 upstream. All bill input tokens only,
+and one call answers every question, so the full 15-model v2 board above cost
+about **$0.19**. `beatspy models` prints every runnable id, endpoint, and price.
 
 ## Quick start
 

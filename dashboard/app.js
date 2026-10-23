@@ -105,10 +105,19 @@ const MODEL_META = {
   "drex": ["Drex v1.5", "nace.svg"],
   "span-01-lite": ["Span-01 Lite", "respan.ico"],
   "span-01": ["Span-01", "respan.ico"],
+  "span-02": ["Span-02", "respan.ico"],
   "standard-one-8b": ["Standard One 8B", "standardthinking.png"],
+  "d3-turbo": ["D3 Turbo", "vllmsr.png"],
+  "d3-mini": ["D3 Mini", "vllmsr.png"],
+  "d3-edge": ["D3 Edge", "vllmsr.png"],
+  "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
+
+// The board shows the current benchmark protocol only. Older-protocol runs stay
+// in the payload so their run pages and the archive page keep working.
+const isCurrent = run => protocolOf(run) >= 6;
 
 function leaderboardRuns(runs) {
   const ordered = [...runs].sort((a, b) => String(b.created_utc).localeCompare(String(a.created_utc)) || String(b.run_id).localeCompare(String(b.run_id)));
@@ -334,7 +343,7 @@ if (typeof document !== "undefined") {
     // report far more tokens than the rest for the same frozen state.
     // The pricing page prices one window, the latest scored one, so a model
     // is exactly one row even when several windows are published.
-    const windows = scoredWindows(runs);
+    const windows = scoredWindows(runs.filter(isCurrent));
     const onBoard = windows.length ? windows[windows.length - 1].runs : [];
     const records = onBoard.map(run => {
       const rates = runRates(run);
@@ -438,7 +447,7 @@ if (typeof document !== "undefined") {
 
   function renderBoard() {
     if (!$("leaderboard-table")) return;
-    const windows = scoredWindows(runs);
+    const windows = scoredWindows(runs.filter(isCurrent));
     if (!periodOpened) {
       periodOpened = true;
       const newest = windows.filter(w => w.proto >= 6).pop();
@@ -945,7 +954,7 @@ if (typeof document !== "undefined") {
   }
   function renderRun() {
     if (!$("run-details")) return;
-    const id = wantedRunId() || (leaderboardRuns(runs)[0] || {}).run_id;
+    const id = wantedRunId() || (leaderboardRuns(runs.filter(isCurrent))[0] || {}).run_id;
     if (!id) {setText("status", "No recorded runs yet."); return;}
     selectRun(id);
   }
