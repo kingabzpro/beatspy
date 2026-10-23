@@ -80,12 +80,10 @@ Requesty (`jev-1.14`, `pplx-decider`, `ms-decision-1`), Standard Thinking
 `d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). Respan also answers first-party: `span-01-free` via
 api.respan.ai's behavior-scoring endpoint (free, each noul question mapped to
 one scored proposition) ran all three windows at 100% coverage, no daily-cap
-trouble. The OpenRouter `span-01-lite` route remains quota-capped at 50 free
-requests a day and has one v2 window; `span-02` first-party needs paid Respan
-credits. The paid routes
+trouble (`span-02` first-party needs paid Respan credits). The paid routes
 (`kev-4b`, `liquid-d1`, `drex-v1.5`) still wait on a zero balance, and
 `mercury-decide:free` keeps answering 403 upstream. All bill input tokens only,
-and one call answers every question, so the full 15-model v2 board above cost
+and one call answers every question, so the 16-model v2 board above cost
 about **$0.19**. `beatspy models` prints every runnable id, endpoint, and price.
 
 ## Quick start
