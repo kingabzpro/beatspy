@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Decision-model providers. All three speak the same state-plus-typed-questions
 # contract; they differ only in transport, auth, and question limits.
-PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter")
+PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan")
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
 # run against them needs no new transport:
@@ -474,6 +474,18 @@ DECISION_MODELS: dict[str, dict] = {
         "max_questions": 64,
         "question_batch": 14,
         "state_note": "Free API at $0, the smallest of the family (0.6B); same System One contract per /api/info; verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 to stay under the 131k request-token limit",
+    },
+    "respan-span-01-free": {
+        "provider": "respan",
+        "model": "span-01-free",
+        "label": "Respan Span-01 (free, first-party)",
+        "base_url": "https://api.respan.ai/api/v1/scores",
+        "api_key_env": "RESPAN_API_KEY",
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 32_768,
+        "max_questions": 64,
+        "state_note": "Free tier of their behavior-scoring API (span-01-free); the benchmark maps each noul question to one scored proposition, p_present is the answer; their /api/v1/decisions speaks System One but serves span-02 on paid credits only; verified live 2026-10-23",
     },
     "subq-snap-1-1": {
         "provider": "typesafe",

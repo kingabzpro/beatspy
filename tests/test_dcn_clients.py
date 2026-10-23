@@ -18,6 +18,7 @@ from beatspy.dcn.clients import (
     CloudflareClefClient,
     DcnError,
     OpenAiDecisionsClient,
+    RespanScoresClient,
     TypeSafeClient,
     make_client,
 )
@@ -486,7 +487,7 @@ def test_unknown_model_is_rejected_at_construction():
 def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
         assert spec["api_key_env"], f"{name} has no api_key_env"
-        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter")
+        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan")
         assert spec["cost_per_m_input"] is not None
         assert spec["cost_per_m_output"] == 0.0  # decision models bill input only
 
@@ -526,6 +527,40 @@ class TestRouterProviders:
         assert body["model"] == "sference/clef"
         assert set(body) == {"model", "state", "questions"}
         assert body["questions"]["noul_AAPL"]["type"] == "noul"
+
+    def test_respan_scores_maps_questions_to_behaviors(self, monkeypatch):
+        monkeypatch.setenv("RESPAN_API_KEY", "respan-test-key")
+        settings = Settings.model_validate({"decision": {"decision_model": "respan-span-01-free"}})
+        client = make_client(settings)
+        assert client.provider == "respan"
+        method, url, headers, body = client.build_request({"as_of": "2026-01-02"}, _questions())
+        assert method == "POST"
+        assert url == "https://api.respan.ai/api/v1/scores"
+        assert headers["Authorization"] == "Bearer respan-test-key"
+        assert body["model"] == "span-01-free"
+        # The state rides as the input message text; the assistant output is a
+        # fixed carrier; every question becomes one scored behavior.
+        assert "2026-01-02" in body["span"]["input"][0]["content"]
+        assert body["span"]["output"]["role"] == "assistant"
+        assert [b["id"] for b in body["behaviors"]] == list(_questions())
+        assert "Proposition:" in body["behaviors"][0]["definition"]
+
+    def test_respan_scores_reads_p_present_and_usage(self):
+        client = RespanScoresClient(model="span-01-free", endpoint="https://api.respan.ai/api/v1/scores", api_key="k")
+        result = client.parse_response(
+            {
+                "model": "span-01-free",
+                "results": [
+                    {"id": "noul_AAPL", "p_present": 0.132, "p_absent": 0.528, "p_not_observable": 0.34},
+                    {"id": "noul_MSFT", "p_present": 0.9, "p_absent": 0.05, "p_not_observable": 0.05},
+                ],
+                "usage": {"input_tokens": 3939},
+            },
+            ["noul_AAPL", "noul_MSFT", "noul_NVDA"],
+        )
+        assert result.answers["noul_AAPL"].noul == 0.132
+        assert result.missing_ids == ["noul_NVDA"]
+        assert result.input_tokens == 3939
 
     def test_openrouter_uses_the_decisions_alpha_path(self, monkeypatch):
         monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-test-key")

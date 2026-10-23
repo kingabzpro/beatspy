@@ -82,7 +82,7 @@ function parseCSV(text) {
 function modelName(model) {
   // Router-served models carry their route as a key prefix ("route-model"); the
   // board names the model, not the transport that happened to serve it.
-  return String(model).replace(/^(?:openrouter|requesty)-/, "").split("/").at(-1);
+  return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
 
 // Presentation only: how each model reads, and the logo of the company that
@@ -106,6 +106,7 @@ const MODEL_META = {
   "span-01-lite": ["Span-01 Lite", "respan.ico"],
   "span-01": ["Span-01", "respan.ico"],
   "span-02": ["Span-02", "respan.ico"],
+  "span-01-free": ["Span-01 (free)", "respan.ico"],
   "standard-one-8b": ["Standard One 8B", "standardthinking.png"],
   "d3-turbo": ["D3 Turbo", "vllmsr.png"],
   "d3-mini": ["D3 Mini", "vllmsr.png"],

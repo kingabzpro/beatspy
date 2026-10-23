@@ -22,8 +22,10 @@ sector label, because under v1 the models mostly echoed the momentum column.
 
 > [!IMPORTANT]
 > **The honest result.** Across all three v2 windows (18 months of weekly
-> decisions), the best average gap to SPY is +0.42pp, no Brier skill is
-> positive, and no AUC p-value reaches significance. Only `jev-latest` and
+> decisions), the best average gap to SPY is +0.48pp, no Brier skill is
+> positive, and only one window of one model reaches a nominal AUC p-value
+> under 0.05 (`span-01-free`, latest window, p 0.026 - expected once by chance
+> at this many runs, and not significant after correction). Only `jev-latest` and
 > `subq-snap-1.1` beat SPY in two of three windows, and both margins sit inside
 > their bootstrap intervals. The single-window leader (Clef Omni) dropped to
 > fourth once the other windows ran, which is exactly why the board scores
@@ -41,7 +43,8 @@ yardstick, never held.
 
 | Decision model | Oct 25 | Apr 26 | Oct 26 | Average | Beat SPY |
 | --- | --- | --- | --- | --- | --- |
-| `clef` via Requesty | -0.10pp | **+8.28pp** | -6.92pp | **+0.42pp** | 1/3 |
+| `span-01-free` (first-party) | -3.52pp | +6.29pp | -1.34pp | **+0.48pp** | 1/3 |
+| `clef` via Requesty | -0.10pp | **+8.28pp** | -6.92pp | +0.42pp | 1/3 |
 | `gpt-6-luna` | -0.11pp | +6.48pp | -6.15pp | +0.07pp | 1/3 |
 | `clef` | -0.77pp | +7.36pp | -6.53pp | +0.02pp | 1/3 |
 | `clef-omni` | -1.21pp | +4.74pp | -4.10pp | -0.19pp | 1/3 |
@@ -58,7 +61,7 @@ yardstick, never held.
 | `standard-one-8b` | -1.44pp | +3.05pp | -11.44pp | -3.28pp | 1/3 |
 
 Each column is the model's gap to SPY in one six-month window (SPY made
-+23.04%, +1.88% and +15.09%). The Apr 26 window lifted 14 of 15 models above
++23.04%, +1.88% and +15.09%). The Apr 26 window lifted 15 of 16 models above
 SPY because the pool itself outran a flat index there; the other two windows
 are the honest test, and there the gaps are negative or inside noise. The
 single-window returns live on the dashboard, one chip per window, with the
@@ -71,10 +74,12 @@ Eight providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
 (`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`, `clef-omni`),
 Requesty (`jev-1.14`, `pplx-decider`, `ms-decision-1`), Standard Thinking
 (`standard-one-8b`), Liquid (`liquid-d1-ultra`), vLLM SR (`d3-turbo`, `d3-mini`,
-`d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). More routes run through
-OpenRouter: `span-01-lite` (free) just scored one v2 window, because OpenRouter
-caps free models at 50 requests a day without credits and that quota ran out
-mid-sweep; its remaining v2 windows run when the quota resets. The paid routes
+`d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). Respan also answers first-party: `span-01-free` via
+api.respan.ai's behavior-scoring endpoint (free, each noul question mapped to
+one scored proposition) ran all three windows at 100% coverage, no daily-cap
+trouble. The OpenRouter `span-01-lite` route remains quota-capped at 50 free
+requests a day and has one v2 window; `span-02` first-party needs paid Respan
+credits. The paid routes
 (`kev-4b`, `liquid-d1`, `drex-v1.5`) still wait on a zero balance, and
 `mercury-decide:free` keeps answering 403 upstream. All bill input tokens only,
 and one call answers every question, so the full 15-model v2 board above cost

@@ -382,6 +382,70 @@ class RequestyClient(TypeSafeClient):
     provider = "requesty"
 
 
+class RespanScoresClient(HttpDcnClient):
+    """Respan's first-party behavior-scoring endpoint (Span models, free tier).
+
+    Not the System One contract: `/api/v1/scores` reads a `span` (an input
+    message plus a required assistant `output`) and a list of `behaviors`, and
+    scores each behavior `p_present / p_absent / p_not_observable`. The bridge:
+    the market state travels as the input message text, a fixed carrier line is
+    the output, and every question becomes one behavior whose definition is the
+    question phrased as a proposition; `p_present` is the answer probability.
+    Verified live 2026-10-23 with `span-01-free`: 25 behaviors in one request,
+    every id answered, usage included. Their `/api/v1/decisions` also speaks
+    System One but serves span-02 on paid credits only.
+    """
+
+    provider = "respan"
+
+    CARRIER = (
+        "Considering the market state above, evaluate each proposition about "
+        "the coming trading days."
+    )
+
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        headers = {
+            "Authorization": f"Bearer {self.api_key or ''}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "model": self.model,
+            "span": {
+                "input": [
+                    {
+                        "role": "user",
+                        "content": "Market state (JSON, all data as of the as_of date): " + _state_text(state),
+                    }
+                ],
+                "output": {"role": "assistant", "content": self.CARRIER},
+            },
+            "behaviors": [
+                {"id": question_id, "definition": "Proposition: " + _flatten(question.instructions)}
+                for question_id, question in questions.items()
+            ],
+        }
+        return "POST", self.endpoint, headers, body
+
+    def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
+        answers: dict[str, NoulAnswer] = {}
+        for row in payload.get("results") or []:
+            if not isinstance(row, dict):
+                continue
+            question_id = row.get("id")
+            present = row.get("p_present")
+            if isinstance(question_id, str) and isinstance(present, (int, float)):
+                answers[question_id] = NoulAnswer(noul=min(max(float(present), 0.0), 1.0))
+        missing = [question_id for question_id in question_ids if question_id not in answers]
+        usage = payload.get("usage") or {}
+        return DcnResult(
+            answers=answers,
+            missing_ids=missing,
+            input_tokens=int(usage.get("input_tokens") or 0),
+            output_tokens=0,
+            raw=payload,
+        )
+
+
 class OpenRouterDecisionsClient(TypeSafeClient):
     """OpenRouter decisions endpoint (alpha). Same contract, again.
 
@@ -415,6 +479,7 @@ _CLIENTS = {
     "cloudflare": CloudflareClefClient,
     "requesty": RequestyClient,
     "openrouter": OpenRouterDecisionsClient,
+    "respan": RespanScoresClient,
 }
 
 
