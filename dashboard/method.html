@@ -32,6 +32,12 @@
         <li><strong>Fill the orders.</strong>Trades fire only when a weight moves past the 2% rebalance band, and fill at the next session's open with fees and slippage. Most names sit inside the band, so a typical weekly decision is mostly holds: on the published board models keep 52% to 91% of the book steady.</li>
         <li><strong>Score it twice, on three windows.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built, against SPY and fixed baselines. The same steps run on three consecutive six-month windows, so a model must hold up in a rally, a flat stretch, and a run it cannot simply ride; the board shows each window and the average.</li>
       </ol>
+      <h3 class="how-sub">How a probability becomes buy, hold, or sell</h3>
+      <div class="how-notes">
+        <p><strong>The models never say buy, hold, or sell.</strong>Each answers one typed question per asset - will it beat the benchmark over the next five trading days - and returns a probability. Half the book is spread evenly; the other half follows conviction, each probability's distance above that week's own mean.</p>
+        <p><strong>The 2% band decides the trade.</strong>A name is bought when its target weight sits more than 2 percentage points above what is held, sold when it sits more than 2 below, and held inside the band, where nothing trades and no fee is paid. A name leaving the pool is always sold, and the first decision is all buys from cash.</p>
+        <p><strong>Holds measure temperament.</strong>The share of holds is not a setting; it falls out of how stable a model's probabilities are. On the current board it runs from about 51% of weekly name-level decisions (D3 Turbo, roughly half the book reshuffled every week) to about 88% (Span-01 free, about three names traded per week), and the calmer models pay less in fees and slippage.</p>
+      </div>
       <h3 class="how-sub">What keeps it honest</h3>
       <div class="how-notes">
         <p><strong>No look-ahead.</strong>The state holds only past data, and an audit tampers with every later price to prove earlier decisions cannot change.</p>
