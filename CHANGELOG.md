@@ -23,6 +23,11 @@ Added
 - Question batching in the shared DCN client (`question_batch` in the model spec):
   endpoints that re-read the whole state once per question (the smaller d3 models)
   get their 25 questions split across smaller requests and one merged result.
+- The full three-window v2 sweep: all 15 runnable models on every six-month
+  window, 45 protocol-6 runs beside the 33 recorded under v5. The single-window
+  leader did not survive out of sample; the best 18-month average gap to SPY is
+  +0.42pp, and only Jev and SubQ Snap beat SPY in two of three windows, inside
+  their bootstrap intervals.
 - `dcn_protocol` on every catalog and dashboard row, and the site boards separate
   windows by protocol, so a v2 run never replaces a v5 row it is not comparable
   with. The board opens on the v2 window when one is present.
