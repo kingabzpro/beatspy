@@ -71,8 +71,13 @@ tr.leader .run-button{color:var(--accent)}
 .cell-note{display:block;font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap}
 
 @media(max-width:760px){
-  .col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
-  .col-worst_gap,.col-beat_in{display:none}
-  #leaderboard-table th,#leaderboard-table td{padding-top:16px;padding-bottom:16px}
+  /* Phones keep the columns the ranking reads on: return and the gap to SPY
+     on one window, windows beaten and the average return across windows. The
+     rest either repeats another column (Avg vs SPY orders exactly like Avg
+     return, on $10K like Return) or waits for the run page. */
+  .col-usd_10k,.col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
+  .col-windows,.col-avg_gap,.col-best_gap,.col-worst_gap{display:none}
+  #leaderboard-table th,#leaderboard-table td{padding:16px 6px}
+  .chip{padding:2px 6px}
   .metric-hero strong{font-size:30px}
 }

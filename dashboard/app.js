@@ -402,11 +402,8 @@ if (typeof document !== "undefined") {
     setHidden("cost-overview", !onBoard.length);
       setText("cost-window", onBoard.length
         ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
-        + "A run's bill is its rate times the tokens the provider counts, and providers count the same frozen state very differently: most "
-        + "bill the shared state once per request, while d1 and pplx-decider bill it once per question on OpenRouter, so a decision that asks 25 questions "
-        + "is billed as 25 passes over the same state. That is why the published pplx-decider row is served through Requesty, whose route "
-        + "bills the state once per request. Compare models on tokens per decision and cost per decision; the run cost is the total "
-        + "for one scored window of weekly decisions (the latest)."
+        + "Two routes bill the shared market state once per question instead of once per request, which inflates their token counts; "
+        + "compare models on cost per decision. Run cost is the total for one scored window (the latest)."
         : "");
     runBars("model-costs", onBoard
       .map(run => ({label: displayModel(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
@@ -416,13 +413,29 @@ if (typeof document !== "undefined") {
   const ALL_COLUMNS = [
     ["model", "Model", "text"],
     ["windows", "Windows", "count"],
-    ["beat_in", "Beat SPY in", "text"],
+    ["beat_in", "Beat SPY", "text"],
     ["avg_return", "Avg return", "signed"],
     ["avg_gap", "Avg vs SPY", "signed"],
     ["best_gap", "Best window", "signed"],
     ["worst_gap", "Worst window", "signed"],
   ];
   let period = "all";
+  // Header tooltips carry what the caption used to: one line per column, read
+  // on hover, so the page itself stays short.
+  const HINTS = {
+    total_return: "Total portfolio return over the window",
+    usd_10k: "What that return does to a $10,000 start",
+    excess_return_vs_spy: "Gap to SPY, the default ranking",
+    outperformance_hit_rate: "Share of weeks this book out-returned SPY",
+    max_drawdown: "Largest peak-to-trough fall",
+    hold: "Share of names left untraded each week",
+    windows: "How many of the scored windows the model ran",
+    beat_in: "Windows where the model beat SPY",
+    avg_return: "Mean total return across the model's windows",
+    avg_gap: "Mean gap to SPY across the model's windows",
+    best_gap: "Best single window vs SPY",
+    worst_gap: "Worst single window vs SPY",
+  };
   // The board opens on the newest protocol's window (v2 when present), not the
   // all-windows average, so the current benchmark version is the landing view.
   let periodOpened = false;
@@ -505,18 +518,14 @@ if (typeof document !== "undefined") {
   }
 
   function renderWindowBoard(w, multiWindow) {
-    // The caption teaches the two columns whose meaning a first read can't
-    // guess; the no-skill line comes from the catalog, not a hardcoded number.
+    // One sentence of caption; the column meanings live in the header tooltips
+    // (HINTS), so the page reads at a glance. The no-skill line comes from the
+    // catalog, not a hardcoded number.
     const baseRate = Number(visible[0]?.metrics?.calibration?.signals?.noul?.base_rate);
-    setText("board-window", (multiWindow && w
-      ? `${w.label} window${Number.isFinite(w.spy) ? `, SPY ${percent(w.spy)}` : ""}. `
-      : "One row per model, latest completed result. ")
-      + "Ranked by vs SPY, the gap to the index in this window; click any column to re-sort. "
-      + "Holds is the share of names left untraded each week; Right calls is how often its calls proved right"
-      + (Number.isFinite(baseRate)
-        ? ` (always calling the same way scores ${percent(baseRate)} here, 50% is a coin flip)`
-        : " (50% is a coin flip)")
-      + ". Open a model for its full run.");
+    setText("board-window", (multiWindow && w && Number.isFinite(w.spy)
+      ? `SPY returned ${percent(w.spy)} this window. `
+      : "")
+      + "Ranked by vs SPY, the gap to it. Open a model for its full run.");
     visible.sort((a, b) => {
       const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
       const av = rowValue(a, column[0], column[3]), bv = rowValue(b, column[0], column[3]);
@@ -529,9 +538,13 @@ if (typeof document !== "undefined") {
     const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank", "col-rank"));
+    const hints = {...HINTS,
+      accuracy: "How often calls proved right" + (Number.isFinite(baseRate)
+        ? `; always calling one way scores ${percent(baseRate)} here, a coin flip is 50%` : "; a coin flip is 50%")};
     for (const [key, title, kind] of COLUMNS) {
       const th = node("th", undefined, `${kind === "text" ? "" : "num"} col-${key}`);
       const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
+      button.title = hints[key] || "";
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
       button.onclick = () => {descending = sortKey === key ? !descending : true; sortKey = key; renderBoard();};
       th.append(button); header.append(th);
@@ -589,10 +602,8 @@ if (typeof document !== "undefined") {
   function renderAllBoard(windows) {
     const rows = allPeriodRows(windows);
     const total = windows.length;
-    setText("board-window", `Every model on every scored window, oldest to newest. `
-      + `Models that ran every window rank first, then by windows beaten, with average return settling ties; Avg return is the mean total return across a model's windows, Avg vs SPY the mean gap. Click any column to re-sort. `
-      + `Windows shows how many of the ${total} windows a model has run in; `
-      + `Best and Worst name the extremes. Open a model for its most recent full run.`);
+    setText("board-window", `Models that ran every window rank first, then most windows beaten over SPY, then average return. `
+      + `Open a model for its latest run.`);
     const value = (row, key) => key === "model" ? displayModel(row.model)
       : key === "windows" ? `${row.windows}`
       : key === "avg_gap" ? row.avgGap
@@ -628,6 +639,7 @@ if (typeof document !== "undefined") {
     for (const [key, title, kind] of ALL_COLUMNS) {
       const th = node("th", undefined, `${kind === "text" ? "" : "num"} col-${key}`);
       const button = node("button", title + (sortKey === key ? (descending ? " ↓" : " ↑") : ""));
+      button.title = HINTS[key] || "";
       th.setAttribute("aria-sort", sortKey === key ? (descending ? "descending" : "ascending") : "none");
       button.onclick = () => {descending = sortKey === key ? !descending : true; sortKey = key; renderBoard();};
       th.append(button); header.append(th);
@@ -655,8 +667,10 @@ if (typeof document !== "undefined") {
         if (!row.latest || event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
         location.href = `run.html?run=${encodeURIComponent(row.latest.run_id)}`;
       };
-      const gapCell = (entry) => {
-        const cell = node("td", undefined, "num col-gap");
+      // The best/worst cells carry their column key so the phone layout can
+      // hide the pair with its headers instead of leaving headerless columns.
+      const gapCell = (entry, key) => {
+        const cell = node("td", undefined, `num col-${key}`);
         if (entry && Number.isFinite(entry.gap)) {
           const tone = entry.gap >= 0 ? "positive" : "negative";
           cell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${percent(entry.gap)}`, `chip ${tone}`));
@@ -675,7 +689,7 @@ if (typeof document !== "undefined") {
         } else cell.textContent = "n/a";
         return cell;
       };
-      tr.append(pctCell(row.avgReturn, "avg_return"), pctCell(row.avgGap, "avg_gap"), gapCell(row.best), gapCell(row.worst));
+      tr.append(pctCell(row.avgReturn, "avg_return"), pctCell(row.avgGap, "avg_gap"), gapCell(row.best, "best_gap"), gapCell(row.worst, "worst_gap"));
       body.append(tr);
     });
     $("leaderboard-table").replaceChildren(element);

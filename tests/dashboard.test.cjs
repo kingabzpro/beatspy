@@ -15,6 +15,7 @@ function catalogRun(overrides = {}) {
     pricing: {cost_per_m_input: 0.09, cost_per_m_output: 0.0}, scenario: '2026-ytd',
     start: '2026-01-02', end: '2026-10-07', year: '2026', data_cutoff: '2026-10-07',
     snapshot_id: 'a'.repeat(64), created_utc: '2026-10-08T10:10:10+00:00', synthetic: false, trust: 'replayed',
+    dcn_protocol: 6,
     label: null, group: 'abc123', decisions: 9, invalid_outputs: 0, answer_coverage: 1.0, mean_latency_s: 0.4,
     estimated_cost_usd: 0.0009, brier: 0.2, brier_skill_score: -0.17, auc: 0.71, ece: 0.2,
     max_calibration_error: 0.36, calibration_gap: 0.355,
@@ -335,10 +336,11 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal(firstRowCells[6], '-7.00%', 'the worst peak-to-trough drop');
   assert.equal(firstRowCells[7], '91.00%', 'the hold share of the book');
   assert.equal(firstRowCells[8], '55.00%', 'the share of calls that proved right');
-  // The caption teaches the two columns a first read cannot guess, with the
-  // no-skill line taken from the catalog.
-  assert.match($('board-window').textContent, /Holds is the share of names left untraded each week/);
-  assert.match($('board-window').textContent, /always calling the same way scores 48\.00% here/);
+  // The caption stays one line; the column meanings moved into the header
+  // tooltips, with the no-skill line taken from the catalog.
+  assert.equal($('board-window').textContent, 'Ranked by vs SPY, the gap to it. Open a model for its full run.');
+  const hints = table.descendants().filter(node => node.tagName === 'button' && /Right calls/.test(node.textContent));
+  assert.match(hints[0].title, /always calling one way scores 48\.00% here/);
   // A row is a real link to the run page, so it opens in a new tab and shares well.
   const runLink = table.descendants().find(node => node.className === 'run-button');
   assert.equal(runLink.tagName, 'a');
@@ -362,18 +364,18 @@ test('scored windows group runs by frozen window and average gaps per model', ()
     {...catalogRun({run_id: 'w2-jev', model: 'jev-latest'}), start: '2026-07-01', end: '2026-10-07', ...gap(0.01)},
   ];
   const windows = scoredWindows(rows);
-  assert.deepEqual(windows.map(w => [w.label, w.runs.length]), [['Jan 26 - Jun 26', 2], ['Jul 26 - Oct 26', 3]]);
+  assert.deepEqual(windows.map(w => [w.label, w.runs.length]), [['Jan 26 - Jun 26 · v2', 2], ['Jul 26 - Oct 26 · v2', 3]]);
   // Inside a window the newest execution of a display model wins, never the
   // better score: openrouter-clef ran first, so clef's row is w1-clef (-0.01).
   assert.deepEqual(windows[0].runs.map(run => run.run_id).sort(), ['w1-clef', 'w1-flash']);
   const aggregate = allPeriodRows(windows);
-  // The default order is the average gap with windows beaten as the tiebreak:
-  // clef's fatter average leads even though flash won both its windows.
+  // Complete records rank first, then the average gap: clef and flash ran both
+  // windows, so the one-window jev row waits behind them whatever its average.
   assert.deepEqual(aggregate.map(row => [modelName(row.model), row.windows, row.beatIn, Math.round(row.avgGap * 1e6) / 1e6]),
-    [['clef', 2, 1, 0.02], ['jev-latest', 1, 1, 0.01], ['clef-flash', 2, 2, 0.0015]]);
+    [['clef', 2, 1, 0.02], ['clef-flash', 2, 2, 0.0015], ['jev-latest', 1, 1, 0.01]]);
   const clef = aggregate.find(row => modelName(row.model) === 'clef');
   assert.equal(clef.best.gap, 0.05);
-  assert.equal(clef.best.window, 'Jul 26 - Oct 26');
+  assert.equal(clef.best.window, 'Jul 26 - Oct 26 · v2');
   assert.equal(clef.worst.gap, -0.01);
   assert.equal(clef.beatIn, 1);
   assert.equal(clef.latest.run_id, 'w2-clef');
@@ -397,22 +399,29 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   const headers = () => $('leaderboard-table').children[0].children[0].descendants()
     .filter(node => node.tagName === 'th')
     .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
-  // Two windows: the toggle appears and the default view averages them.
+  // Two windows: the toggle appears, and the board opens on the newest window,
+  // the current benchmark's landing view.
   assert.equal($('period-tabs').hidden, false);
-  assert.deepEqual(headers(), ['Rank', 'Model', 'Windows', 'Avg vs SPY', 'Best window', 'Worst window', 'Beat SPY in']);
-  assert.equal($('run-count').textContent, '2 models · 2 windows');
-  const rows = $('leaderboard-table').children[0].children[1].children;
-  assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'averages, not best runs, order the all-windows view');
-  assert.equal(rows[0].children[2].textContent, '2/2');
-  assert.equal(rows[0].children[3].children[0].textContent, '▲ 2.00%');
-  assert.equal(rows[0].children[6].textContent, '1 of 2');
-  // A window chip narrows the board to that window, plain columns and all.
+  assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
+  assert.equal($('run-count').textContent, '2 results');
+  let rows = $('leaderboard-table').children[0].children[1].children;
+  assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'the newest window opens first, ranked by vs SPY');
+  // The all-windows chip averages: wins lead, average return settles ties.
   const chips = $('period-tabs').children;
   assert.equal(chips.length, 3);
+  chips[0].onclick();
+  assert.deepEqual(headers(), ['Rank', 'Model', 'Windows', 'Beat SPY', 'Avg return', 'Avg vs SPY', 'Best window', 'Worst window']);
+  assert.equal($('run-count').textContent, '2 models · 2 windows');
+  rows = $('leaderboard-table').children[0].children[1].children;
+  assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'averages, not best runs, order the all-windows view');
+  assert.equal(rows[0].children[2].textContent, '2/2');
+  assert.equal(rows[0].children[3].textContent, '1 of 2');
+  assert.equal(rows[0].children[5].children[0].textContent, '▲ 2.00%');
+  // A window chip narrows the board to that window, plain columns and all.
   chips[2].onclick();
   assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
   assert.equal($('run-count').textContent, '2 results');
-  assert.match($('board-window').textContent, /Jul 26 - Oct 26 window, SPY 10\.00%\./);
+  assert.match($('board-window').textContent, /SPY returned 10\.00% this window/);
 });
 
 test('per-window rank numbers follow the displayed vs-SPY order', async () => {
@@ -505,7 +514,7 @@ test('the pricing page renders the standardized table', async () => {
     assert.equal(row.children[4].textContent, '$0.000900');        // the run's own recorded cost
   }
   assert.ok(pricing.filter(node => node.tagName === 'a').every(link => link.href.startsWith('https://')));
-  assert.match($('cost-window').textContent, /bill it once per question/);
+  assert.match($('cost-window').textContent, /once per question/);
   assert.equal($('model-costs').children.length, 2, 'one bar per model');
   assert.equal($('leaderboard-table'), undefined);
 });
