@@ -315,7 +315,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 131_072,
         "max_questions": 64,
-        "state_note": "Successor of the board's span-01-lite; route verified 2026-10-21 (402 at zero balance); same Respan adapter, state as text, noul only",
+        "state_note": "Successor of the board's span-01-lite; route verified 2026-10-21 (402 at zero balance); "
+            "same Respan adapter, state as text, noul only",
     },
     "openrouter-pplx-decider-v1-2": {
         "provider": "openrouter",
@@ -327,7 +328,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 262_144,
         "max_questions": 64,
-        "state_note": "v1.1 was delisted from OpenRouter on 2026-10-16; first-party route below needs no OpenRouter credits",
+        "state_note": "v1.1 was delisted from OpenRouter on 2026-10-16; "
+            "first-party route below needs no OpenRouter credits",
     },
     "openrouter-pplx-decider-flash": {
         "provider": "openrouter",
@@ -399,7 +401,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 262_144,
         "max_questions": 64,
-        "state_note": "First-party Decisions API, verified 2026-10-21 (401 without a key); same request shape as System One; needs no OpenRouter credits",
+        "state_note": "First-party Decisions API, verified 2026-10-21 (401 without a key); "
+            "same request shape as System One; needs no OpenRouter credits",
     },
     "perplexity-decider-flash": {
         "provider": "typesafe",
@@ -423,7 +426,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 32_768,
         "max_questions": 64,
-        "state_note": "Id confirmed by their /v1/models and a live answer on 2026-10-21; v2.2 weights are Apache-2.0; a standard-one-3b sibling exists",
+        "state_note": "Id confirmed by their /v1/models and a live answer on 2026-10-21; v2.2 weights are Apache-2.0; "
+            "a standard-one-3b sibling exists",
     },
     "liquid-d1-ultra": {
         "provider": "typesafe",
@@ -435,7 +439,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 32_768,
         "max_questions": 64,
-        "state_note": "Endpoint verified 2026-10-21 (401 without a key); first-party rates undisclosed, $0.042 is the OpenRouter listing",
+        "state_note": "Endpoint verified 2026-10-21 (401 without a key); "
+            "first-party rates undisclosed, $0.042 is the OpenRouter listing",
     },
     "d3-turbo": {
         "provider": "typesafe",
@@ -447,7 +452,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 131_072,
         "max_questions": 64,
-        "state_note": "Free API (one-click key, no account) at $0; same System One contract, 131k request tokens and a 35s endpoint timeout per /api/info; verified live 2026-10-23",
+        "state_note": "Free API (one-click key, no account) at $0; same System One contract, "
+            "131k request tokens and a 35s endpoint timeout per /api/info; verified live 2026-10-23",
     },
     "d3-mini": {
         "provider": "typesafe",
@@ -460,7 +466,9 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 131_072,
         "max_questions": 64,
         "question_batch": 14,
-        "state_note": "Free API at $0; same System One contract, 32k state chars and 64 questions per /api/info; verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 to stay under the 131k request-token limit",
+        "state_note": "Free API at $0; same System One contract, 32k state chars and 64 questions per /api/info; "
+            "verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 "
+            "to stay under the 131k request-token limit",
     },
     "d3-edge": {
         "provider": "typesafe",
@@ -473,7 +481,9 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 131_072,
         "max_questions": 64,
         "question_batch": 14,
-        "state_note": "Free API at $0, the smallest of the family (0.6B); same System One contract per /api/info; verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 to stay under the 131k request-token limit",
+        "state_note": "Free API at $0, the smallest of the family (0.6B); same System One contract per /api/info; "
+            "verified live 2026-10-23; re-reads the state per question, so questions travel in batches of 16 "
+            "to stay under the 131k request-token limit",
     },
     "baseten-mammoth-1": {
         "provider": "typesafe",
@@ -485,7 +495,9 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 131_072,
         "max_questions": 64,
-        "state_note": "Base Labs (Baseten research) 27B on Qwen3.5, MIT weights on HF; served on their Model APIs free through 2026-10-27, rate after the promo undocumented; same System One contract, verified live 2026-10-23",
+        "state_note": "Base Labs (Baseten research) 27B on Qwen3.5, MIT weights on HF; served on their Model APIs "
+            "free through 2026-10-27, rate after the promo undocumented; same System One contract, "
+            "verified live 2026-10-23",
     },
     "baseten-elephant-1": {
         "provider": "typesafe",
@@ -497,7 +509,8 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 131_072,
         "max_questions": 64,
-        "state_note": "Base Labs 9B sibling of Mammoth 1, MIT weights on HF; free through 2026-10-27 on Baseten Model APIs; same System One contract, verified live 2026-10-23",
+        "state_note": "Base Labs 9B sibling of Mammoth 1, MIT weights on HF; free through 2026-10-27 "
+            "on Baseten Model APIs; same System One contract, verified live 2026-10-23",
     },
     "respan-span-01-free": {
         "provider": "respan",
@@ -509,7 +522,9 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 32_768,
         "max_questions": 64,
-        "state_note": "Free tier of their behavior-scoring API (span-01-free); the benchmark maps each noul question to one scored proposition, p_present is the answer; their /api/v1/decisions speaks System One but serves span-02 on paid credits only; verified live 2026-10-23",
+        "state_note": "Free tier of their behavior-scoring API (span-01-free); the benchmark maps each noul question "
+            "to one scored proposition, p_present is the answer; their /api/v1/decisions speaks System One but serves "
+            "span-02 on paid credits only; verified live 2026-10-23",
     },
     "subq-snap-1-1": {
         "provider": "typesafe",
@@ -521,7 +536,9 @@ DECISION_MODELS: dict[str, dict] = {
         "cost_per_m_output": 0.0,
         "context_window": 393_216,
         "max_questions": 64,
-        "state_note": "Long-context (384K) decision model, released 2026-10-12 at $0.05/M input; same System One contract, verified live 2026-10-23; a subq-snap-preview sibling exists on their /v1/models",
+        "state_note": "Long-context (384K) decision model, released 2026-10-12 at $0.05/M input; "
+            "same System One contract, verified live 2026-10-23; "
+            "a subq-snap-preview sibling exists on their /v1/models",
     },
     "clef-flash": {
         "provider": "cloudflare",

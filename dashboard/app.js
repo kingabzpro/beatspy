@@ -492,9 +492,6 @@ if (typeof document !== "undefined") {
   function updateBoardChrome(windows) {
     const source = visible.length ? visible : [];
     const allMode = period === "all" && windows.length >= 2;
-    setText("run-count", allMode
-      ? `${plural(allPeriodRows(windows).length, "model")} · ${plural(windows.length, "window")}`
-      : `${visible.length} result${visible.length === 1 ? "" : "s"}`);
     if (allMode) {
       setText("hero-scope", `${windows[0].start} → ${windows[windows.length - 1].end} · ${plural(windows.length, "window")}`);
     } else if (source.length) {
@@ -510,8 +507,6 @@ if (typeof document !== "undefined") {
         ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
         : `Synthetic demo data: ${syntheticCount} of ${source.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
     }
-    const runCount = $("run-count");
-    if (runCount) runCount.className = syntheticCount === source.length && source.length ? "pill warn" : "pill";
     setText("status", source.length || !allMode ? (source.length ? "" : (runs.length
       ? "No completed results yet."
       : "No results yet. Record a decision-model run and re-render this page.")) : "");
@@ -1007,7 +1002,6 @@ if (typeof document !== "undefined") {
       renderPricing();
       renderRun();
     } catch (error) {
-      setText("run-count", "Unavailable");
       setText("status", `Results unavailable: ${error.message}. Try reloading the page.`);
     }
   }

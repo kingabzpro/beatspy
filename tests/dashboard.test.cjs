@@ -255,7 +255,7 @@ function fakeElement(tag) {
 // listed separately: a page only gets the nodes its own HTML declares, which is
 // what the renderers guard on. Kept in sync with the dashboard/*.html files.
 const PAGE_IDS = {
-  'index.html': ['leaderboard-table', 'board-window', 'run-count', 'demo-banner', 'status', 'hero-scope', 'period-tabs'],
+  'index.html': ['leaderboard-table', 'board-window', 'demo-banner', 'status', 'hero-scope', 'period-tabs'],
   'run.html': ['run-details', 'run-trust', 'run-title', 'run-meta', 'status', 'metrics', 'calibration', 'reliability',
     'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
     'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
@@ -316,7 +316,6 @@ test('the leaderboard page renders the board and links each row to its run page'
   const elements = mountSite(site, 'index.html');
   await settle();
   const $ = id => elements.get(id);
-  assert.equal($('run-count').textContent, '2 results');
   assert.equal($('status').textContent, '');
   assert.equal($('demo-banner').hidden, true, 'real results must not show the synthetic warning');
   // One scored window: the toggle stays hidden and the board is unchanged.
@@ -403,7 +402,6 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   // the current benchmark's landing view.
   assert.equal($('period-tabs').hidden, false);
   assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
-  assert.equal($('run-count').textContent, '2 results');
   let rows = $('leaderboard-table').children[0].children[1].children;
   assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'the newest window opens first, ranked by vs SPY');
   // The all-windows chip averages: wins lead, average return settles ties.
@@ -411,7 +409,6 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   assert.equal(chips.length, 3);
   chips[0].onclick();
   assert.deepEqual(headers(), ['Rank', 'Model', 'Windows', 'Beat SPY', 'Avg return', 'Avg vs SPY', 'Best window', 'Worst window']);
-  assert.equal($('run-count').textContent, '2 models · 2 windows');
   rows = $('leaderboard-table').children[0].children[1].children;
   assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'averages, not best runs, order the all-windows view');
   assert.equal(rows[0].children[2].textContent, '2/2');
@@ -420,7 +417,6 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   // A window chip narrows the board to that window, plain columns and all.
   chips[2].onclick();
   assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
-  assert.equal($('run-count').textContent, '2 results');
   assert.match($('board-window').textContent, /SPY returned 10\.00% this window/);
 });
 
@@ -560,7 +556,6 @@ test('a synthetic run is disclosed on the leaderboard itself, before any click',
   });
   await settle();
   const $ = id => elements.get(id);
-  assert.equal($('run-count').textContent, '3 results');
   const banner = $('demo-banner');
   assert.equal(banner.hidden, false, 'the warning must be visible on load');
   assert.match(banner.textContent, /Synthetic demo data/);
@@ -588,9 +583,6 @@ test('an all-synthetic leaderboard says so unambiguously', async () => {
   });
   await settle();
   const $ = id => elements.get(id);
-  assert.equal($('run-count').textContent, '2 results');
   assert.match($('demo-banner').textContent, /all 2 rows are fabricated/);
   assert.match($('demo-banner').textContent, /No decision model was called/);
-  // The result count is styled as a warning too, not a neutral pill.
-  assert.equal($('run-count').className, 'pill warn');
 });
