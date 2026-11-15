@@ -147,7 +147,7 @@ def test_summary_categorises_the_baseline_ai_models_and_agents(dcn_run_dir: Path
     local = json.loads(json.dumps(meta))
     local["decision"]["provider"] = "local"
     local["decision"].pop("category", None)
-    assert summary(local, {}, dcn_run_dir.name, "local")["category"] == "baseline"
+    assert summary(local, {}, dcn_run_dir.name, "local")["category"] == "algo"
     # A future agent spec can declare itself without changing the fallback.
     local["decision"]["category"] = "agent"
     assert summary(local, {}, dcn_run_dir.name, "local")["category"] == "agent"
@@ -339,6 +339,9 @@ def test_committed_public_catalog_matches_the_dcn_shape():
     assert catalog["default_trust"] == "all"
     assert isinstance(catalog["runs"], list)
     assert "selected" not in catalog or catalog["selected"] is None
+    baselines = [row for row in catalog["runs"] if row["model"] == "tpi-rs"]
+    assert baselines and all(row["category"] == "algo" for row in baselines)
+    assert all(row["category"] in {"algo", "ai"} for row in catalog["runs"])
     for row in catalog["runs"]:
         run_dir = data_root / "runs" / row["run_id"]
         assert row["dir"] == f"runs/{row['run_id']}"
@@ -360,7 +363,7 @@ def test_public_site_assets_have_no_removed_agent_harness_wording():
     pages = {name: (static_dir() / name).read_text(encoding="utf-8") for name in PAGES}
     js = (static_dir() / "app.js").read_text(encoding="utf-8")
     css = (static_dir() / "styles.css").read_text(encoding="utf-8")
-    # "AI agents" is a real, currently empty leaderboard category. The copy from
+    # The AI tabs are gone for now; the board is one ranked list. The copy from
     # the removed five-agent harness stays banned.
     banned = ("pipeline", "critic", "reasoning effort", "reasoning_effort", "tool call", "tool_call",
               "telemetry", "five trading", "max turns", "max_turns", "web search", "web_search", "read_file",
@@ -369,8 +372,8 @@ def test_public_site_assets_have_no_removed_agent_harness_wording():
         lowered = text.lower()
         for word in banned:
             assert word not in lowered, f"{name} mentions {word!r}"
-    assert 'id="category-tabs"' in pages["index.html"]
-    assert "AI agents" in js
+    assert "ALGO" in js
+    assert "tpi.svg" in js
     # The DCN payload is what the site renders, wherever a token lives.
     for token in ("reliability", "brier", "decision model", "calibration", "provider"):
         assert any(token in text.lower() for text in pages.values()), token
@@ -383,7 +386,7 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
     assert "textContent" in js
     # Each widget lives on the page that owns it; the ids are what app.js binds to.
     owners = {
-        "index.html": ("leaderboard", "leaderboard-table", "status", "hero-scope", "period-tabs", "category-tabs"),
+        "index.html": ("leaderboard", "leaderboard-table", "status", "hero-scope", "period-tabs"),
         "run.html": ("run-details", "calibration", "reliability", "reliability-bins", "performance", "drawdown",
                      "allocations", "run-cost", "metrics", "downloads"),
         "pricing.html": ("pricing-table", "model-costs", "cost-window"),

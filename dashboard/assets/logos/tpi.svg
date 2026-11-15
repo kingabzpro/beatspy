@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="TPI-RS">
+  <path d="M10 46 L24 32 L33 39 L54 16" fill="none" stroke="#b4f272" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M42 16 L54 16 L54 28" fill="none" stroke="#b4f272" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="10" cy="46" r="5" fill="#b4f272"/>
+</svg>

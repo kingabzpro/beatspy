@@ -143,7 +143,7 @@ def test_no_credential_means_none_not_an_exception(monkeypatch):
 
 
 def test_the_baseline_is_a_separate_category():
-    assert DecisionConfig(decision_model="tpi-rs").category == "baseline"
+    assert DecisionConfig(decision_model="tpi-rs").category == "algo"
     assert DecisionConfig(decision_model="jev-latest").category == "ai"
 
 

@@ -512,7 +512,7 @@ def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
         if spec["provider"] == "local":
             # A deterministic control runs in-process: no credential, no cost.
-            assert spec.get("category") == "baseline", f"{name} is local but not marked baseline"
+            assert spec.get("category") == "algo", f"{name} is local but not tagged algo"
             assert spec.get("api_key_env") is None
             assert spec["cost_per_m_input"] == 0.0
             continue

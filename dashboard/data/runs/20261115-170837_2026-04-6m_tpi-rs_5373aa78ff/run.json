@@ -57,7 +57,7 @@
   },
   "dcn_protocol": 6,
   "decision": {
-    "category": "baseline",
+    "category": "algo",
     "decision_model": "tpi-rs",
     "endpoint": "local://tpi-rs",
     "label": "TPI-RS deterministic baseline (short-horizon, no LLM)",

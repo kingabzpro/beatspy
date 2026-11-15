@@ -64,7 +64,7 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 0,
         "max_questions": 64,
         "state_note": "Runs in-process on the frozen snapshot; no network and no tokens.",
-        "category": "baseline",
+        "category": "algo",
     },
     "gpt-6-luna": {
         "provider": "openai_decisions",
@@ -649,8 +649,8 @@ class DecisionConfig(BaseModel):
 
     @property
     def category(self) -> str:
-        """Model family the dashboard filters on. Local runs are the baseline."""
-        return self.spec.get("category") or ("baseline" if self.provider == "local" else "ai")
+        """Model family the dashboard filters on. Local runs are algorithms."""
+        return self.spec.get("category") or ("algo" if self.provider == "local" else "ai")
 
     @property
     def label(self) -> str:

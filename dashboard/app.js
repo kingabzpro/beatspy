@@ -84,32 +84,23 @@ function modelName(model) {
   // board names the model, not the transport that happened to serve it.
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
-// The leaderboard filters by model family. The local deterministic run is a
-// baseline, not an LLM; the agent tab stays empty until an agent has run.
+// The local deterministic run is an algorithm, not an LLM. The board marks it
+// with an ALGO tag; future agents and models simply add rows.
 function categoryOf(run) {
   const declared = String(run?.category || "").toLowerCase();
-  if (declared === "baseline" || declared === "ai" || declared === "agent") return declared;
+  if (declared === "baseline") return "algo";
+  if (declared === "algo" || declared === "ai" || declared === "agent") return declared;
   // Catalog rows written before the category field existed: local is the
-  // baseline, every network provider is an AI decision model.
-  return run?.provider === "local" ? "baseline" : "ai";
+  // algorithm, every network provider is an AI decision model.
+  return run?.provider === "local" ? "algo" : "ai";
 }
-function inCategory(run, category) {
-  if (category === "all" || category === "decision") return true;
-  return categoryOf(run) === category;
-}
-const CATEGORY_TABS = [
-  ["all", "All", "Every published model."],
-  ["decision", "Decision models", "Every typed decision model, including the deterministic baseline."],
-  ["ai", "AI models", "LLM-backed decision models only."],
-  ["agent", "AI agents", "Agentic models, when one has run."],
-];
 
 // Presentation only: how each model reads, and the logo of the company that
 // built it. Raw ids stay in the artifacts; OpenRouter and Requesty are
 // deliberately absent because they are the transport for the routed rows,
 // not the creator.
 const MODEL_META = {
-  "tpi-rs": ["TPI-RS baseline", null],
+  "tpi-rs": ["TPI baseline", "tpi.svg"],
   "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
   "jev-latest": ["Jev-Latest", "typesafe.png"],
   "jev-1-14": ["Jev 1.14", "typesafe.png"],
@@ -288,7 +279,7 @@ if (typeof module !== "undefined") module.exports = {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
   monthLabel, windowLabel, scoredWindows, allPeriodRows,
-  categoryOf, inCategory,
+  categoryOf,
 };
 
 if (typeof document !== "undefined") {
@@ -341,9 +332,13 @@ if (typeof document !== "undefined") {
     if (key === "accuracy") return run.metrics?.calibration?.signals?.noul?.accuracy;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
+  // The deterministic row is marked in the table itself, so the board never
+  // reads as if every entry were an AI model.
+  const appendModelTag = (cell, run) => {
+    if (categoryOf(run) === "algo") cell.append(node("span", "ALGO", "tag"));
+  };
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
-  let category = "all";
 
   async function fetchText(path) {
     const response = await fetch(path);
@@ -462,25 +457,6 @@ if (typeof document !== "undefined") {
   // all-windows average, so the current benchmark version is the landing view.
   let periodOpened = false;
 
-  function renderCategoryTabs() {
-    const bar = $("category-tabs");
-    if (!bar) return;
-    bar.replaceChildren();
-    for (const [id, text, title] of CATEGORY_TABS) {
-      const button = node("button", text, `tab${category === id ? " active" : ""}`);
-      button.type = "button";
-      button.title = title;
-      button.setAttribute("aria-pressed", category === id ? "true" : "false");
-      button.onclick = () => {
-        if (category === id) return;
-        category = id;
-        periodOpened = false;
-        renderBoard();
-      };
-      bar.append(button);
-    }
-  }
-
   function renderTabs(windows) {
     const bar = $("period-tabs");
     if (!bar) return;
@@ -510,21 +486,7 @@ if (typeof document !== "undefined") {
 
   function renderBoard() {
     if (!$("leaderboard-table")) return;
-    renderCategoryTabs();
-    const current = runs.filter(isCurrent).filter(run => inCategory(run, category));
-    if (!current.length) {
-      renderTabs([]);
-      visible = [];
-      $("leaderboard-table").replaceChildren();
-      setText("board-window", "");
-      setHidden("demo-banner", true);
-      setText("status", category === "agent"
-        ? "No AI agent runs yet. The benchmark currently scores decision models."
-        : "No results yet.");
-      if (category === "agent") setText("hero-scope", "AI agents · no runs yet");
-      return;
-    }
-    const windows = scoredWindows(current);
+    const windows = scoredWindows(runs.filter(isCurrent));
     if (!periodOpened) {
       periodOpened = true;
       const newest = windows.filter(w => w.proto >= 6).pop();
@@ -619,6 +581,7 @@ if (typeof document !== "undefined") {
         td.append(img);
       }
       td.append(link);
+      appendModelTag(td, run);
       if (run.synthetic) {
         // Mark the row itself: the details panel is one click away, and a
         // fabricated number must not read as a real result before that click.
@@ -712,6 +675,7 @@ if (typeof document !== "undefined") {
         td.append(img);
       }
       td.append(link);
+      appendModelTag(td, row.latest);
       tr.append(td);
       tr.onclick = event => {
         if (!row.latest || event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
