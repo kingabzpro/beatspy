@@ -86,7 +86,7 @@ def test_doctor_probe_reports_the_probability(monkeypatch, capsys):
     assert main(["doctor", "--probe"]) == 0
     out = capsys.readouterr().out
     network_models = [name for name, spec in DECISION_MODELS.items()
-                      if spec["provider"] not in ("local", "fasttrade", "bta", "bta-live")]
+                      if spec["provider"] not in ("local", "fasttrade", "bta", "bta-live", "paperrl")]
     assert out.count("probe ") == len(network_models)
     assert "skip tpi-rs" in out
     assert "skip fasttrade" in out

@@ -185,6 +185,7 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('fasttrade'), 'AI');
   assert.equal(modelTag('bettertradingagents'), 'AGENT');
   assert.equal(modelTag('bettertradingagents-live'), 'AGENT');
+  assert.equal(modelTag('paperrl'), 'RL');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
@@ -208,6 +209,7 @@ test('the frontend uses safe text rendering, keeps the design, and tags the base
   assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
   assert.match(js, /"bettertradingagents": \["BetterTradingAgents", "bettertradingagents\.png"\]/);
   assert.match(js, /"bettertradingagents-live": \["BetterTradingAgents Live", "bettertradingagents\.png"\]/);
+  assert.match(js, /"paperrl": \["PaperRL", "paperrl\.svg"\]/);
   assert.match(readFileSync('dashboard/assets/logos/tpi.svg', 'utf8'), /<svg/);
   assert.match(readFileSync('dashboard/assets/logos/fasttrade.svg', 'utf8'), /<svg/);
   assert.ok(readFileSync('dashboard/assets/logos/bettertradingagents.png').length > 0);
@@ -372,7 +374,7 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('pricing-table'), undefined);
 });
 
-test('the baseline rows carry their ALGO, AI and AGENT tags', async () => {
+test('the baseline rows carry their ALGO, AI, AGENT and RL tags', async () => {
   const {site} = siteFixture();
   const catalog = JSON.parse(site['data/index.json']);
   catalog.runs.push(catalogRun({
@@ -387,20 +389,27 @@ test('the baseline rows carry their ALGO, AI and AGENT tags', async () => {
     run_id: 'run-bta', dir: 'runs/run-bta', model: 'bettertradingagents', provider: 'bta', category: 'agent',
     created_utc: '2026-10-08T08:45:00+00:00',
   }));
+  catalog.runs.push(catalogRun({
+    run_id: 'run-prl', dir: 'runs/run-prl', model: 'paperrl', provider: 'paperrl', category: 'rl',
+    created_utc: '2026-10-08T09:00:00+00:00',
+  }));
   site['data/index.json'] = JSON.stringify(catalog);
 
   const elements = mountSite(site, 'index.html');
   await settle();
   const table = elements.get('leaderboard-table').children[0];
-  assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 6, 'header plus five models');
+  assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 7, 'header plus six models');
   assert.ok(table.descendants().some(node => node.textContent === 'TPI baseline'));
   assert.ok(table.descendants().some(node => node.textContent === 'FastTrade'));
   assert.ok(table.descendants().some(node => node.textContent === 'BetterTradingAgents'));
-  const tags = table.descendants().filter(node => ['tag tag-algo', 'tag tag-ai', 'tag tag-agent'].includes(node.className));
-  assert.equal(tags.length, 3);
+  assert.ok(table.descendants().some(node => node.textContent === 'PaperRL'));
+  const tags = table.descendants().filter(
+    node => ['tag tag-algo', 'tag tag-ai', 'tag tag-agent', 'tag tag-rl'].includes(node.className));
+  assert.equal(tags.length, 4);
   assert.ok(tags.some(node => node.textContent === 'ALGO'));
   assert.ok(tags.some(node => node.textContent === 'AI'));
   assert.ok(tags.some(node => node.textContent === 'AGENT'));
+  assert.ok(tags.some(node => node.textContent === 'RL'));
 });
 
 test('scored windows group runs by frozen window and average gaps per model', () => {

@@ -73,6 +73,7 @@ tr.leader .run-button{color:var(--accent)}
 .tag-algo{color:var(--accent)}
 .tag-ai{color:#79b6ff;border-color:#31577a}
 .tag-agent{color:#cb9aff;border-color:#5a3f7a}
+.tag-rl{color:#ffbc79;border-color:#6b4a2a}
 
 @media(max-width:760px){
   /* Phones keep the columns the ranking reads on: return and the gap to SPY

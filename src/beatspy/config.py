@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # contract; they differ only in transport, auth, and question limits.
 PROVIDERS = (
     "openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
-    "fasttrade", "bta", "bta-live",
+    "fasttrade", "bta", "bta-live", "paperrl",
 )
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
@@ -107,6 +107,19 @@ DECISION_MODELS: dict[str, dict] = {
         "max_questions": 64,
         "state_note": "Fast depth profile: technical + forecast + manager via LLM_BASE_URL/LLM_MODEL.",
         "category": "agent",
+    },
+    "paperrl": {
+        "provider": "paperrl",
+        "model": "paperrl",
+        "label": "PaperRL signals (five-factor, no PPO)",
+        "base_url": "local://paperrl",
+        "api_key_env": None,
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 0,
+        "max_questions": 64,
+        "state_note": "PaperRL's five-factor weighted vote on daily closes; the per-symbol PPO overlay is not used.",
+        "category": "rl",
     },
     "gpt-6-luna": {
         "provider": "openai_decisions",
