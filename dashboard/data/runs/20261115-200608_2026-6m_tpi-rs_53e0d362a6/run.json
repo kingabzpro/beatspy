@@ -1,12 +1,12 @@
 {
   "artifact_hashes": {
-    "decisions.jsonl": "0e63e85a634452684e2fc15c88e0e27a4b2740da924f7008fa980fd4a921c744",
-    "equity_curve.csv": "d043ef72093ffe979453fd76420758e6546fff492d4627c5c7cf89ee652eafa2",
-    "events.jsonl": "d09a8faa93193e7913144e77e357c90f5eb26f9f308bb0a00f271f6686e86a4e",
-    "metrics.json": "0d38e81e540130f25d16fc4f6e7effebafcc0fa2e507be727ad3d1cf0fd8152e",
-    "snapshot/MANIFEST.json": "abfbe2960aae150b289a52c98502b75fcb7552feffa2bdfba78c44847a933fbe",
-    "snapshot/prices.csv": "08996e3eb4180bb19527e9c48bd77081f8a1fc528606cbf7be8730e7635f9957",
-    "trades.csv": "986c45cc4fc24abe85094454495707476f33d129eefe1a904e888f01f155149b"
+    "decisions.jsonl": "fc421c6674c17dda04a34034a5f7e264b171b91faefbff06cd5ed69b3c108676",
+    "equity_curve.csv": "e2c36ee50346ffd27fca5b319cfee03c69565ddc1f182cf854dfee13697d7742",
+    "events.jsonl": "fee54129ab86955487ead7642fe981fe573bf6efead3c41e3e895ac376e7fdd9",
+    "metrics.json": "4daddb3b0b6bdb2ce7712ebdf51cae00b726f77a0b2a2758d4faa1befa475bea",
+    "snapshot/MANIFEST.json": "5788ebd51e6d12c5d2a55d0b06ba8c79d8e5590502174e1a6739068f461ff138",
+    "snapshot/prices.csv": "d5b1dfa939e5672617313c7e9e6c27eb72625cd0c308cd3b5e1b303cfac46b6e",
+    "trades.csv": "9107b5bb4abcd60701d9e89e01e57654bc23c1a56ba7949fb4aa7dc9016ad7de"
   },
   "beatspy_version": "0.3.0",
   "bench": {
@@ -17,15 +17,15 @@
     "slippage_bps": 5.0
   },
   "benchmark": "dcn",
-  "created_utc": "2026-11-15T17:08:29+00:00",
+  "created_utc": "2026-11-15T20:06:08+00:00",
   "data": {
-    "end": "2025-10-09",
-    "fetched_at_utc": "2026-10-19T18:59:39+00:00",
-    "prices_sha256": "08996e3eb4180bb19527e9c48bd77081f8a1fc528606cbf7be8730e7635f9957",
-    "rows": 10452,
-    "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+    "end": "2026-10-09",
+    "fetched_at_utc": "2026-10-11T17:33:39+00:00",
+    "prices_sha256": "d5b1dfa939e5672617313c7e9e6c27eb72625cd0c308cd3b5e1b303cfac46b6e",
+    "rows": 10478,
+    "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
     "source": "Yahoo Finance via yfinance (adjusted OHLCV)",
-    "start": "2024-03-05",
+    "start": "2025-03-05",
     "tickers": [
       "AAPL",
       "MSFT",
@@ -84,16 +84,16 @@
   },
   "label": null,
   "requested": {
-    "end": "2025-10-09",
+    "end": "2026-10-09",
     "frequency": "weekly",
-    "start": "2025-04-09"
+    "start": "2026-04-09"
   },
-  "run_id": "20261115-170828_2025-10-6m_tpi-rs_d6d3a0586a",
+  "run_id": "20261115-200608_2026-6m_tpi-rs_53e0d362a6",
   "scenario": {
     "benchmark": "SPY",
     "cash": true,
-    "description": "Fixed window 2025-04-09 to 2025-10-09: the first of three consecutive six-month periods the board scores, with weekly decisions over the same 25 stocks and ETFs.",
-    "end": "2025-10-09",
+    "description": "Rolling six-month window ending at the latest completed NYSE session, with weekly decisions over 25 stocks and ETFs.",
+    "end": "2026-10-09",
     "fee_bps": 5.0,
     "frequency": "weekly",
     "initial_capital": 100000.0,
@@ -101,14 +101,14 @@
     "max_candidates": 10,
     "max_decisions": 26,
     "max_position_weight": 0.35,
-    "name": "2025-10-6m",
+    "name": "2026-6m",
     "recent_months": null,
     "selection_lookback_days": 126,
     "selection_top": null,
     "slippage_bps": 5.0,
-    "start": "2025-04-09",
+    "start": "2026-04-09",
     "through_latest": false,
-    "title": "Six months to October 2025",
+    "title": "Latest 6 months",
     "tradable": [
       "AAPL",
       "MSFT",
@@ -140,11 +140,11 @@
     "year": null
   },
   "schema_version": 3,
-  "source_revision": "5be2ec8eda5f01239dca648058273672db081c40",
+  "source_revision": "ce4d99c6126483af5c09c7a4b29f728aeb6f240d",
   "state_sample": {
-    "chars": 7422,
-    "decision_date": "2025-04-09",
-    "sha256": "9f72b58228ad953440d0771e15ff1602566b521434e01264a7b39d54d9cc8874"
+    "chars": 7394,
+    "decision_date": "2026-04-09",
+    "sha256": "5ec03b6b405592a4060fa7feab824dbc673188dafba2275562d55c70b59d5882"
   },
   "synthetic": false
 }

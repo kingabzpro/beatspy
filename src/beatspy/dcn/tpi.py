@@ -1,8 +1,8 @@
 """The TPI-RS deterministic baseline.
 
 This is not an LLM decision model. It computes the TPI-RS trend/breakout score
-from the frozen prices the harness already holds, then encodes rule agreement as
-a probability. The Rust implementation is the reference; `tests/test_dcn_tpi.py`
+from the frozen prices the harness already holds, then maps that score to a
+probability. The Rust implementation is the reference; `tests/test_dcn_tpi.py`
 pins this port to the Rust indicator values and composite score on a fixed
 series.
 
@@ -314,15 +314,18 @@ def signal(frame: pd.DataFrame | None) -> TpiSignal | None:
     return TpiSignal(score=score, buy=buy)
 
 
-def probability(score: float, *, buy: bool) -> float:
-    """Map rule agreement to a probability, with the BUY gate as the midpoint.
+def probability(score: float) -> float:
+    """Map the score to a probability in [0.25, 0.75], with 0.5 at score 50.
 
-    A name the strategy would not buy stays below 0.5 even if its raw score is
-    high but a gate failed. The encoding is monotone in the score on both sides.
+    The mapping is monotone in the score and has no gate step. The old version
+    put a high-scoring name below 0.5 whenever one BUY gate failed, which made
+    the cross-sectional ranking discontinuous. The compression is deliberate:
+    the score is an ordinal rule-agreement measure, not a calibrated forecast,
+    so it should not claim near-certainty.
     """
-    logit = (score - BUY_THRESHOLD) / LOGIT_POINTS
+    logit = (score - 50.0) / LOGIT_POINTS
     scaled = 1.0 / (1.0 + math.exp(-logit))
-    return 0.5 + 0.5 * scaled if buy else 0.5 * scaled
+    return 0.25 + 0.5 * scaled
 
 
 def _ticker(question_id: str, question: Question) -> str:
@@ -358,7 +361,7 @@ class TpiClient:
                 # Warmup or missing data is missing coverage, not a coin flip.
                 missing.append(question_id)
                 continue
-            p = probability(found.score, buy=found.buy)
+            p = probability(found.score)
 
             if question.type == "noul":
                 answers[question_id] = NoulAnswer(noul=p)
