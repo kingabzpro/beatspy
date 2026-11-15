@@ -493,7 +493,7 @@ def missing_credentials(settings) -> list[str]:
     from ..config import cloudflare_account_id, decision_api_key
 
     decision = settings.decision
-    if decision.provider == "local":
+    if decision.provider in ("local", "bta"):
         return []
     missing: list[str] = []
     if not decision_api_key(decision.decision_model):
@@ -551,6 +551,15 @@ def make_client(
             max_retries=decision.max_retries,
         )
         return FastTradeClient(data, inner)
+    if provider == "bta":
+        if data is None:
+            raise DcnError(
+                f"{decision.label} needs the frozen data service; "
+                "run it through `beatspy run` rather than constructing the client alone."
+            )
+        from .bettertrading import BetterTradingClient
+
+        return BetterTradingClient(data)
     factory = _CLIENTS.get(provider)
     if factory is None:
         raise DcnError(f"no client for provider {provider!r}")

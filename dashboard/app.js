@@ -91,7 +91,7 @@ function modelName(model) {
 // Row tags distinguish the two baseline entries from the model list. The
 // catalog still records a wider category, but the board names the entries:
 // TPI is an algorithm, FastTrade is an AI-driven model.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI"};
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "bettertradingagents": "AGENT"};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 
 // Presentation only: how each model reads, and the logo of the company that
@@ -101,6 +101,7 @@ const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 const MODEL_META = {
   "tpi-rs": ["TPI baseline", "tpi.svg"],
   "fasttrade": ["FastTrade", "fasttrade.svg"],
+  "bettertradingagents": ["BetterTradingAgents", "bettertradingagents.png"],
   "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
   "jev-latest": ["Jev-Latest", "typesafe.png"],
   "jev-1-14": ["Jev 1.14", "typesafe.png"],

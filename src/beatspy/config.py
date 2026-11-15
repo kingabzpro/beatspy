@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Decision-model providers. All three speak the same state-plus-typed-questions
 # contract; they differ only in transport, auth, and question limits.
-PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan", "fasttrade")
+PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan", "fasttrade", "bta")
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
 # run against them needs no new transport:
@@ -78,6 +78,19 @@ DECISION_MODELS: dict[str, dict] = {
         "max_questions": 64,
         "state_note": "FastTrade's per-symbol daily features and BUY/HOLD/SELL prompt, answered by TypeSafe Jev.",
         "category": "ai",
+    },
+    "bettertradingagents": {
+        "provider": "bta",
+        "model": "bettertradingagents",
+        "label": "BetterTradingAgents Fast (rule replay)",
+        "base_url": "local://bettertradingagents",
+        "api_key_env": None,
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 0,
+        "max_questions": 64,
+        "state_note": "Fast depth profile's deterministic replay: technical + forecast rules, no LLM.",
+        "category": "agent",
     },
     "gpt-6-luna": {
         "provider": "openai_decisions",

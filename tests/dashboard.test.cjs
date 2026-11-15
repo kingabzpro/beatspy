@@ -183,6 +183,7 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
 test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('tpi-rs'), 'ALGO');
   assert.equal(modelTag('fasttrade'), 'AI');
+  assert.equal(modelTag('bettertradingagents'), 'AGENT');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
@@ -201,10 +202,13 @@ test('the frontend uses safe text rendering, keeps the design, and tags the base
   // The baseline rows carry their own logos and row tags.
   assert.match(js, /"ALGO"/);
   assert.match(js, /"AI"/);
+  assert.match(js, /"AGENT"/);
   assert.match(js, /"tpi-rs": \["TPI baseline", "tpi\.svg"\]/);
   assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
+  assert.match(js, /"bettertradingagents": \["BetterTradingAgents", "bettertradingagents\.png"\]/);
   assert.match(readFileSync('dashboard/assets/logos/tpi.svg', 'utf8'), /<svg/);
   assert.match(readFileSync('dashboard/assets/logos/fasttrade.svg', 'utf8'), /<svg/);
+  assert.ok(readFileSync('dashboard/assets/logos/bettertradingagents.png').length > 0);
   // Design language kept: the same dark palette and panel classes.
   assert.match(css, /--accent:#b4f272/);
   assert.match(css, /\.panel\{/);
@@ -366,7 +370,7 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('pricing-table'), undefined);
 });
 
-test('the baseline rows carry their ALGO and AI tags', async () => {
+test('the baseline rows carry their ALGO, AI and AGENT tags', async () => {
   const {site} = siteFixture();
   const catalog = JSON.parse(site['data/index.json']);
   catalog.runs.push(catalogRun({
@@ -377,18 +381,24 @@ test('the baseline rows carry their ALGO and AI tags', async () => {
     run_id: 'run-ft', dir: 'runs/run-ft', model: 'fasttrade', provider: 'fasttrade', category: 'ai',
     created_utc: '2026-10-08T08:30:00+00:00',
   }));
+  catalog.runs.push(catalogRun({
+    run_id: 'run-bta', dir: 'runs/run-bta', model: 'bettertradingagents', provider: 'bta', category: 'agent',
+    created_utc: '2026-10-08T08:45:00+00:00',
+  }));
   site['data/index.json'] = JSON.stringify(catalog);
 
   const elements = mountSite(site, 'index.html');
   await settle();
   const table = elements.get('leaderboard-table').children[0];
-  assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 5, 'header plus four models');
+  assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 6, 'header plus five models');
   assert.ok(table.descendants().some(node => node.textContent === 'TPI baseline'));
   assert.ok(table.descendants().some(node => node.textContent === 'FastTrade'));
-  const tags = table.descendants().filter(node => node.className === 'tag tag-algo' || node.className === 'tag tag-ai');
-  assert.equal(tags.length, 2);
+  assert.ok(table.descendants().some(node => node.textContent === 'BetterTradingAgents'));
+  const tags = table.descendants().filter(node => ['tag tag-algo', 'tag tag-ai', 'tag tag-agent'].includes(node.className));
+  assert.equal(tags.length, 3);
   assert.ok(tags.some(node => node.textContent === 'ALGO'));
   assert.ok(tags.some(node => node.textContent === 'AI'));
+  assert.ok(tags.some(node => node.textContent === 'AGENT'));
 });
 
 test('scored windows group runs by frozen window and average gaps per model', () => {

@@ -427,7 +427,7 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
-    data = object() if spec["provider"] in ("local", "fasttrade") else None
+    data = object() if spec["provider"] in ("local", "fasttrade", "bta") else None
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     assert client.model == spec["model"]
@@ -443,6 +443,12 @@ def test_the_local_baseline_requires_the_frozen_data():
 def test_the_fasttrade_model_requires_the_frozen_data(monkeypatch):
     monkeypatch.setenv("TYPESAFE_API_KEY", "test-key")
     settings = Settings(decision=DecisionConfig(decision_model="fasttrade"))
+    with pytest.raises(DcnError, match="frozen data"):
+        make_client(settings)
+
+
+def test_the_bettertradingagents_model_requires_the_frozen_data():
+    settings = Settings(decision=DecisionConfig(decision_model="bettertradingagents"))
     with pytest.raises(DcnError, match="frozen data"):
         make_client(settings)
 
@@ -517,9 +523,10 @@ def test_unknown_model_is_rejected_at_construction():
 
 def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
-        if spec["provider"] == "local":
-            # A deterministic control runs in-process: no credential, no cost.
-            assert spec.get("category") == "algo", f"{name} is local but not tagged algo"
+        if spec["provider"] in ("local", "bta"):
+            # A deterministic replay runs in-process: no credential, no cost.
+            expected = "algo" if spec["provider"] == "local" else "agent"
+            assert spec.get("category") == expected, f"{name} is {spec['provider']} but has the wrong category"
             assert spec.get("api_key_env") is None
             assert spec["cost_per_m_input"] == 0.0
             continue

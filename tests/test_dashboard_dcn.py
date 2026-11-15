@@ -374,8 +374,10 @@ def test_public_site_assets_have_no_removed_agent_harness_wording():
             assert word not in lowered, f"{name} mentions {word!r}"
     assert "ALGO" in js
     assert "AI" in js
+    assert "AGENT" in js
     assert "tpi.svg" in js
     assert "fasttrade.svg" in js
+    assert "bettertradingagents.png" in js
     # The DCN payload is what the site renders, wherever a token lives.
     for token in ("reliability", "brier", "decision model", "calibration", "provider"):
         assert any(token in text.lower() for text in pages.values()), token

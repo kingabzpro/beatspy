@@ -212,7 +212,7 @@ def _pricing(spec: dict) -> str:
 
 def _key_status(name: str, spec: dict) -> tuple[bool, str]:
     """Whether a model can authenticate, plus a one-line explanation."""
-    if spec["provider"] == "local":
+    if spec["provider"] in ("local", "bta"):
         return True, "local, no key needed"
     if not decision_api_key(name):
         return False, f"missing {spec['api_key_env']}"
@@ -332,7 +332,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     print("\nProbing every network decision model with a single noul question (live network calls)...")
     for name, spec in DECISION_MODELS.items():
-        if spec["provider"] in ("local", "fasttrade"):
+        if spec["provider"] in ("local", "fasttrade", "bta"):
             print(f"  [PASS] skip {name}: needs a frozen scenario")
             continue
         ok, detail = _probe_decision_model(name)
@@ -415,7 +415,7 @@ def cmd_models(args: argparse.Namespace) -> int:
     for name, spec in DECISION_MODELS.items():
         ok, detail = _key_status(name, spec)
         marker = "*" if name == active else " "
-        context = "local" if spec["provider"] == "local" else f"{spec['context_window'] // 1000}k"
+        context = "local" if spec["provider"] in ("local", "bta") else f"{spec['context_window'] // 1000}k"
         price = f"{spec['cost_per_m_input']:>12.3f}"
         print(
             f"{marker:<2}{name:<{width}} {spec['provider']:<{providers}} {price} {context:>9}  "
