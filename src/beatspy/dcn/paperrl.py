@@ -1,15 +1,23 @@
-"""PaperRL's five-factor signal on BeatSPY's daily bars.
+"""PaperRL's five-factor signal on BeatSPY's daily bars, with the PPO overlay.
 
-Ported from PaperRL (MIT), ``crates/paperrl-trade/src/lib.rs::recommend``.
-The per-symbol PPO overlay is not used, so this is the auditable rule vote on
-daily closes. The app's confidence is unsigned; BeatSPY needs a signed
-probability, so ``P(beat SPY) = 0.5 + score / 2``.
+Ported from PaperRL (MIT), ``crates/paperrl-trade/src/lib.rs::recommend``. The
+PPO target weights in ``paperrl_ppo.json`` were dumped from PaperRL's own
+``PpoStrategy`` over the frozen snapshots: newest per-symbol checkpoint, seed
+42, position and drawdown at zero, last 120 bars, exactly as the app's
+``latest_model_weight`` does. The overlay adds +0.35 at a target weight of at
+least 60% and subtracts 0.35 at 20% or less.
+
+The checkpoints were trained over a range that overlaps these windows, so the
+PPO part is not strictly out-of-sample. The app also only has checkpoints for
+some symbols; the rest use the five-factor vote alone.
 """
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 
@@ -20,6 +28,8 @@ MIN_BARS = 60
 PROVIDER = "paperrl"
 MODEL = "paperrl"
 ENDPOINT = "local://paperrl"
+PPO_SEED = 42
+PPO_TABLE = Path(__file__).with_name("paperrl_ppo.json")
 
 
 def ema(closes: list[float], n: int) -> list[float]:
@@ -71,6 +81,14 @@ def macd_hist(closes: list[float]) -> float:
     return macd_line[-1] - signal[-1]
 
 
+def load_ppo_table() -> dict:
+    """The PPO target weights per window, keyed by ticker and date."""
+    if not PPO_TABLE.is_file():
+        return {}
+    data = json.loads(PPO_TABLE.read_text(encoding="utf-8"))
+    return data.get("windows") or {}
+
+
 @dataclass(frozen=True)
 class PaperRLSignal:
     action: str
@@ -79,10 +97,15 @@ class PaperRLSignal:
     probability: float
     indicators: dict
     reasons: list[str]
+    ppo_weight: float | None = None
 
 
-def recommend(frame: pd.DataFrame | None, ticker: str = "TEST") -> PaperRLSignal | None:
-    """The five-factor verdict at the last bar, or None before 60 bars."""
+def recommend(
+    frame: pd.DataFrame | None,
+    ticker: str = "TEST",
+    ppo_weight: float | None = None,
+) -> PaperRLSignal | None:
+    """The five-factor verdict plus the PPO overlay at the last bar."""
     if frame is None or len(frame) < MIN_BARS:
         return None
     closes = [float(value) for value in frame["close"]]
@@ -146,6 +169,23 @@ def recommend(frame: pd.DataFrame | None, ticker: str = "TEST") -> PaperRLSignal
     elif rsi14 <= 30.0:
         reasons.append(f"RSI is {rsi14:.0f} (oversold)")
 
+    resolved_ppo = None if ppo_weight is None else float(ppo_weight)
+    if resolved_ppo is not None:
+        if resolved_ppo >= 0.6:
+            score += 0.35
+            reasons.append(
+                f"PPO model (seed {PPO_SEED}) targets {resolved_ppo * 100.0:.0f}% of equity"
+            )
+        elif resolved_ppo <= 0.2:
+            score -= 0.35
+            reasons.append(
+                f"PPO model (seed {PPO_SEED}) stays near cash ({resolved_ppo * 100.0:.0f}% weight)"
+            )
+        else:
+            reasons.append(
+                f"PPO model (seed {PPO_SEED}) is neutral ({resolved_ppo * 100.0:.0f}% weight)"
+            )
+
     score = max(-1.0, min(1.0, score))
     action = "Buy" if score >= 0.3 else "Sell" if score <= -0.3 else "Hold"
     confidence = 0.5 + abs(score) / 2.0
@@ -156,6 +196,7 @@ def recommend(frame: pd.DataFrame | None, ticker: str = "TEST") -> PaperRLSignal
         probability=0.5 + score / 2.0,
         indicators=indicators,
         reasons=reasons,
+        ppo_weight=resolved_ppo,
     )
 
 
@@ -167,14 +208,22 @@ def _ticker(question_id: str, question: Question) -> str:
 
 
 class PaperRLClient:
-    """The five-factor rule, run against the frozen `DataService`."""
+    """The five-factor rule plus the PPO overlay, against the frozen data."""
 
     provider = PROVIDER
     model = MODEL
     endpoint = ENDPOINT
 
-    def __init__(self, data):
+    def __init__(self, data, ppo_table: dict | None = None):
         self.data = data
+        table = load_ppo_table() if ppo_table is None else ppo_table
+        # Flatten the window sections by date. The windows touch at their
+        # boundaries, and a decision on a boundary date belongs to the newer
+        # section, so a date lookup is less ambiguous than a range lookup.
+        self._weights: dict[str, dict[str, float]] = {}
+        for section in table.values():
+            for ticker, dates in (section.get("weights") or {}).items():
+                self._weights.setdefault(ticker, {}).update(dates)
 
     async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
         as_of = date.fromisoformat(str(state["as_of"]))
@@ -186,7 +235,11 @@ class PaperRLClient:
         missing: list[str] = []
         for ticker, ticker_questions in by_ticker.items():
             frame = self.data.window(ticker, as_of, 100_000) if self.data is not None else None
-            signal = recommend(frame, ticker)
+            ppo_weight = None
+            if frame is not None and len(frame) > 0:
+                last_date = frame.index[-1].date().isoformat()
+                ppo_weight = (self._weights.get(ticker) or {}).get(last_date)
+            signal = recommend(frame, ticker, ppo_weight)
             if signal is None:
                 missing.extend(question_id for question_id, _ in ticker_questions)
                 continue

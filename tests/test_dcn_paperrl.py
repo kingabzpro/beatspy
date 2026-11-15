@@ -85,6 +85,59 @@ def test_recommendation_matches_paperrl():
     ]
 
 
+def test_ppo_table_covers_the_scored_windows():
+    table = paperrl.load_ppo_table()
+    assert set(table) == {"2025-10-6m", "2026-04-6m", "2026-6m"}
+    assert table["2025-10-6m"]["weights"]["AAPL"]
+    assert table["2026-6m"]["weights"]["NVDA"]
+
+
+def test_ppo_overlay_adds_the_bonus():
+    base = paperrl.recommend(_reference_frame(), "TEST")
+    signal = paperrl.recommend(_reference_frame(), "TEST", 0.75)
+    assert base is not None and signal is not None
+    assert signal.ppo_weight == 0.75
+    assert signal.score == pytest.approx(base.score + 0.35, abs=1e-12)
+    assert signal.probability == pytest.approx(base.probability + 0.175, abs=1e-12)
+    assert "PPO model (seed 42) targets 75% of equity" in signal.reasons
+
+
+def test_ppo_overlay_subtracts_the_penalty():
+    base = paperrl.recommend(_reference_frame(), "TEST")
+    signal = paperrl.recommend(_reference_frame(), "TEST", 0.2)
+    assert base is not None and signal is not None
+    assert signal.score == pytest.approx(base.score - 0.35, abs=1e-12)
+    assert signal.probability == pytest.approx(base.probability - 0.175, abs=1e-12)
+    assert "PPO model (seed 42) stays near cash (20% weight)" in signal.reasons
+
+
+def test_ppo_overlay_stays_neutral_between_the_thresholds():
+    base = paperrl.recommend(_reference_frame(), "TEST")
+    signal = paperrl.recommend(_reference_frame(), "TEST", 0.5)
+    assert base is not None and signal is not None
+    assert signal.score == pytest.approx(base.score, abs=1e-12)
+    assert "PPO model (seed 42) is neutral (50% weight)" in signal.reasons
+
+
+def test_client_applies_a_table_weight():
+    frame = _reference_frame()
+    last_date = frame.index[-1].date().isoformat()
+    table = {
+        "test": {
+            "start": "2024-01-01",
+            "end": "2024-12-31",
+            "weights": {"TEST": {last_date: 0.75}},
+        }
+    }
+    client = paperrl.PaperRLClient(_reference_service(), ppo_table=table)
+    result = _decide(client, frame.index[-1].date())
+    base = paperrl.recommend(frame, "TEST")
+
+    assert result.missing_ids == []
+    assert base is not None
+    assert result.answers["noul_TEST"].noul == pytest.approx(base.probability + 0.175, abs=1e-12)
+
+
 def test_short_history_has_no_signal():
     assert paperrl.recommend(_reference_frame().tail(paperrl.MIN_BARS - 1)) is None
 
