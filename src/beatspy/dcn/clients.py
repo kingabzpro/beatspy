@@ -511,14 +511,21 @@ def make_client(
 ) -> DcnClient:
     """Build the client for the configured decision model.
 
-    `data` is only used by a local baseline: HTTP providers receive the compact
-    state, while the in-process TPI client reads the frozen `DataService` the
-    harness already holds.
+    `data` is used by the in-process baselines: HTTP providers receive the
+    compact state, while the TPI and FastTrade clients read the frozen
+    `DataService` the harness already holds.
     """
     from ..config import cloudflare_account_id, decision_api_key
 
     decision = settings.decision
     provider = decision.provider
+    missing = missing_credentials(settings)
+    if missing:
+        raise DcnError(
+            f"{decision.label} needs {' and '.join(missing)}. "
+            f"Export it, or add it to .env next to the repository, then retry. "
+            f"`beatspy models` shows which credentials resolve."
+        )
     if provider == "local":
         if data is None:
             raise DcnError(
@@ -528,16 +535,25 @@ def make_client(
         from .tpi import TpiClient
 
         return TpiClient(data)
+    if provider == "fasttrade":
+        if data is None:
+            raise DcnError(
+                f"{decision.label} needs the frozen data service; "
+                "run it through `beatspy run` rather than constructing the client alone."
+            )
+        from .fasttrade import FastTradeClient
+
+        inner = TypeSafeClient(
+            model="jev-latest",
+            endpoint=decision.endpoint,
+            api_key=decision_api_key(decision.decision_model),
+            timeout_s=decision.timeout_s,
+            max_retries=decision.max_retries,
+        )
+        return FastTradeClient(data, inner)
     factory = _CLIENTS.get(provider)
     if factory is None:
         raise DcnError(f"no client for provider {provider!r}")
-    missing = missing_credentials(settings)
-    if missing:
-        raise DcnError(
-            f"{decision.label} needs {' and '.join(missing)}. "
-            f"Export it, or add it to .env next to the repository, then retry. "
-            f"`beatspy models` shows which credentials resolve."
-        )
     return factory(
         model=decision.spec["model"],
         endpoint=decision.endpoint,

@@ -427,7 +427,7 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
-    data = object() if spec["provider"] == "local" else None
+    data = object() if spec["provider"] in ("local", "fasttrade") else None
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     assert client.model == spec["model"]
@@ -436,6 +436,13 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
 
 def test_the_local_baseline_requires_the_frozen_data():
     settings = Settings(decision=DecisionConfig(decision_model="tpi-rs"))
+    with pytest.raises(DcnError, match="frozen data"):
+        make_client(settings)
+
+
+def test_the_fasttrade_model_requires_the_frozen_data(monkeypatch):
+    monkeypatch.setenv("TYPESAFE_API_KEY", "test-key")
+    settings = Settings(decision=DecisionConfig(decision_model="fasttrade"))
     with pytest.raises(DcnError, match="frozen data"):
         make_client(settings)
 
@@ -517,7 +524,8 @@ def test_every_registered_model_has_a_key_environment_variable():
             assert spec["cost_per_m_input"] == 0.0
             continue
         assert spec["api_key_env"], f"{name} has no api_key_env"
-        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan")
+        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter",
+                                    "respan", "fasttrade")
         assert spec["cost_per_m_input"] is not None
         assert spec["cost_per_m_output"] == 0.0  # decision models bill input only
 

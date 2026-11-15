@@ -332,8 +332,8 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     print("\nProbing every network decision model with a single noul question (live network calls)...")
     for name, spec in DECISION_MODELS.items():
-        if spec["provider"] == "local":
-            print(f"  [PASS] local {name}: deterministic baseline, no network call")
+        if spec["provider"] in ("local", "fasttrade"):
+            print(f"  [PASS] skip {name}: needs a frozen scenario")
             continue
         ok, detail = _probe_decision_model(name)
         print(f"  [{'PASS' if ok else 'FAIL'}] probe {name}: {detail}")

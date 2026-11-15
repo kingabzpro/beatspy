@@ -24,6 +24,10 @@ const PRICES = {
     label: "Cloudflare Clef-flash (9B)", provider: "cloudflare", input: 0.038, output: 0,
     source: "https://developers.cloudflare.com/workers-ai/models/clef-flash/index.md",
     note: "Workers AI list price, input only; cut from $0.09 on 2026-10-09."},
+  "fasttrade": {
+    label: "FastTrade (Jev, daily)", provider: "typesafe", input: 0.042, output: 0,
+    source: "https://docs.typesafe.ai/models",
+    note: "FastTrade's daily BUY/HOLD/SELL prompt through TypeSafe Jev; input only."},
 };
 const SIGNALS = ["noul", "choice", "rank"];
 // A JSON null (or an empty string) is "not measured", not zero: Number(null) is
@@ -101,6 +105,7 @@ function categoryOf(run) {
 // not the creator.
 const MODEL_META = {
   "tpi-rs": ["TPI baseline", "tpi.svg"],
+  "fasttrade": ["FastTrade", "fasttrade.svg"],
   "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
   "jev-latest": ["Jev-Latest", "typesafe.png"],
   "jev-1-14": ["Jev 1.14", "typesafe.png"],

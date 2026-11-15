@@ -85,9 +85,11 @@ def test_doctor_probe_reports_the_probability(monkeypatch, capsys):
     monkeypatch.setattr("beatspy.dcn.clients.make_client", lambda *a, **k: client)
     assert main(["doctor", "--probe"]) == 0
     out = capsys.readouterr().out
-    network_models = [name for name, spec in DECISION_MODELS.items() if spec["provider"] != "local"]
+    network_models = [name for name, spec in DECISION_MODELS.items()
+                      if spec["provider"] not in ("local", "fasttrade")]
     assert out.count("probe ") == len(network_models)
-    assert "local tpi-rs" in out
+    assert "skip tpi-rs" in out
+    assert "skip fasttrade" in out
     assert "noul_AAPL=0.6200" in out
     assert client.probes == len(network_models)
 

@@ -141,13 +141,14 @@ test('cost is input-only: output tokens are free and missing usage is never pric
   assert.equal(ratesFor('clef-flash', undefined).input, 0.038);
 });
 
-test('the pricing table covers the three providers and four decision models, input only', () => {
-  assert.deepEqual(Object.keys(PRICES).sort(), ['clef', 'clef-flash', 'gpt-6-luna', 'jev-latest']);
+test('the pricing table covers the three providers and five decision models, input only', () => {
+  assert.deepEqual(Object.keys(PRICES).sort(), ['clef', 'clef-flash', 'fasttrade', 'gpt-6-luna', 'jev-latest']);
   const expected = {
     'gpt-6-luna': {provider: 'openai_decisions', input: 0.10, source: 'https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877'},
     'jev-latest': {provider: 'typesafe', input: 0.042, source: 'https://docs.typesafe.ai/models'},
     'clef': {provider: 'cloudflare', input: 0.24, source: 'https://developers.cloudflare.com/workers-ai/models/clef/index.md'},
-    'clef-flash': {provider: 'cloudflare', input: 0.038, source: 'https://developers.cloudflare.com/workers-ai/models/clef/index.md'}
+    'clef-flash': {provider: 'cloudflare', input: 0.038, source: 'https://developers.cloudflare.com/workers-ai/models/clef-flash/index.md'},
+    'fasttrade': {provider: 'typesafe', input: 0.042, source: 'https://docs.typesafe.ai/models'}
   };
   for (const [model, spec] of Object.entries(expected)) {
     assert.equal(PRICES[model].provider, spec.provider);
