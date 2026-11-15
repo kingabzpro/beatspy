@@ -560,6 +560,15 @@ def make_client(
         from .bettertrading import BetterTradingClient
 
         return BetterTradingClient(data)
+    if provider == "bta-live":
+        if data is None:
+            raise DcnError(
+                f"{decision.label} needs the frozen data service; "
+                "run it through `beatspy run` rather than constructing the client alone."
+            )
+        from .bettertrading_live import BetterTradingLiveClient
+
+        return BetterTradingLiveClient(data, endpoint=decision.endpoint)
     factory = _CLIENTS.get(provider)
     if factory is None:
         raise DcnError(f"no client for provider {provider!r}")

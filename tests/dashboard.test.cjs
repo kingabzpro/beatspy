@@ -184,6 +184,7 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('tpi-rs'), 'ALGO');
   assert.equal(modelTag('fasttrade'), 'AI');
   assert.equal(modelTag('bettertradingagents'), 'AGENT');
+  assert.equal(modelTag('bettertradingagents-live'), 'AGENT');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
@@ -206,6 +207,7 @@ test('the frontend uses safe text rendering, keeps the design, and tags the base
   assert.match(js, /"tpi-rs": \["TPI baseline", "tpi\.svg"\]/);
   assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
   assert.match(js, /"bettertradingagents": \["BetterTradingAgents", "bettertradingagents\.png"\]/);
+  assert.match(js, /"bettertradingagents-live": \["BetterTradingAgents Live", "bettertradingagents\.png"\]/);
   assert.match(readFileSync('dashboard/assets/logos/tpi.svg', 'utf8'), /<svg/);
   assert.match(readFileSync('dashboard/assets/logos/fasttrade.svg', 'utf8'), /<svg/);
   assert.ok(readFileSync('dashboard/assets/logos/bettertradingagents.png').length > 0);
