@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # contract; they differ only in transport, auth, and question limits.
 PROVIDERS = (
     "openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
-    "fasttrade", "bta", "bta-live", "paperrl",
+    "fasttrade", "bta", "bta-live", "paperrl", "deeptrade",
 )
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
@@ -123,6 +123,22 @@ DECISION_MODELS: dict[str, dict] = {
             "exists; checkpoints overlap these windows, so not strictly out-of-sample."
         ),
         "category": "rl",
+    },
+    "deeptrade": {
+        "provider": "deeptrade",
+        "model": "deeptrade",
+        "label": "DeepTrade (candles + stats + TPI, LLM)",
+        "base_url": "https://api.openai.com/v1",
+        "api_key_env": "LLM_API_KEY",
+        "cost_per_m_input": 0.30,
+        "cost_per_m_output": 1.20,
+        "context_window": 65_536,
+        "max_questions": 64,
+        "state_note": (
+            "One LLM call per ticker over a point-in-time dossier of candles, statistics "
+            "and the TPI score; uses LLM_BASE_URL/LLM_MODEL."
+        ),
+        "category": "hybrid",
     },
     "gpt-6-luna": {
         "provider": "openai_decisions",

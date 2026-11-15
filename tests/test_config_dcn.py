@@ -148,6 +148,7 @@ def test_the_baseline_is_a_separate_category():
     assert DecisionConfig(decision_model="bettertradingagents").category == "agent"
     assert DecisionConfig(decision_model="bettertradingagents-live").category == "agent"
     assert DecisionConfig(decision_model="paperrl").category == "rl"
+    assert DecisionConfig(decision_model="deeptrade").category == "hybrid"
 
 
 @pytest.mark.parametrize("name", sorted(DECISION_MODELS))
@@ -156,7 +157,7 @@ def test_registry_entries_are_complete(name):
     for key in ("provider", "model", "label", "base_url", "api_key_env", "cost_per_m_input",
                 "cost_per_m_output", "context_window", "max_questions"):
         assert key in spec, f"{name} is missing {key}"
-    if spec["provider"] == "bta-live":
+    if spec["provider"] in ("bta-live", "deeptrade"):
         assert spec["cost_per_m_output"] > 0.0
     else:
         assert spec["cost_per_m_output"] == 0.0, "decision models bill input only"

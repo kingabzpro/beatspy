@@ -427,11 +427,11 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
-    data = object() if spec["provider"] in ("local", "fasttrade", "bta", "bta-live", "paperrl") else None
+    data = object() if spec["provider"] in ("local", "fasttrade", "bta", "bta-live", "paperrl", "deeptrade") else None
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
-    if spec["provider"] == "bta-live":
-        # The live client resolves the actual LLM id and base URL from the
+    if spec["provider"] in ("bta-live", "deeptrade"):
+        # The live clients resolve the actual LLM id and base URL from the
         # environment; the registry entry is the benchmark-facing label.
         assert client.model
         assert client.endpoint
@@ -461,6 +461,13 @@ def test_the_bettertradingagents_model_requires_the_frozen_data():
 
 def test_the_paperrl_model_requires_the_frozen_data():
     settings = Settings(decision=DecisionConfig(decision_model="paperrl"))
+    with pytest.raises(DcnError, match="frozen data"):
+        make_client(settings)
+
+
+def test_the_deeptrade_model_requires_the_frozen_data(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    settings = Settings(decision=DecisionConfig(decision_model="deeptrade"))
     with pytest.raises(DcnError, match="frozen data"):
         make_client(settings)
 
@@ -544,10 +551,10 @@ def test_every_registered_model_has_a_key_environment_variable():
             continue
         assert spec["api_key_env"], f"{name} has no api_key_env"
         assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter",
-                                    "respan", "fasttrade", "bta-live")
+                                    "respan", "fasttrade", "bta-live", "deeptrade")
         assert spec["cost_per_m_input"] is not None
-        if spec["provider"] == "bta-live":
-            # The live chat model bills output tokens too, unlike the typed
+        if spec["provider"] in ("bta-live", "deeptrade"):
+            # The live chat models bill output tokens too, unlike the typed
             # decision APIs.
             assert spec["cost_per_m_output"] > 0.0
         else:

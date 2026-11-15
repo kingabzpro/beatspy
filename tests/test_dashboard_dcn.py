@@ -341,7 +341,7 @@ def test_committed_public_catalog_matches_the_dcn_shape():
     assert "selected" not in catalog or catalog["selected"] is None
     baselines = [row for row in catalog["runs"] if row["model"] == "tpi-rs"]
     assert baselines and all(row["category"] == "algo" for row in baselines)
-    assert all(row["category"] in {"algo", "ai", "agent", "rl"} for row in catalog["runs"])
+    assert all(row["category"] in {"algo", "ai", "agent", "rl", "hybrid"} for row in catalog["runs"])
     for row in catalog["runs"]:
         run_dir = data_root / "runs" / row["run_id"]
         assert row["dir"] == f"runs/{row['run_id']}"
@@ -376,10 +376,12 @@ def test_public_site_assets_have_no_removed_agent_harness_wording():
     assert "AI" in js
     assert "AGENT" in js
     assert "RL" in js
+    assert "HYBRID" in js
     assert "tpi.svg" in js
     assert "fasttrade.svg" in js
     assert "bettertradingagents.png" in js
     assert "paperrl.svg" in js
+    assert "deeptrade.svg" in js
     # The DCN payload is what the site renders, wherever a token lives.
     for token in ("reliability", "brier", "decision model", "calibration", "provider"):
         assert any(token in text.lower() for text in pages.values()), token

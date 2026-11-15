@@ -578,6 +578,15 @@ def make_client(
         from .paperrl import PaperRLClient
 
         return PaperRLClient(data)
+    if provider == "deeptrade":
+        if data is None:
+            raise DcnError(
+                f"{decision.label} needs the frozen data service; "
+                "run it through `beatspy run` rather than constructing the client alone."
+            )
+        from .deeptrade import DeepTradeClient
+
+        return DeepTradeClient(data, endpoint=decision.endpoint)
     factory = _CLIENTS.get(provider)
     if factory is None:
         raise DcnError(f"no client for provider {provider!r}")
