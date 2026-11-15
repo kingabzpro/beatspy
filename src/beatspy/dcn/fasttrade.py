@@ -161,13 +161,63 @@ class FastTradeClient:
     provider = PROVIDER
     model = MODEL
     endpoint = ENDPOINT
+    rule = "action"
 
     def __init__(self, data, provider: DcnClient, *, concurrency: int = MAX_CONCURRENCY):
         self.data = data
         self.inner = provider
         self._semaphore = asyncio.Semaphore(max(1, concurrency))
 
+    async def _decide_noul(self, state: dict, questions: dict[str, Question]) -> DcnResult:
+        """Ask the benchmark's own typed questions, the same rule as every board model."""
+        as_of = date.fromisoformat(str(state["as_of"]))
+        by_ticker: dict[str, dict[str, Question]] = {}
+        for question_id, question in questions.items():
+            by_ticker.setdefault(_ticker(question_id, question), {})[question_id] = question
+
+        async def one(ticker: str, ticker_questions: dict[str, Question]):
+            async with self._semaphore:
+                frame = self.data.window(ticker, as_of, 100_000) if self.data is not None else None
+                ft_state = fasttrade_state(frame, ticker, as_of) if frame is not None else None
+                if ft_state is None:
+                    return ticker, None
+                try:
+                    result = await self.inner.decide(ft_state, ticker_questions)
+                except Exception:
+                    return ticker, None
+                return ticker, result
+
+        started = time.perf_counter()
+        outcomes = await asyncio.gather(*(one(ticker, qs) for ticker, qs in by_ticker.items()))
+        elapsed = time.perf_counter() - started
+
+        answers: dict[str, object] = {}
+        missing: list[str] = []
+        input_tokens = output_tokens = requests = 0
+        attempts = 1
+        for ticker, result in outcomes:
+            if result is None:
+                missing.extend(by_ticker[ticker])
+                continue
+            answers.update(result.answers)
+            missing.extend(result.missing_ids)
+            input_tokens += int(result.input_tokens)
+            output_tokens += int(result.output_tokens)
+            requests += int(result.requests)
+            attempts = max(attempts, int(result.attempts))
+        return DcnResult(
+            answers=answers,
+            missing_ids=missing,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            latency_s=elapsed,
+            attempts=attempts,
+            requests=requests,
+        )
+
     async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
+        if getattr(self, "rule", "action") == "noul":
+            return await self._decide_noul(state, questions)
         as_of = date.fromisoformat(str(state["as_of"]))
         by_ticker: dict[str, list[tuple[str, Question]]] = {}
         for question_id, question in questions.items():
@@ -241,3 +291,12 @@ class FastTradeClient:
 
     async def close(self) -> None:
         await self.inner.close()
+
+
+class FastTradeSubqClient(FastTradeClient):
+    """FastTrade's daily feature state, asked the benchmark's typed questions by SubQ Snap 1.1."""
+
+    provider = "fasttrade-subq"
+    model = "fasttrade-subq"
+    endpoint = "https://api.subq.ai/v1/systemone"
+    rule = "noul"

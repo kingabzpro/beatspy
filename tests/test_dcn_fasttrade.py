@@ -20,7 +20,7 @@ from beatspy.data.service import DataService
 from beatspy.dcn import fasttrade
 from beatspy.dcn.clients import DcnResult
 from beatspy.dcn.questions import build_questions
-from beatspy.schemas import ChoiceAnswer
+from beatspy.schemas import ChoiceAnswer, NoulAnswer
 from conftest import run_offline
 
 # Printed by FastTrade's `fasttrade.indicators.features` on this exact daily
@@ -186,6 +186,35 @@ def test_client_only_reads_bars_up_to_the_decision_date():
     assert full_result.answers["noul_TEST"].noul == truncated_result.answers["noul_TEST"].noul
     assert full_provider.states[0]["candle_timestamp"] == truncated_provider.states[0]["candle_timestamp"]
     assert full_provider.states[0]["features"] == truncated_provider.states[0]["features"]
+
+
+def test_subq_uses_the_benchmark_noul_rule():
+    class FakeSubqProvider:
+        provider = "typesafe"
+        model = "subq-snap-1.1"
+        endpoint = "https://api.subq.ai/v1/systemone"
+
+        async def decide(self, state, questions):
+            return DcnResult(
+                answers={question_id: NoulAnswer(noul=0.44) for question_id in questions},
+                input_tokens=100,
+                requests=1,
+            )
+
+        async def close(self):
+            return None
+
+    frame = _reference_frame()
+    client = fasttrade.FastTradeSubqClient(_reference_service(), FakeSubqProvider())
+    questions = build_questions("noul", ["TEST"], "SPY", 5).questions
+    result = asyncio.run(
+        client.decide({"as_of": frame.index[-1].date().isoformat()}, questions)
+    )
+
+    assert result.answers["noul_TEST"].noul == pytest.approx(0.44)
+    assert result.input_tokens == 100
+    assert result.requests == 1
+    assert result.missing_ids == []
 
 
 def test_a_run_records_the_fasttrade_model(tmp_path, scenario, frozen_data):

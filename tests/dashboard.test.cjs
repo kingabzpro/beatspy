@@ -183,6 +183,7 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
 test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('tpi-rs'), 'ALGO');
   assert.equal(modelTag('fasttrade'), 'AI');
+  assert.equal(modelTag('fasttrade-subq'), 'AI');
   assert.equal(modelTag('bettertradingagents'), 'AGENT');
   assert.equal(modelTag('bettertradingagents-live'), 'AGENT');
   assert.equal(modelTag('paperrl'), 'RL');
@@ -208,6 +209,7 @@ test('the frontend uses safe text rendering, keeps the design, and tags the base
   assert.match(js, /"AGENT"/);
   assert.match(js, /"tpi-rs": \["TPI baseline", "tpi\.svg"\]/);
   assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
+  assert.match(js, /"fasttrade-subq": \["FastTrade SubQ", "fasttrade\.svg"\]/);
   assert.match(js, /"bettertradingagents": \["BetterTradingAgents", "bettertradingagents\.png"\]/);
   assert.match(js, /"bettertradingagents-live": \["BetterTradingAgents Live", "bettertradingagents\.png"\]/);
   assert.match(js, /"paperrl": \["PaperRL", "paperrl\.svg"\]/);

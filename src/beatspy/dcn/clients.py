@@ -551,6 +551,22 @@ def make_client(
             max_retries=decision.max_retries,
         )
         return FastTradeClient(data, inner)
+    if provider == "fasttrade-subq":
+        if data is None:
+            raise DcnError(
+                f"{decision.label} needs the frozen data service; "
+                "run it through `beatspy run` rather than constructing the client alone."
+            )
+        from .fasttrade import FastTradeSubqClient
+
+        inner = TypeSafeClient(
+            model="subq-snap-1.1",
+            endpoint=decision.endpoint,
+            api_key=decision_api_key(decision.decision_model),
+            timeout_s=decision.timeout_s,
+            max_retries=decision.max_retries,
+        )
+        return FastTradeSubqClient(data, inner)
     if provider == "bta":
         if data is None:
             raise DcnError(

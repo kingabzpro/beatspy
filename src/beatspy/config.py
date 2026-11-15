@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # contract; they differ only in transport, auth, and question limits.
 PROVIDERS = (
     "openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
-    "fasttrade", "bta", "bta-live", "paperrl", "deeptrade",
+    "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade",
 )
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
@@ -80,6 +80,22 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 32_000,
         "max_questions": 64,
         "state_note": "FastTrade's per-symbol daily features and BUY/HOLD/SELL prompt, answered by TypeSafe Jev.",
+        "category": "ai",
+    },
+    "fasttrade-subq": {
+        "provider": "fasttrade-subq",
+        "model": "fasttrade-subq",
+        "label": "FastTrade (SubQ Snap 1.1, benchmark rule, daily)",
+        "base_url": "https://api.subq.ai/v1/systemone",
+        "api_key_env": "SUBQ_API_KEY",
+        "cost_per_m_input": 0.05,
+        "cost_per_m_output": 0.0,
+        "context_window": 393_216,
+        "max_questions": 64,
+        "state_note": (
+            "FastTrade's daily feature state, asked the benchmark's typed questions by "
+            "SubQ Snap 1.1; the same noul rule as every board model."
+        ),
         "category": "ai",
     },
     "bettertradingagents": {
