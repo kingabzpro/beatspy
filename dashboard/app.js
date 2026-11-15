@@ -24,10 +24,10 @@ const PRICES = {
     label: "Cloudflare Clef-flash (9B)", provider: "cloudflare", input: 0.038, output: 0,
     source: "https://developers.cloudflare.com/workers-ai/models/clef-flash/index.md",
     note: "Workers AI list price, input only; cut from $0.09 on 2026-10-09."},
-  "fasttrade": {
-    label: "FastTrade (Jev, daily)", provider: "typesafe", input: 0.042, output: 0,
-    source: "https://docs.typesafe.ai/models",
-    note: "FastTrade's daily BUY/HOLD/SELL prompt through TypeSafe Jev; input only."},
+  "fasttrade-subq": {
+    label: "FastTrade (SubQ Snap 1.1)", provider: "typesafe", input: 0.05, output: 0,
+    source: "https://api.subq.ai/v1/systemone",
+    note: "FastTrade's daily feature state asked the benchmark noul question by SubQ Snap 1.1; input only."},
 };
 const SIGNALS = ["noul", "choice", "rank"];
 // A JSON null (or an empty string) is "not measured", not zero: Number(null) is
@@ -101,7 +101,7 @@ const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 const MODEL_META = {
   "tpi-rs": ["TPI baseline", "tpi.svg"],
   "fasttrade": ["FastTrade", "fasttrade.svg"],
-  "fasttrade-subq": ["FastTrade SubQ", "fasttrade.svg"],
+  "fasttrade-subq": ["FastTrade", "fasttrade.svg"],
   "bettertradingagents": ["BetterTradingAgents", "bettertradingagents.png"],
   "bettertradingagents-live": ["BetterTradingAgents Live", "bettertradingagents.png"],
   "paperrl": ["PaperRL", "paperrl.svg"],

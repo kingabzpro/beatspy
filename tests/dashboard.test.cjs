@@ -142,13 +142,13 @@ test('cost is input-only: output tokens are free and missing usage is never pric
 });
 
 test('the pricing table covers the three providers and five decision models, input only', () => {
-  assert.deepEqual(Object.keys(PRICES).sort(), ['clef', 'clef-flash', 'fasttrade', 'gpt-6-luna', 'jev-latest']);
+  assert.deepEqual(Object.keys(PRICES).sort(), ['clef', 'clef-flash', 'fasttrade-subq', 'gpt-6-luna', 'jev-latest']);
   const expected = {
     'gpt-6-luna': {provider: 'openai_decisions', input: 0.10, source: 'https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877'},
     'jev-latest': {provider: 'typesafe', input: 0.042, source: 'https://docs.typesafe.ai/models'},
     'clef': {provider: 'cloudflare', input: 0.24, source: 'https://developers.cloudflare.com/workers-ai/models/clef/index.md'},
     'clef-flash': {provider: 'cloudflare', input: 0.038, source: 'https://developers.cloudflare.com/workers-ai/models/clef-flash/index.md'},
-    'fasttrade': {provider: 'typesafe', input: 0.042, source: 'https://docs.typesafe.ai/models'}
+    'fasttrade-subq': {provider: 'typesafe', input: 0.05, source: 'https://api.subq.ai/v1/systemone'}
   };
   for (const [model, spec] of Object.entries(expected)) {
     assert.equal(PRICES[model].provider, spec.provider);
@@ -209,7 +209,7 @@ test('the frontend uses safe text rendering, keeps the design, and tags the base
   assert.match(js, /"AGENT"/);
   assert.match(js, /"tpi-rs": \["TPI baseline", "tpi\.svg"\]/);
   assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
-  assert.match(js, /"fasttrade-subq": \["FastTrade SubQ", "fasttrade\.svg"\]/);
+  assert.match(js, /"fasttrade-subq": \["FastTrade", "fasttrade\.svg"\]/);
   assert.match(js, /"bettertradingagents": \["BetterTradingAgents", "bettertradingagents\.png"\]/);
   assert.match(js, /"bettertradingagents-live": \["BetterTradingAgents Live", "bettertradingagents\.png"\]/);
   assert.match(js, /"paperrl": \["PaperRL", "paperrl\.svg"\]/);
