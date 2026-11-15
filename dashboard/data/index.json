@@ -20592,6 +20592,630 @@
       "synthetic": false,
       "trust": "local",
       "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 2.24,
+        "avg_holds": 21.08,
+        "avg_sells": 1.68,
+        "buy": 0.0896,
+        "hold": 0.8432,
+        "sell": 0.0672
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.535637,
+      "auc_p_value": 0.060939,
+      "brier": 0.308903,
+      "brier_skill_p_value": 0.936064,
+      "brier_skill_score": -0.235692,
+      "calibration_gap": null,
+      "category": "rl",
+      "created_utc": "2026-11-15T18:50:05+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261115-185005_2025-10-6m_paperrl_4c4ea29e56",
+      "ece": 0.21931,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.300547,
+        "method": "decision-window block bootstrap",
+        "upper": 0.104749
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.449707,
+      "mean_latency_s": 0.0,
+      "metrics": {
+        "annual_volatility": 0.113434,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.093243,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.343313,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5232,
+              "auc": 0.535637,
+              "auc_p_value": 0.060939,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 15,
+                  "lower": 0.0,
+                  "mean_predicted": 0.083626,
+                  "observed_rate": 0.533333,
+                  "upper": 0.1
+                },
+                {
+                  "count": 28,
+                  "lower": 0.1,
+                  "mean_predicted": 0.159281,
+                  "observed_rate": 0.571429,
+                  "upper": 0.2
+                },
+                {
+                  "count": 59,
+                  "lower": 0.2,
+                  "mean_predicted": 0.245137,
+                  "observed_rate": 0.389831,
+                  "upper": 0.3
+                },
+                {
+                  "count": 51,
+                  "lower": 0.3,
+                  "mean_predicted": 0.348438,
+                  "observed_rate": 0.45098,
+                  "upper": 0.4
+                },
+                {
+                  "count": 53,
+                  "lower": 0.4,
+                  "mean_predicted": 0.446348,
+                  "observed_rate": 0.509434,
+                  "upper": 0.5
+                },
+                {
+                  "count": 53,
+                  "lower": 0.5,
+                  "mean_predicted": 0.550263,
+                  "observed_rate": 0.415094,
+                  "upper": 0.6
+                },
+                {
+                  "count": 69,
+                  "lower": 0.6,
+                  "mean_predicted": 0.6654,
+                  "observed_rate": 0.536232,
+                  "upper": 0.7
+                },
+                {
+                  "count": 141,
+                  "lower": 0.7,
+                  "mean_predicted": 0.755309,
+                  "observed_rate": 0.51773,
+                  "upper": 0.8
+                },
+                {
+                  "count": 103,
+                  "lower": 0.8,
+                  "mean_predicted": 0.844811,
+                  "observed_rate": 0.533981,
+                  "upper": 0.9
+                },
+                {
+                  "count": 53,
+                  "lower": 0.9,
+                  "mean_predicted": 0.96382,
+                  "observed_rate": 0.584906,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.308903,
+              "brier_skill_p_value": 0.936064,
+              "brier_skill_score": -0.235692,
+              "expected_calibration_error": 0.21931,
+              "log_loss": 1.17588,
+              "max_calibration_error": 0.449707,
+              "mean_predicted": 0.610044,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.300547,
+          "method": "decision-window block bootstrap",
+          "upper": 0.104749
+        },
+        "excess_return_vs_spy": -0.071365,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.071264,
+        "mean_latency_s": 0.0,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 0,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.024642,
+          "method": "decision-window block bootstrap",
+          "upper": 0.297873
+        },
+        "risk_violations": 0,
+        "sharpe": 2.6598,
+        "spy_total_return": 0.230379,
+        "total_return": 0.159014,
+        "trades": 625
+      },
+      "model": "paperrl",
+      "model_label": "PaperRL signals (five-factor + PPO v2)",
+      "noul_brier": 0.308903,
+      "noul_ece": 0.21931,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "paperrl",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.024642,
+        "method": "decision-window block bootstrap",
+        "upper": 0.297873
+      },
+      "run_id": "20261115-185005_2025-10-6m_paperrl_4c4ea29e56",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 1.6923076923076923,
+        "avg_holds": 22.0,
+        "avg_sells": 1.3076923076923077,
+        "buy": 0.06769230769230769,
+        "hold": 0.88,
+        "sell": 0.052307692307692305
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.5142,
+      "auc_p_value": 0.529471,
+      "brier": 0.31932,
+      "brier_skill_p_value": 0.481518,
+      "brier_skill_score": -0.27849,
+      "calibration_gap": null,
+      "category": "rl",
+      "created_utc": "2026-11-15T18:50:12+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261115-185012_2026-04-6m_paperrl_339b88ea4d",
+      "ece": 0.236864,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.067645,
+        "method": "decision-window block bootstrap",
+        "upper": 0.139848
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.469985,
+      "mean_latency_s": 0.0,
+      "metrics": {
+        "annual_volatility": 0.104292,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.067149,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.134053,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.515385,
+              "auc": 0.5142,
+              "auc_p_value": 0.529471,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 18,
+                  "lower": 0.0,
+                  "mean_predicted": 0.085571,
+                  "observed_rate": 0.555556,
+                  "upper": 0.1
+                },
+                {
+                  "count": 51,
+                  "lower": 0.1,
+                  "mean_predicted": 0.16384,
+                  "observed_rate": 0.54902,
+                  "upper": 0.2
+                },
+                {
+                  "count": 81,
+                  "lower": 0.2,
+                  "mean_predicted": 0.248845,
+                  "observed_rate": 0.481481,
+                  "upper": 0.3
+                },
+                {
+                  "count": 72,
+                  "lower": 0.3,
+                  "mean_predicted": 0.344152,
+                  "observed_rate": 0.486111,
+                  "upper": 0.4
+                },
+                {
+                  "count": 46,
+                  "lower": 0.4,
+                  "mean_predicted": 0.449831,
+                  "observed_rate": 0.478261,
+                  "upper": 0.5
+                },
+                {
+                  "count": 40,
+                  "lower": 0.5,
+                  "mean_predicted": 0.548499,
+                  "observed_rate": 0.525,
+                  "upper": 0.6
+                },
+                {
+                  "count": 60,
+                  "lower": 0.6,
+                  "mean_predicted": 0.659628,
+                  "observed_rate": 0.466667,
+                  "upper": 0.7
+                },
+                {
+                  "count": 109,
+                  "lower": 0.7,
+                  "mean_predicted": 0.750273,
+                  "observed_rate": 0.522936,
+                  "upper": 0.8
+                },
+                {
+                  "count": 118,
+                  "lower": 0.8,
+                  "mean_predicted": 0.850754,
+                  "observed_rate": 0.559322,
+                  "upper": 0.9
+                },
+                {
+                  "count": 55,
+                  "lower": 0.9,
+                  "mean_predicted": 0.959985,
+                  "observed_rate": 0.527273,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.31932,
+              "brier_skill_p_value": 0.481518,
+              "brier_skill_score": -0.27849,
+              "expected_calibration_error": 0.236864,
+              "log_loss": 1.474633,
+              "max_calibration_error": 0.469985,
+              "mean_predicted": 0.572322,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.067645,
+          "method": "decision-window block bootstrap",
+          "upper": 0.139848
+        },
+        "excess_return_vs_spy": 0.045051,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.056394,
+        "mean_latency_s": 0.0,
+        "outperformance_hit_rate": 0.5769,
+        "output_tokens": 0,
+        "requests": 0,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.04353,
+          "method": "decision-window block bootstrap",
+          "upper": 0.207457
+        },
+        "risk_violations": 1,
+        "sharpe": 1.2583,
+        "spy_total_return": 0.018805,
+        "total_return": 0.063857,
+        "trades": 649
+      },
+      "model": "paperrl",
+      "model_label": "PaperRL signals (five-factor + PPO v2)",
+      "noul_brier": 0.31932,
+      "noul_ece": 0.236864,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "paperrl",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.04353,
+        "method": "decision-window block bootstrap",
+        "upper": 0.207457
+      },
+      "run_id": "20261115-185012_2026-04-6m_paperrl_339b88ea4d",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 2.28,
+        "avg_holds": 20.56,
+        "avg_sells": 2.16,
+        "buy": 0.0912,
+        "hold": 0.8224,
+        "sell": 0.0864
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.493417,
+      "auc_p_value": 0.665335,
+      "brier": 0.33269,
+      "brier_skill_p_value": 0.352647,
+      "brier_skill_score": -0.346231,
+      "calibration_gap": null,
+      "category": "rl",
+      "created_utc": "2026-11-15T18:50:30+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261115-185030_2026-6m_paperrl_e620a2cee7",
+      "ece": 0.26853,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.204825,
+        "method": "decision-window block bootstrap",
+        "upper": 0.054116
+      },
+      "group": "1aa11bb5a5e0ec6b",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.469646,
+      "mean_latency_s": 0.0,
+      "metrics": {
+        "annual_volatility": 0.091361,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.092842,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.186763,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.4896,
+              "auc": 0.493417,
+              "auc_p_value": 0.665335,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 4,
+                  "lower": 0.0,
+                  "mean_predicted": 0.084091,
+                  "observed_rate": 0.5,
+                  "upper": 0.1
+                },
+                {
+                  "count": 49,
+                  "lower": 0.1,
+                  "mean_predicted": 0.151799,
+                  "observed_rate": 0.489796,
+                  "upper": 0.2
+                },
+                {
+                  "count": 83,
+                  "lower": 0.2,
+                  "mean_predicted": 0.248389,
+                  "observed_rate": 0.457831,
+                  "upper": 0.3
+                },
+                {
+                  "count": 60,
+                  "lower": 0.3,
+                  "mean_predicted": 0.349217,
+                  "observed_rate": 0.483333,
+                  "upper": 0.4
+                },
+                {
+                  "count": 53,
+                  "lower": 0.4,
+                  "mean_predicted": 0.455948,
+                  "observed_rate": 0.339623,
+                  "upper": 0.5
+                },
+                {
+                  "count": 47,
+                  "lower": 0.5,
+                  "mean_predicted": 0.550228,
+                  "observed_rate": 0.404255,
+                  "upper": 0.6
+                },
+                {
+                  "count": 77,
+                  "lower": 0.6,
+                  "mean_predicted": 0.658227,
+                  "observed_rate": 0.519481,
+                  "upper": 0.7
+                },
+                {
+                  "count": 108,
+                  "lower": 0.7,
+                  "mean_predicted": 0.755783,
+                  "observed_rate": 0.435185,
+                  "upper": 0.8
+                },
+                {
+                  "count": 90,
+                  "lower": 0.8,
+                  "mean_predicted": 0.847423,
+                  "observed_rate": 0.377778,
+                  "upper": 0.9
+                },
+                {
+                  "count": 54,
+                  "lower": 0.9,
+                  "mean_predicted": 0.955059,
+                  "observed_rate": 0.518519,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.33269,
+              "brier_skill_p_value": 0.352647,
+              "brier_skill_score": -0.346231,
+              "expected_calibration_error": 0.26853,
+              "log_loss": 1.227433,
+              "max_calibration_error": 0.469646,
+              "mean_predicted": 0.575231,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.204825,
+          "method": "decision-window block bootstrap",
+          "upper": 0.054116
+        },
+        "excess_return_vs_spy": -0.060782,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.032075,
+        "mean_latency_s": 0.0,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 0,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.042985,
+          "method": "decision-window block bootstrap",
+          "upper": 0.219042
+        },
+        "risk_violations": 0,
+        "sharpe": 1.9201,
+        "spy_total_return": 0.150909,
+        "total_return": 0.090127,
+        "trades": 624
+      },
+      "model": "paperrl",
+      "model_label": "PaperRL signals (five-factor + PPO v2)",
+      "noul_brier": 0.33269,
+      "noul_ece": 0.26853,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "paperrl",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.042985,
+        "method": "decision-window block bootstrap",
+        "upper": 0.219042
+      },
+      "run_id": "20261115-185030_2026-6m_paperrl_e620a2cee7",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
     }
   ],
   "schema_version": 1,
