@@ -212,6 +212,8 @@ def _pricing(spec: dict) -> str:
 
 def _key_status(name: str, spec: dict) -> tuple[bool, str]:
     """Whether a model can authenticate, plus a one-line explanation."""
+    if spec["provider"] == "local":
+        return True, "local, no key needed"
     if not decision_api_key(name):
         return False, f"missing {spec['api_key_env']}"
     if spec["provider"] == "cloudflare" and not cloudflare_account_id():
@@ -248,10 +250,13 @@ def cmd_setup(args: argparse.Namespace) -> int:
         settings.decision.base_url = args.base_url
 
     if args.api_key:
-        secrets[spec["api_key_env"]] = args.api_key
-    if args.account_id:
+        if spec.get("api_key_env"):
+            secrets[spec["api_key_env"]] = args.api_key
+        else:
+            print(f"{model} runs locally and needs no API key; ignoring --api-key.")
+    if args.account_id and spec["provider"] == "cloudflare":
         secrets[ACCOUNT_ID_ENV] = args.account_id
-    if not args.model:  # interactive: offer to store the key
+    if not args.model and spec.get("api_key_env"):  # interactive: offer to store the key
         key = _secret_input(f"{spec['api_key_env']} (leave empty to use the environment): ").strip()
         if key:
             secrets[spec["api_key_env"]] = key
@@ -267,13 +272,16 @@ def cmd_setup(args: argparse.Namespace) -> int:
     print(f"\nConfigured decision model: {settings.decision.label} ({model})")
     print(f"  endpoint  {settings.decision.endpoint}")
     print(f"  pricing   {_pricing(spec)}")
-    print(f"  key       {spec['api_key_env']}: {detail}")
+    if spec.get("api_key_env"):
+        print(f"  key       {spec['api_key_env']}: {detail}")
+    else:
+        print(f"  key       none ({detail})")
     print(f"  config    {config_path()}")
     print(f"  secrets   {secrets_path()}")
     print("\nNext steps:")
     print("  beatspy doctor              # health check (add --probe for one live call per model)")
     print("  beatspy run                 # run the configured model on the default scenario")
-    if not ok:
+    if not ok and spec.get("api_key_env"):
         print(f"  (set {spec['api_key_env']} in the environment or rerun setup to store it)")
     return 0
 
@@ -322,8 +330,11 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         print("\nNo network calls were made. Add --probe for one live decision request per model.")
         return int(failed)
 
-    print("\nProbing every decision model with a single noul question (live network calls)...")
-    for name in DECISION_MODELS:
+    print("\nProbing every network decision model with a single noul question (live network calls)...")
+    for name, spec in DECISION_MODELS.items():
+        if spec["provider"] == "local":
+            print(f"  [PASS] local {name}: deterministic baseline, no network call")
+            continue
         ok, detail = _probe_decision_model(name)
         print(f"  [{'PASS' if ok else 'FAIL'}] probe {name}: {detail}")
         failed = failed or not ok
@@ -404,7 +415,7 @@ def cmd_models(args: argparse.Namespace) -> int:
     for name, spec in DECISION_MODELS.items():
         ok, detail = _key_status(name, spec)
         marker = "*" if name == active else " "
-        context = f"{spec['context_window'] // 1000}k"
+        context = "local" if spec["provider"] == "local" else f"{spec['context_window'] // 1000}k"
         price = f"{spec['cost_per_m_input']:>12.3f}"
         print(
             f"{marker:<2}{name:<{width}} {spec['provider']:<{providers}} {price} {context:>9}  "

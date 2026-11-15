@@ -50,6 +50,22 @@ PROVIDERS = ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrout
 # - vLLM SR D3 Turbo was verified live 2026-10-23 against decision.vllm-sr.ai
 #   /v1/systemone and its /v1/models and /api/info: a free API, $0 per token.
 DECISION_MODELS: dict[str, dict] = {
+    # A deterministic control, not a decision model. It runs in-process on the
+    # frozen snapshot and costs nothing, so every LLM row has a non-LLM
+    # comparison. `provider: "local"` routes it to `dcn.tpi.TpiClient`.
+    "tpi-rs": {
+        "provider": "local",
+        "model": "tpi-rs",
+        "label": "TPI-RS deterministic baseline (short-horizon, no LLM)",
+        "base_url": "local://tpi-rs",
+        "api_key_env": None,
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 0,
+        "max_questions": 64,
+        "state_note": "Runs in-process on the frozen snapshot; no network and no tokens.",
+        "category": "baseline",
+    },
     "gpt-6-luna": {
         "provider": "openai_decisions",
         "model": "gpt-6-luna",
@@ -632,6 +648,11 @@ class DecisionConfig(BaseModel):
         return self.spec["provider"]
 
     @property
+    def category(self) -> str:
+        """Model family the dashboard filters on. Local runs are the baseline."""
+        return self.spec.get("category") or ("baseline" if self.provider == "local" else "ai")
+
+    @property
     def label(self) -> str:
         return self.spec["label"]
 
@@ -757,8 +778,8 @@ def secret_values() -> set[str]:
 
 
 def _api_key_env_names(spec: dict) -> list[str]:
-    primary = spec["api_key_env"]
-    return [f"BEATSPY_{primary}", primary]
+    primary = spec.get("api_key_env")
+    return [f"BEATSPY_{primary}", primary] if primary else []
 
 
 def decision_api_key(decision_model: str) -> str | None:

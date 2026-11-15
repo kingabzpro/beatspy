@@ -13,7 +13,7 @@ import json
 import httpx
 import pytest
 
-from beatspy.config import DECISION_MODELS, Settings, decision_api_key
+from beatspy.config import DECISION_MODELS, DecisionConfig, Settings, decision_api_key
 from beatspy.dcn.clients import (
     CloudflareClefClient,
     DcnError,
@@ -422,14 +422,38 @@ def test_score_answers_pass_through_unchanged():
 def test_make_client_builds_every_configured_model(name, monkeypatch):
     spec = DECISION_MODELS[name]
     # Supply whatever this provider needs so construction is what is under test.
-    monkeypatch.setenv(spec["api_key_env"], "test-key")
+    if spec.get("api_key_env"):
+        monkeypatch.setenv(spec["api_key_env"], "test-key")
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
-    client = make_client(settings)
+    data = object() if spec["provider"] == "local" else None
+    client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     assert client.model == spec["model"]
     assert client.endpoint == spec["base_url"]
+
+
+def test_the_local_baseline_requires_the_frozen_data():
+    settings = Settings(decision=DecisionConfig(decision_model="tpi-rs"))
+    with pytest.raises(DcnError, match="frozen data"):
+        make_client(settings)
+
+
+def test_make_client_binds_frozen_data_to_the_tpi_baseline(data_service):
+    settings = Settings(decision=DecisionConfig(decision_model="tpi-rs"))
+    client = make_client(settings, data=data_service)
+    assert client.provider == "local"
+    assert client.model == "tpi-rs"
+    assert client.endpoint == "local://tpi-rs"
+    assert client.data is data_service
+
+
+def test_the_tpi_baseline_needs_no_credentials():
+    from beatspy.dcn.clients import missing_credentials
+
+    settings = Settings(decision=DecisionConfig(decision_model="tpi-rs"))
+    assert missing_credentials(settings) == []
 
 
 def test_a_missing_credential_fails_fast_with_the_variable_name(monkeypatch):
@@ -486,6 +510,12 @@ def test_unknown_model_is_rejected_at_construction():
 
 def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
+        if spec["provider"] == "local":
+            # A deterministic control runs in-process: no credential, no cost.
+            assert spec.get("category") == "baseline", f"{name} is local but not marked baseline"
+            assert spec.get("api_key_env") is None
+            assert spec["cost_per_m_input"] == 0.0
+            continue
         assert spec["api_key_env"], f"{name} has no api_key_env"
         assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan")
         assert spec["cost_per_m_input"] is not None

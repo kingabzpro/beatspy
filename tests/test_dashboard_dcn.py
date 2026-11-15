@@ -33,6 +33,7 @@ INDEX_ROW_KEYS = {
     "model",
     "model_label",
     "provider",
+    "category",
     "question_form",
     "policy",
     "pricing",
@@ -135,6 +136,21 @@ def test_summary_tolerates_a_run_without_calibration(dcn_run_dir: Path):
     for key in CALIBRATION_ROW_KEYS:
         assert row.get(key) is None, key
     assert row["model"] == meta["decision"]["decision_model"]
+
+
+def test_summary_categorises_the_baseline_ai_models_and_agents(dcn_run_dir: Path):
+    meta = read_json(dcn_run_dir / "run.json")
+    row = summary(meta, {}, dcn_run_dir.name, "local")
+    assert row["category"] == "ai"
+    # The deterministic baseline predates the category field, so provider local
+    # is the fallback the old published rows use too.
+    local = json.loads(json.dumps(meta))
+    local["decision"]["provider"] = "local"
+    local["decision"].pop("category", None)
+    assert summary(local, {}, dcn_run_dir.name, "local")["category"] == "baseline"
+    # A future agent spec can declare itself without changing the fallback.
+    local["decision"]["category"] = "agent"
+    assert summary(local, {}, dcn_run_dir.name, "local")["category"] == "agent"
 
 
 def test_comparison_group_pairs_models_and_separates_question_forms(dcn_run_dir: Path):
@@ -340,17 +356,21 @@ def test_committed_public_catalog_matches_the_dcn_shape():
         assert row["metrics"] == metrics
 
 
-def test_public_site_assets_have_no_agent_wording():
+def test_public_site_assets_have_no_removed_agent_harness_wording():
     pages = {name: (static_dir() / name).read_text(encoding="utf-8") for name in PAGES}
     js = (static_dir() / "app.js").read_text(encoding="utf-8")
     css = (static_dir() / "styles.css").read_text(encoding="utf-8")
-    banned = ("agent", "pipeline", "critic", "reasoning effort", "reasoning_effort", "tool call", "tool_call",
+    # "AI agents" is a real, currently empty leaderboard category. The copy from
+    # the removed five-agent harness stays banned.
+    banned = ("pipeline", "critic", "reasoning effort", "reasoning_effort", "tool call", "tool_call",
               "telemetry", "five trading", "max turns", "max_turns", "web search", "web_search", "read_file",
               "shell command")
     for name, text in (*pages.items(), ("app.js", js), ("styles.css", css)):
         lowered = text.lower()
         for word in banned:
             assert word not in lowered, f"{name} mentions {word!r}"
+    assert 'id="category-tabs"' in pages["index.html"]
+    assert "AI agents" in js
     # The DCN payload is what the site renders, wherever a token lives.
     for token in ("reliability", "brier", "decision model", "calibration", "provider"):
         assert any(token in text.lower() for text in pages.values()), token
@@ -363,7 +383,7 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
     assert "textContent" in js
     # Each widget lives on the page that owns it; the ids are what app.js binds to.
     owners = {
-        "index.html": ("leaderboard", "leaderboard-table", "status", "hero-scope", "period-tabs"),
+        "index.html": ("leaderboard", "leaderboard-table", "status", "hero-scope", "period-tabs", "category-tabs"),
         "run.html": ("run-details", "calibration", "reliability", "reliability-bins", "performance", "drawdown",
                      "allocations", "run-cost", "metrics", "downloads"),
         "pricing.html": ("pricing-table", "model-costs", "cost-window"),

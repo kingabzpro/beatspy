@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd, monthLabel, scoredWindows, allPeriodRows,
-  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS
+  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, categoryOf, inCategory
 } = require('../dashboard/app.js');
 
 // A minimal catalog row in the DCN shape the Python renderer writes.
@@ -179,7 +179,26 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
   assert.deepEqual(catalogProblems(catalog([])), []);
 });
 
-test('the frontend uses safe text rendering, keeps the design, and never mentions agents', () => {
+test('category filters separate baselines, AI models and agents', () => {
+  const baseline = catalogRun({run_id: 'b', model: 'tpi-rs', provider: 'local', category: 'baseline'});
+  const ai = catalogRun({run_id: 'a', model: 'jev-latest', provider: 'typesafe'});
+  const agent = catalogRun({run_id: 'g', model: 'agent-x', provider: 'agent', category: 'agent'});
+  assert.equal(categoryOf(baseline), 'baseline');
+  assert.equal(categoryOf(ai), 'ai');
+  assert.equal(categoryOf(agent), 'agent');
+  // Old catalog rows predate the field: provider local is the baseline, every
+  // network provider is an AI decision model.
+  assert.equal(categoryOf(catalogRun({provider: 'local', category: undefined})), 'baseline');
+  assert.equal(categoryOf(catalogRun({provider: 'cloudflare', category: undefined})), 'ai');
+
+  const rows = [baseline, ai, agent];
+  assert.equal(rows.filter(run => inCategory(run, 'all')).length, 3);
+  assert.equal(rows.filter(run => inCategory(run, 'decision')).length, 3);
+  assert.deepEqual(rows.filter(run => inCategory(run, 'ai')).map(run => run.model), ['jev-latest']);
+  assert.deepEqual(rows.filter(run => inCategory(run, 'agent')).map(run => run.model), ['agent-x']);
+});
+
+test('the frontend uses safe text rendering, keeps the design, and mentions only the AI agents category', () => {
   const js = readFileSync('dashboard/app.js', 'utf8');
   const css = readFileSync('dashboard/styles.css', 'utf8');
   const pages = Object.fromEntries(['index.html', 'run.html', 'pricing.html', 'method.html', 'contribute.html']
@@ -190,13 +209,18 @@ test('the frontend uses safe text rendering, keeps the design, and never mention
   assert.match(pages['index.html'], /aria-live="polite"/);
   assert.match(pages['index.html'], /styles\.css/);
   assert.match(pages['index.html'], /app\.js/);
+  // The category filter is wired into the page it belongs to.
+  assert.match(pages['index.html'], /id="category-tabs"/);
+  assert.match(js, /AI agents/);
   // Design language kept: the same dark palette and panel classes.
   assert.match(css, /--accent:#b4f272/);
   assert.match(css, /\.panel\{/);
   assert.match(html, /class="eyebrow"/);
   assert.match(html, /class="brandmark"/);
+  // The removed five-agent harness stays out of the public copy. "AI agents" is
+  // now an empty leaderboard category, so the bare word is allowed there.
   for (const [name, text] of [...Object.entries(pages), ['app.js', js], ['styles.css', css]]) {
-    for (const word of ['agent', 'pipeline', 'critic', 'reasoning effort', 'telemetry', 'tool call', 'tool_call']) {
+    for (const word of ['pipeline', 'critic', 'reasoning effort', 'telemetry', 'tool call', 'tool_call']) {
       assert.doesNotMatch(text.toLowerCase(), new RegExp(word), `${name} mentions ${word}`);
     }
   }
@@ -255,7 +279,7 @@ function fakeElement(tag) {
 // listed separately: a page only gets the nodes its own HTML declares, which is
 // what the renderers guard on. Kept in sync with the dashboard/*.html files.
 const PAGE_IDS = {
-  'index.html': ['leaderboard-table', 'board-window', 'demo-banner', 'status', 'hero-scope', 'period-tabs'],
+  'index.html': ['leaderboard-table', 'board-window', 'demo-banner', 'status', 'hero-scope', 'period-tabs', 'category-tabs'],
   'run.html': ['run-details', 'run-trust', 'run-title', 'run-meta', 'status', 'metrics', 'calibration', 'reliability',
     'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
     'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
@@ -320,6 +344,10 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('demo-banner').hidden, true, 'real results must not show the synthetic warning');
   // One scored window: the toggle stays hidden and the board is unchanged.
   assert.equal($('period-tabs').hidden, true);
+  // The category filter is always visible, even with one scored window.
+  assert.equal($('category-tabs').hidden, false);
+  assert.deepEqual($('category-tabs').children.map(node => node.textContent),
+    ['All', 'Decision models', 'AI models', 'AI agents']);
   const table = $('leaderboard-table').children[0];
   assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 3);
   // The board carries the headline metrics only, named in plain words: the
@@ -347,6 +375,26 @@ test('the leaderboard page renders the board and links each row to its run page'
   // Widgets that belong to other pages are absent here, and the script must cope.
   assert.equal($('run-details'), undefined);
   assert.equal($('pricing-table'), undefined);
+});
+
+test('the AI agents tab explains that no agent has run yet', async () => {
+  const {site} = siteFixture();
+  const elements = mountSite(site, 'index.html');
+  await settle();
+  const $ = id => elements.get(id);
+  const tab = label => $('category-tabs').children.find(node => node.textContent === label);
+
+  assert.ok(tab('AI agents'), 'the AI agents tab exists');
+  tab('AI agents').onclick();
+  assert.equal($('status').textContent, 'No AI agent runs yet. The benchmark currently scores decision models.');
+  assert.equal($('leaderboard-table').children.length, 0);
+  assert.equal($('period-tabs').hidden, true);
+
+  // The fixture runs are both network models, so AI models keeps them and the
+  // baseline filter would hide nothing here.
+  tab('AI models').onclick();
+  assert.equal($('leaderboard-table').children.length, 1);
+  assert.equal($('category-tabs').children.find(node => node.className.includes('active')).textContent, 'AI models');
 });
 
 test('scored windows group runs by frozen window and average gaps per model', () => {

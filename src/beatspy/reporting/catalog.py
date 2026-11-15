@@ -171,6 +171,8 @@ def summary(meta, metrics, directory, trust="replayed") -> dict:
         "model": decision.get("decision_model", "?"),
         "model_label": decision.get("label"),
         "provider": decision.get("provider", "?"),
+        "category": decision.get("category")
+        or ("baseline" if decision.get("provider") == "local" else "ai"),
         "question_form": decision.get("question_form", "?"),
         "policy": decision.get("policy") or {},
         "pricing": decision.get("pricing") or {},

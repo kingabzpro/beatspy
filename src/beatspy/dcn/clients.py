@@ -493,6 +493,8 @@ def missing_credentials(settings) -> list[str]:
     from ..config import cloudflare_account_id, decision_api_key
 
     decision = settings.decision
+    if decision.provider == "local":
+        return []
     missing: list[str] = []
     if not decision_api_key(decision.decision_model):
         missing.append(decision.spec["api_key_env"])
@@ -501,12 +503,31 @@ def missing_credentials(settings) -> list[str]:
     return missing
 
 
-def make_client(settings, *, client: httpx.AsyncClient | None = None) -> HttpDcnClient:
-    """Build the client for the configured decision model."""
+def make_client(
+    settings,
+    *,
+    client: httpx.AsyncClient | None = None,
+    data=None,
+) -> DcnClient:
+    """Build the client for the configured decision model.
+
+    `data` is only used by a local baseline: HTTP providers receive the compact
+    state, while the in-process TPI client reads the frozen `DataService` the
+    harness already holds.
+    """
     from ..config import cloudflare_account_id, decision_api_key
 
     decision = settings.decision
     provider = decision.provider
+    if provider == "local":
+        if data is None:
+            raise DcnError(
+                f"{decision.label} needs the frozen data service; "
+                "run it through `beatspy run` rather than constructing the client alone."
+            )
+        from .tpi import TpiClient
+
+        return TpiClient(data)
     factory = _CLIENTS.get(provider)
     if factory is None:
         raise DcnError(f"no client for provider {provider!r}")

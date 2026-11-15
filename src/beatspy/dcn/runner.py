@@ -157,7 +157,7 @@ async def run_dcn(
     )
     data, manifest = prepared_data or await asyncio.to_thread(ensure_data, scenario, data_root, refresh_data)
     owns_client = client is None
-    dcn_client = client or make_client(settings)
+    dcn_client = client or make_client(settings, data=data)
     try:
         from .scoring import estimate_cost, score_run
 
@@ -273,6 +273,7 @@ async def run_dcn(
             "decision": {
                 "decision_model": settings.decision.decision_model,
                 "provider": settings.decision.provider,
+                "category": settings.decision.category,
                 "label": settings.decision.label,
                 "endpoint": settings.decision.endpoint,
                 "question_form": question_form,

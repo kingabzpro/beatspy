@@ -11,6 +11,7 @@ import pytest
 
 from beatspy.config import (
     DECISION_MODELS,
+    DecisionConfig,
     decision_api_key,
     load_secrets,
     parse_env_file,
@@ -96,7 +97,9 @@ def test_each_decision_model_reads_its_own_key_variable(monkeypatch):
     # Derived from the registry: a new provider must not make this assertion read
     # a real credential out of the environment.
     for spec in DECISION_MODELS.values():
-        env = spec["api_key_env"]
+        env = spec.get("api_key_env")
+        if not env:
+            continue
         monkeypatch.delenv(env, raising=False)
         monkeypatch.delenv(f"BEATSPY_{env}", raising=False)
     for name in DECISION_MODELS:
@@ -130,10 +133,18 @@ def test_cloudflare_needs_an_account_id_as_well_as_a_token(monkeypatch):
 def test_no_credential_means_none_not_an_exception(monkeypatch):
     """Running offline is a supported state, not an error."""
     for name in DECISION_MODELS:
-        for env in (DECISION_MODELS[name]["api_key_env"], f"BEATSPY_{DECISION_MODELS[name]['api_key_env']}"):
-            monkeypatch.delenv(env, raising=False)
+        env = DECISION_MODELS[name].get("api_key_env")
+        if not env:
+            continue
+        monkeypatch.delenv(env, raising=False)
+        monkeypatch.delenv(f"BEATSPY_{env}", raising=False)
     for name in DECISION_MODELS:
         assert decision_api_key(name) is None
+
+
+def test_the_baseline_is_a_separate_category():
+    assert DecisionConfig(decision_model="tpi-rs").category == "baseline"
+    assert DecisionConfig(decision_model="jev-latest").category == "ai"
 
 
 @pytest.mark.parametrize("name", sorted(DECISION_MODELS))

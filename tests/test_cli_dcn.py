@@ -85,9 +85,11 @@ def test_doctor_probe_reports_the_probability(monkeypatch, capsys):
     monkeypatch.setattr("beatspy.dcn.clients.make_client", lambda *a, **k: client)
     assert main(["doctor", "--probe"]) == 0
     out = capsys.readouterr().out
-    assert out.count("probe ") == len(DECISION_MODELS)
+    network_models = [name for name, spec in DECISION_MODELS.items() if spec["provider"] != "local"]
+    assert out.count("probe ") == len(network_models)
+    assert "local tpi-rs" in out
     assert "noul_AAPL=0.6200" in out
-    assert client.probes == len(DECISION_MODELS)
+    assert client.probes == len(network_models)
 
 
 def test_doctor_probe_reports_the_exact_error(monkeypatch, capsys):
@@ -117,6 +119,16 @@ def test_setup_persists_the_decision_model(tmp_path, monkeypatch, capsys):
     assert 'decision_model = "clef-flash"' in config.read_text(encoding="utf-8")
     assert load_settings().decision.decision_model == "clef-flash"
     assert "CLOUDFLARE_AUTH_TOKEN=test-key" in (tmp_path / "home" / "secrets.env").read_text(encoding="utf-8")
+
+
+def test_setup_accepts_the_local_baseline_without_a_key(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("BEATSPY_HOME", str(tmp_path / "home"))
+    assert main(["setup", "--model", "tpi-rs"]) == 0
+    out = capsys.readouterr().out
+    assert "none (local, no key needed)" in out
+    assert load_settings().decision.decision_model == "tpi-rs"
+    secrets = tmp_path / "home" / "secrets.env"
+    assert not secrets.exists() or "tpi" not in secrets.read_text(encoding="utf-8").lower()
 
 
 def test_setup_rejects_unknown_model(capsys):
