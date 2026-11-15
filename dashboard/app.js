@@ -88,16 +88,11 @@ function modelName(model) {
   // board names the model, not the transport that happened to serve it.
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
-// The local deterministic run is an algorithm, not an LLM. The board marks it
-// with an ALGO tag; future agents and models simply add rows.
-function categoryOf(run) {
-  const declared = String(run?.category || "").toLowerCase();
-  if (declared === "baseline") return "algo";
-  if (declared === "algo" || declared === "ai" || declared === "agent") return declared;
-  // Catalog rows written before the category field existed: local is the
-  // algorithm, every network provider is an AI decision model.
-  return run?.provider === "local" ? "algo" : "ai";
-}
+// Row tags distinguish the two baseline entries from the model list. The
+// catalog still records a wider category, but the board names the entries:
+// TPI is an algorithm, FastTrade is an AI-driven model.
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI"};
+const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 
 // Presentation only: how each model reads, and the logo of the company that
 // built it. Raw ids stay in the artifacts; OpenRouter and Requesty are
@@ -284,7 +279,7 @@ if (typeof module !== "undefined") module.exports = {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
   monthLabel, windowLabel, scoredWindows, allPeriodRows,
-  categoryOf,
+  modelTag,
 };
 
 if (typeof document !== "undefined") {
@@ -337,10 +332,14 @@ if (typeof document !== "undefined") {
     if (key === "accuracy") return run.metrics?.calibration?.signals?.noul?.accuracy;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
-  // The deterministic row is marked in the table itself, so the board never
-  // reads as if every entry were an AI model.
+  // The baseline rows are marked in the table itself, so the board never reads
+  // as if every entry were the same kind of model.
   const appendModelTag = (cell, run) => {
-    if (categoryOf(run) === "algo") cell.append(node("span", "ALGO", "tag"));
+    const text = modelTag(run.model);
+    if (!text) return;
+    const tag = node("span", text, `tag tag-${text.toLowerCase()}`);
+    tag.title = text === "ALGO" ? "Deterministic algorithm, no LLM" : "AI decision model";
+    cell.append(tag);
   };
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;

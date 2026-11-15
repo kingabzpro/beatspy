@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd, monthLabel, scoredWindows, allPeriodRows,
-  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, categoryOf
+  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelTag
 } = require('../dashboard/app.js');
 
 // A minimal catalog row in the DCN shape the Python renderer writes.
@@ -180,19 +180,14 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
   assert.deepEqual(catalogProblems(catalog([])), []);
 });
 
-test('the algorithm is tagged from its category', () => {
-  assert.equal(categoryOf(catalogRun({model: 'tpi-rs', provider: 'local', category: 'algo'})), 'algo');
-  assert.equal(categoryOf(catalogRun({model: 'jev-latest', provider: 'typesafe'})), 'ai');
-  assert.equal(categoryOf(catalogRun({model: 'agent-x', provider: 'agent', category: 'agent'})), 'agent');
-  // Old catalog rows predate the field: provider local is the algorithm, every
-  // network provider is an AI decision model. A stale "baseline" label from the
-  // first cut still lands in algo.
-  assert.equal(categoryOf(catalogRun({provider: 'local', category: undefined})), 'algo');
-  assert.equal(categoryOf(catalogRun({provider: 'cloudflare', category: undefined})), 'ai');
-  assert.equal(categoryOf(catalogRun({provider: 'local', category: 'baseline'})), 'algo');
+test('the baseline rows carry their model tags', () => {
+  assert.equal(modelTag('tpi-rs'), 'ALGO');
+  assert.equal(modelTag('fasttrade'), 'AI');
+  assert.equal(modelTag('openrouter-fasttrade'), 'AI');
+  assert.equal(modelTag('clef'), null);
 });
 
-test('the frontend uses safe text rendering, keeps the design, and tags the algorithm', () => {
+test('the frontend uses safe text rendering, keeps the design, and tags the baselines', () => {
   const js = readFileSync('dashboard/app.js', 'utf8');
   const css = readFileSync('dashboard/styles.css', 'utf8');
   const pages = Object.fromEntries(['index.html', 'run.html', 'pricing.html', 'method.html', 'contribute.html']
@@ -203,17 +198,20 @@ test('the frontend uses safe text rendering, keeps the design, and tags the algo
   assert.match(pages['index.html'], /aria-live="polite"/);
   assert.match(pages['index.html'], /styles\.css/);
   assert.match(pages['index.html'], /app\.js/);
-  // The baseline carries its own logo and row tag.
+  // The baseline rows carry their own logos and row tags.
   assert.match(js, /"ALGO"/);
+  assert.match(js, /"AI"/);
   assert.match(js, /"tpi-rs": \["TPI baseline", "tpi\.svg"\]/);
+  assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
   assert.match(readFileSync('dashboard/assets/logos/tpi.svg', 'utf8'), /<svg/);
+  assert.match(readFileSync('dashboard/assets/logos/fasttrade.svg', 'utf8'), /<svg/);
   // Design language kept: the same dark palette and panel classes.
   assert.match(css, /--accent:#b4f272/);
   assert.match(css, /\.panel\{/);
   assert.match(html, /class="eyebrow"/);
   assert.match(html, /class="brandmark"/);
   // The removed five-agent harness stays out of the public copy. The AI tabs are
-  // disabled for now; only All, Decision models and Algo are rendered.
+  // gone for now; the board is one ranked list.
   for (const [name, text] of [...Object.entries(pages), ['app.js', js], ['styles.css', css]]) {
     for (const word of ['pipeline', 'critic', 'reasoning effort', 'telemetry', 'tool call', 'tool_call']) {
       assert.doesNotMatch(text.toLowerCase(), new RegExp(word), `${name} mentions ${word}`);
@@ -368,22 +366,29 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('pricing-table'), undefined);
 });
 
-test('a deterministic baseline is tagged ALGO in the board', async () => {
+test('the baseline rows carry their ALGO and AI tags', async () => {
   const {site} = siteFixture();
   const catalog = JSON.parse(site['data/index.json']);
-  const baseline = catalogRun({
+  catalog.runs.push(catalogRun({
     run_id: 'run-tpi', dir: 'runs/run-tpi', model: 'tpi-rs', provider: 'local', category: 'algo',
     created_utc: '2026-10-08T08:00:00+00:00',
-  });
-  catalog.runs.push(baseline);
+  }));
+  catalog.runs.push(catalogRun({
+    run_id: 'run-ft', dir: 'runs/run-ft', model: 'fasttrade', provider: 'fasttrade', category: 'ai',
+    created_utc: '2026-10-08T08:30:00+00:00',
+  }));
   site['data/index.json'] = JSON.stringify(catalog);
 
   const elements = mountSite(site, 'index.html');
   await settle();
   const table = elements.get('leaderboard-table').children[0];
-  assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 4, 'header plus three models');
+  assert.equal(table.descendants().filter(node => node.tagName === 'tr').length, 5, 'header plus four models');
   assert.ok(table.descendants().some(node => node.textContent === 'TPI baseline'));
-  assert.ok(table.descendants().some(node => node.textContent === 'ALGO'), 'the algo tag is rendered');
+  assert.ok(table.descendants().some(node => node.textContent === 'FastTrade'));
+  const tags = table.descendants().filter(node => node.className === 'tag tag-algo' || node.className === 'tag tag-ai');
+  assert.equal(tags.length, 2);
+  assert.ok(tags.some(node => node.textContent === 'ALGO'));
+  assert.ok(tags.some(node => node.textContent === 'AI'));
 });
 
 test('scored windows group runs by frozen window and average gaps per model', () => {
