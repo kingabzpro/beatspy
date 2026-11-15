@@ -135,11 +135,13 @@ def test_short_history_produces_no_signal():
     assert tpi.signal(_reference_frame().tail(tpi.MIN_BARS - 1)) is None
 
 
-def test_probability_uses_the_buy_gate():
-    assert 0.5 < tpi.probability(96.0, buy=True) < 1.0
-    assert 0.0 < tpi.probability(96.0, buy=False) < 0.5
-    assert tpi.probability(70.0, buy=True) > tpi.probability(62.0, buy=True)
-    assert tpi.probability(50.0, buy=False) > tpi.probability(40.0, buy=False)
+def test_probability_tracks_the_score_without_a_gate_step():
+    assert tpi.probability(50.0) == pytest.approx(0.5)
+    assert tpi.probability(70.0) > tpi.probability(50.0) > tpi.probability(30.0)
+    assert 0.25 < tpi.probability(0.0) < tpi.probability(100.0) < 0.75
+    # A score above the old BUY threshold no longer flips sign at the gate.
+    assert tpi.probability(62.0) > 0.5
+    assert tpi.probability(61.0) > 0.5
 
 
 def test_client_reports_a_warmup_as_missing(data_service):
@@ -164,7 +166,7 @@ def test_client_answers_every_question_form_with_a_real_signal():
     assert set(result.answers) == set(questions)
     assert result.missing_ids == []
     noul = result.answers["noul_TEST"].noul
-    assert noul > 0.9
+    assert 0.7 < noul < 0.75
     choice = result.answers["choice_TEST"]
     assert choice.choice == "outperform"
     assert choice.probabilities["outperform"] == pytest.approx(noul)
@@ -198,7 +200,7 @@ def test_client_only_reads_bars_up_to_the_decision_date():
     full = _decide(tpi.TpiClient(DataService(full_prices, benchmark="SPY")), decision)
     truncated = _decide(tpi.TpiClient(DataService(truncated_prices, benchmark="SPY")), decision)
 
-    assert full.answers["noul_TEST"].noul > 0.9
+    assert full.answers["noul_TEST"].noul > 0.7
     assert full.answers["noul_TEST"].noul == truncated.answers["noul_TEST"].noul
 
 

@@ -1,12 +1,12 @@
 {
   "artifact_hashes": {
-    "decisions.jsonl": "e23f90baf9b9a278a72a295296e79aeba1b1c703716293ac47b0eebf1adab04e",
-    "equity_curve.csv": "eb9ea72ceda37f65cabf203b1b5999457fa02503ddcd9106ba9f8d8458cdd147",
-    "events.jsonl": "ff2a532a6bf9b847a714218d5a181f1bf75ed114b81aa3ad1233105eb55ed04a",
-    "metrics.json": "aa3da0924e8251423670e24bfe0ce502a0b03649b9e2d74075816a887c42b2eb",
+    "decisions.jsonl": "f8b658a96d352af734ead7184fa0de1629203afdc7796125c26246bca4a49320",
+    "equity_curve.csv": "e967c50bb6d372983e8374457260ef1b1b431d408b6f2da70a5dca1495ed8e8d",
+    "events.jsonl": "87085d04aee497602a1cc715071cc98d06fbeb595283a967e0112218d913c2bc",
+    "metrics.json": "9ceedea30abc1564490698793e3e501bd1d61ca3c5b2a7c0ebc10ba304321d47",
     "snapshot/MANIFEST.json": "17bfd1942d03cd1deda523eceb61f1039aba4b924daacf1ec2d489054e379167",
     "snapshot/prices.csv": "ea8ec4b7a3fa2fd8bc87ff9ab63096014b041d2dd835fa503ee2aba0c3f409ba",
-    "trades.csv": "0efcd4b920679f6dcf300c92c472433639b41afbc74f00c05a481314ab011a29"
+    "trades.csv": "7edeec8ffdf606130743a042e2bea239396381e9b717ba4803b746583a329571"
   },
   "beatspy_version": "0.3.0",
   "bench": {
@@ -17,7 +17,7 @@
     "slippage_bps": 5.0
   },
   "benchmark": "dcn",
-  "created_utc": "2026-11-15T17:08:37+00:00",
+  "created_utc": "2026-11-15T20:04:04+00:00",
   "data": {
     "end": "2026-04-09",
     "fetched_at_utc": "2026-10-19T18:57:48+00:00",
@@ -88,7 +88,7 @@
     "frequency": "weekly",
     "start": "2025-10-09"
   },
-  "run_id": "20261115-170837_2026-04-6m_tpi-rs_5373aa78ff",
+  "run_id": "20261115-200404_2026-04-6m_tpi-rs_82e63e7cdf",
   "scenario": {
     "benchmark": "SPY",
     "cash": true,
@@ -140,7 +140,7 @@
     "year": null
   },
   "schema_version": 3,
-  "source_revision": "5be2ec8eda5f01239dca648058273672db081c40",
+  "source_revision": "ce4d99c6126483af5c09c7a4b29f728aeb6f240d",
   "state_sample": {
     "chars": 7369,
     "decision_date": "2025-10-09",
