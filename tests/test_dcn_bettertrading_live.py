@@ -190,6 +190,31 @@ def test_the_http_transport_parses_a_chat_completion(monkeypatch):
     assert attempts == 1
 
 
+def test_the_http_transport_adds_v1_to_a_bare_server_root(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "test-key")
+    monkeypatch.setenv("LLM_BASE_URL", "https://example.invalid")
+    monkeypatch.setenv("LLM_MODEL", "test-model")
+    client = live.BetterTradingLiveClient(_service())
+    captured: dict = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        captured["url"] = str(request.url)
+        return httpx.Response(
+            200,
+            json={
+                "choices": [{"message": {"content": '{"signal": "bullish"}'}}],
+                "usage": {"prompt_tokens": 12, "completion_tokens": 3},
+            },
+        )
+
+    asyncio.run(client._client.aclose())
+    client._client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    asyncio.run(client._chat(client._analysts, "system", "user"))
+    asyncio.run(client.close())
+
+    assert captured["url"] == "https://example.invalid/v1/chat/completions"
+
+
 def test_a_run_records_the_live_model(tmp_path, scenario, frozen_data, monkeypatch):
     settings = Settings(decision=DecisionConfig(decision_model="bettertradingagents-live"))
     monkeypatch.setenv("LLM_API_KEY", "test-key")
