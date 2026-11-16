@@ -21,6 +21,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import date
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -132,6 +133,14 @@ def _role_config(role: str, base_url: str, model: str, api_key: str | None) -> L
     )
 
 
+def _completions_url(base_url: str) -> str:
+    """The OpenAI-compatible completions path, accepting a bare server root."""
+    base = base_url.rstrip("/")
+    if urlsplit(base).path in ("", "/"):
+        base = f"{base}/v1"
+    return f"{base}/chat/completions"
+
+
 def _parse_json(text: object) -> dict:
     raw = str(text or "").strip()
     if raw.startswith("```"):
@@ -237,7 +246,7 @@ class BetterTradingLiveClient:
             async with self._semaphore:
                 try:
                     response = await self._client.post(
-                        f"{config.base_url.rstrip('/')}/chat/completions",
+                        _completions_url(config.base_url),
                         headers={"Authorization": f"Bearer {config.api_key}"},
                         json={
                             "model": config.model,
