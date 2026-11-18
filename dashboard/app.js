@@ -130,6 +130,7 @@ const MODEL_META = {
   "d3-mini": ["D3 Mini", "vllmsr.png"],
   "d3-edge": ["D3 Edge", "vllmsr.png"],
   "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
+  "minara-kairos": ["Kairos", "minara.png"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
@@ -373,7 +374,7 @@ if (typeof document !== "undefined") {
     // One row per model on the board, on units that compare. Rates are per
     // million tokens, so a run's bill is its rate times the tokens the provider
     // billed; the columns standardize that to one decision (the unit the board
-    // is scored in) and to the run, and the caption explains why two providers
+    // is scored in) and to the run, and the caption explains why some providers
     // report far more tokens than the rest for the same frozen state.
     // The pricing page prices one window, the latest scored one, so a model
     // is exactly one row even when several windows are published.
@@ -428,7 +429,7 @@ if (typeof document !== "undefined") {
     setHidden("cost-overview", !onBoard.length);
       setText("cost-window", onBoard.length
         ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
-        + "Two routes bill the shared market state once per question instead of once per request, which inflates their token counts; "
+        + "Some routes bill the shared market state once per question instead of once per request, which inflates their token counts; "
         + "compare models on cost per decision. Run cost is the total for one scored window (the latest)."
         : "");
     runBars("model-costs", onBoard

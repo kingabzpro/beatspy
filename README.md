@@ -4,7 +4,7 @@
 
 **Decision models, not chat models.**
 
-Seventeen decision models across two protocol versions read the same frozen
+Twenty-three decision models across two protocol versions read the same frozen
 point-in-time market state, answer the same typed probability questions, and are
 scored twice: were the probabilities calibrated, and did the portfolio they built
 beat SPY? Protocol v2 (2026-10-23) adds risk and context to the state: RSI-14,
@@ -16,23 +16,23 @@ sector label, because under v1 the models mostly echoed the momentum column.
 [![CI](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml/badge.svg)](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![v2 15-model run](https://img.shields.io/badge/v2%2015--model%20run-%240.19-brightgreen.svg)](#the-models)
+[![v2 19-model run](https://img.shields.io/badge/v2%2019--model%20run-%240.29-brightgreen.svg)](#the-models)
 
 </div>
 
 > [!IMPORTANT]
 > **The honest result.** Across all three v2 windows (18 months of weekly
-> decisions), the best average gap to SPY is +0.48pp, no Brier skill is
-> positive, and only one window of one model reaches a nominal AUC p-value
-> under 0.05 (`span-01-free` p 0.026, `mammoth-1` p 0.009 - at this many runs
-> roughly two such hits are expected by chance, so neither is significant after
-> correction, though mammoth-1 also ties the board's best Brier, 0.254). Only `jev-latest` and
-> `subq-snap-1.1` beat SPY in two of three windows, and both margins sit inside
-> their bootstrap intervals. The single-window leader (Clef Omni) dropped to
-> fourth once the other windows ran, which is exactly why the board scores
-> three. v2 did move discrimination above a coin flip for six models (AUC up
-> to 0.519, from 0.39 on the momentum-only state), which is a reason to keep
-> testing, not a claim of edge.
+> decisions), the best average gap to SPY is +0.48pp and no Brier skill is
+> positive. Nine model-window cells reach a nominal AUC p-value under 0.05
+> (smallest: `kairos` p 0.002), against roughly three expected by chance at
+> this many tests; the cells share windows and models, so none survives a
+> proper correction. Four models beat SPY in two of three windows
+> (`mammoth-1`, `jev-latest`, `subq-snap-1.1`, `kairos`), and every margin sits
+> inside its bootstrap interval. The single-window leader (Clef Omni) fell to
+> mid-table once the other windows ran, which is exactly why the board scores
+> three. v2 did move mean discrimination above a coin flip for eight models
+> (mean AUC up to 0.526, from 0.39 on the momentum-only state), which is a
+> reason to keep testing, not a claim of edge.
 
 ## Latest benchmark: three windows under protocol v2
 
@@ -50,6 +50,7 @@ yardstick, never held.
 | `gpt-6-luna` | -0.11pp | +6.48pp | -6.15pp | +0.07pp | 1/3 |
 | `clef` | -0.77pp | +7.36pp | -6.53pp | +0.02pp | 1/3 |
 | `clef-omni` | -1.21pp | +4.74pp | -4.10pp | -0.19pp | 1/3 |
+| `kairos` (Minara) | +1.63pp | +5.27pp | -8.04pp | -0.38pp | **2/3** |
 | `subq-snap-1.1` | +2.06pp | +4.94pp | -8.35pp | -0.45pp | **2/3** |
 | `jev-latest` | +1.39pp | +3.52pp | -6.59pp | -0.56pp | **2/3** |
 | `elephant-1` (Baseten, free) | -1.31pp | +6.35pp | -6.83pp | -0.60pp | 1/3 |
@@ -64,7 +65,7 @@ yardstick, never held.
 | `standard-one-8b` | -1.44pp | +3.05pp | -11.44pp | -3.28pp | 1/3 |
 
 Each column is the model's gap to SPY in one six-month window (SPY made
-+23.04%, +1.88% and +15.09%). The Apr 26 window lifted 17 of 18 models above
++23.04%, +1.88% and +15.09%). The Apr 26 window lifted 18 of 19 models above
 SPY because the pool itself outran a flat index there; the other two windows
 are the honest test, and there the gaps are negative or inside noise. The
 single-window returns live on the dashboard, one chip per window, with the
@@ -73,18 +74,23 @@ in: they live on the site's archive page.
 
 ## The models
 
-Eight providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
+Nine providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
 (`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`, `clef-omni`),
 Requesty (`jev-1.14`, `pplx-decider`, `ms-decision-1`), Standard Thinking
 (`standard-one-8b`), Liquid (`liquid-d1-ultra`), vLLM SR (`d3-turbo`, `d3-mini`,
-`d3-edge`, all free), and Subquadratic (`subq-snap-1.1`). Respan also answers first-party: `span-01-free` via
-api.respan.ai's behavior-scoring endpoint (free, each noul question mapped to
-one scored proposition) ran all three windows at 100% coverage, no daily-cap
-trouble (`span-02` first-party needs paid Respan credits). The paid routes
-(`kev-4b`, `liquid-d1`, `drex-v1.5`) still wait on a zero balance, and
-`mercury-decide:free` keeps answering 403 upstream. All bill input tokens only,
-and one call answers every question, so the 16-model v2 board above cost
-about **$0.19**. `beatspy models` prints every runnable id, endpoint, and price.
+`d3-edge`, all free), Subquadratic (`subq-snap-1.1`), and Minara Cloud
+(`kairos`, a Jev-family deployment at $0.042/M input). Respan also answers
+first-party: `span-01-free` via api.respan.ai's behavior-scoring endpoint
+(free, each noul question mapped to one scored proposition) ran all three
+windows at 100% coverage, no daily-cap trouble (`span-02` first-party needs
+paid Respan credits). The paid routes (`kev-4b`, `liquid-d1`, `drex-v1.5`)
+still wait on a zero balance, and `mercury-decide:free` keeps answering 403
+upstream. All bill input tokens only. Most answer every question in one call;
+`kairos` takes eight questions per request and re-reads the state per question
+(about 98,500 tokens per decision), as do the two small d3s, so compare cost
+per decision rather than per token. The 19-model v2 board above cost about
+**$0.29** for its latest window. `beatspy models` prints every runnable id,
+endpoint, and price.
 
 ## Quick start
 

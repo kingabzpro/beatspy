@@ -646,6 +646,22 @@ DECISION_MODELS: dict[str, dict] = {
             "same System One contract, verified live 2026-10-23; "
             "a subq-snap-preview sibling exists on their /v1/models",
     },
+    "minara-kairos": {
+        "provider": "typesafe",
+        "model": "DMIND/Kairos",
+        "label": "Minara Kairos",
+        "base_url": "https://minara.cloud/v1/systemone",
+        "api_key_env": "MINARA_API_KEY",
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0,
+        "context_window": 4_096,
+        "max_questions": 64,
+        "question_batch": 8,
+        "state_note": "Minara Cloud's Kairos channel, mapped upstream to typesafe/jev-1.14 at $0.042/M input "
+            "(their pricing ratio 0.021); same System One contract, verified live 2026-11-18; takes at most "
+            "8 questions per request and re-reads the state per question (~2 chars/token), so questions "
+            "travel in batches of 8",
+    },
     "clef-flash": {
         "provider": "cloudflare",
         "model": "clef-flash",
