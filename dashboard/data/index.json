@@ -8947,214 +8947,6 @@
     },
     {
       "actions": {
-        "avg_buys": 5.6,
-        "avg_holds": 14.28,
-        "avg_sells": 5.12,
-        "buy": 0.224,
-        "hold": 0.5712,
-        "sell": 0.2048
-      },
-      "answer_coverage": 1.0,
-      "auc": 0.478945,
-      "auc_p_value": 0.268731,
-      "brier": 0.292787,
-      "brier_skill_p_value": 0.754246,
-      "brier_skill_score": -0.184763,
-      "calibration_gap": null,
-      "category": "ai",
-      "created_utc": "2026-10-23T08:52:45+00:00",
-      "data_cutoff": "2026-10-09",
-      "dcn_protocol": 6,
-      "decisions": 25,
-      "dir": "runs/20261023-085245_2026-6m_liquid-d1-ultra_6dc7739de5",
-      "ece": 0.181063,
-      "end": "2026-10-09",
-      "estimated_cost_usd": 0.007328,
-      "excess_return_ci": {
-        "draws": 1000,
-        "level": 0.95,
-        "lower": -0.232231,
-        "method": "decision-window block bootstrap",
-        "upper": -0.000178
-      },
-      "group": "98e27eb02d1eabad",
-      "invalid_outputs": 0,
-      "label": null,
-      "max_calibration_error": 0.717938,
-      "mean_latency_s": 0.896,
-      "metrics": {
-        "annual_volatility": 0.102201,
-        "answer_coverage": 1.0,
-        "avg_turnover": 0.307858,
-        "baselines": {
-          "equal_weight": 0.09091,
-          "momentum_12_1": -0.002574,
-          "sixty_forty": 0.051921
-        },
-        "cagr": 0.074008,
-        "calibration": {
-          "coverage": 1.0,
-          "horizons": 25,
-          "miscalibration_gap": null,
-          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
-          "observations": 625,
-          "signals": {
-            "noul": {
-              "accuracy": 0.552,
-              "auc": 0.478945,
-              "auc_p_value": 0.268731,
-              "base_rate": 0.4464,
-              "bins": [
-                {
-                  "count": 15,
-                  "lower": 0.0,
-                  "mean_predicted": 0.082062,
-                  "observed_rate": 0.8,
-                  "upper": 0.1
-                },
-                {
-                  "count": 161,
-                  "lower": 0.1,
-                  "mean_predicted": 0.15806,
-                  "observed_rate": 0.47205,
-                  "upper": 0.2
-                },
-                {
-                  "count": 212,
-                  "lower": 0.2,
-                  "mean_predicted": 0.242845,
-                  "observed_rate": 0.410377,
-                  "upper": 0.3
-                },
-                {
-                  "count": 156,
-                  "lower": 0.3,
-                  "mean_predicted": 0.341461,
-                  "observed_rate": 0.410256,
-                  "upper": 0.4
-                },
-                {
-                  "count": 68,
-                  "lower": 0.4,
-                  "mean_predicted": 0.441998,
-                  "observed_rate": 0.5,
-                  "upper": 0.5
-                },
-                {
-                  "count": 12,
-                  "lower": 0.5,
-                  "mean_predicted": 0.522565,
-                  "observed_rate": 0.416667,
-                  "upper": 0.6
-                },
-                {
-                  "count": 1,
-                  "lower": 0.6,
-                  "mean_predicted": 0.620965,
-                  "observed_rate": 1.0,
-                  "upper": 0.7
-                },
-                {
-                  "count": 0,
-                  "lower": 0.7,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 0.8
-                },
-                {
-                  "count": 0,
-                  "lower": 0.8,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 0.9
-                },
-                {
-                  "count": 0,
-                  "lower": 0.9,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 1.0
-                }
-              ],
-              "brier": 0.292787,
-              "brier_skill_p_value": 0.754246,
-              "brier_skill_score": -0.184763,
-              "expected_calibration_error": 0.181063,
-              "log_loss": 0.815348,
-              "max_calibration_error": 0.717938,
-              "mean_predicted": 0.269404,
-              "n": 625,
-              "signal": "noul"
-            }
-          }
-        },
-        "decisions": 25,
-        "estimated_cost_usd": 0.007328,
-        "excess_return_ci": {
-          "draws": 1000,
-          "level": 0.95,
-          "lower": -0.232231,
-          "method": "decision-window block bootstrap",
-          "upper": -0.000178
-        },
-        "excess_return_vs_spy": -0.114271,
-        "input_tokens": 174476,
-        "invalid_outputs": 0,
-        "max_drawdown": -0.050196,
-        "mean_latency_s": 0.896,
-        "outperformance_hit_rate": 0.32,
-        "output_tokens": 0,
-        "requests": 25,
-        "return_ci": {
-          "draws": 1000,
-          "level": 0.95,
-          "lower": -0.08575,
-          "method": "decision-window block bootstrap",
-          "upper": 0.172131
-        },
-        "risk_violations": 0,
-        "sharpe": 0.7494,
-        "spy_total_return": 0.150909,
-        "total_return": 0.036637,
-        "trades": 624
-      },
-      "model": "liquid-d1-ultra",
-      "model_label": "Liquid D1 Ultra (first-party)",
-      "noul_brier": 0.292787,
-      "noul_ece": 0.181063,
-      "policy": {
-        "base_weight": 0.5,
-        "min_names": 2,
-        "min_probability": 0.5,
-        "rebalance_band": 0.02,
-        "selection": "graded_cs",
-        "signals": "consensus",
-        "top_n": 3
-      },
-      "pricing": {
-        "cost_per_m_input": 0.042,
-        "cost_per_m_output": 0.0
-      },
-      "provider": "typesafe",
-      "question_form": "per_asset",
-      "return_ci": {
-        "draws": 1000,
-        "level": 0.95,
-        "lower": -0.08575,
-        "method": "decision-window block bootstrap",
-        "upper": 0.172131
-      },
-      "run_id": "20261023-085245_2026-6m_liquid-d1-ultra_6dc7739de5",
-      "scenario": "2026-6m",
-      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
-      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
-      "start": "2026-04-09",
-      "synthetic": false,
-      "trust": "local",
-      "year": "2026"
-    },
-    {
-      "actions": {
         "avg_buys": 6.28,
         "avg_holds": 12.84,
         "avg_sells": 5.88,
@@ -12067,214 +11859,6 @@
     },
     {
       "actions": {
-        "avg_buys": 5.576923076923077,
-        "avg_holds": 14.615384615384615,
-        "avg_sells": 4.8076923076923075,
-        "buy": 0.2230769230769231,
-        "hold": 0.5846153846153846,
-        "sell": 0.19230769230769232
-      },
-      "answer_coverage": 1.0,
-      "auc": 0.450187,
-      "auc_p_value": 0.965035,
-      "brier": 0.302289,
-      "brier_skill_p_value": 0.047952,
-      "brier_skill_score": -0.210301,
-      "calibration_gap": null,
-      "category": "ai",
-      "created_utc": "2026-10-23T09:35:42+00:00",
-      "data_cutoff": "2026-04-09",
-      "dcn_protocol": 6,
-      "decisions": 26,
-      "dir": "runs/20261023-093542_2026-04-6m_liquid-d1-ultra_55d71a13b9",
-      "ece": 0.202155,
-      "end": "2026-04-09",
-      "estimated_cost_usd": 0.007622,
-      "excess_return_ci": {
-        "draws": 1000,
-        "level": 0.95,
-        "lower": -0.071356,
-        "method": "decision-window block bootstrap",
-        "upper": 0.117431
-      },
-      "group": "9da20a9587d27c06",
-      "invalid_outputs": 0,
-      "label": null,
-      "max_calibration_error": 0.836037,
-      "mean_latency_s": 0.835,
-      "metrics": {
-        "annual_volatility": 0.108973,
-        "answer_coverage": 1.0,
-        "avg_turnover": 0.278848,
-        "baselines": {
-          "equal_weight": 0.081854,
-          "momentum_12_1": 0.233089,
-          "sixty_forty": 0.004191
-        },
-        "cagr": 0.096123,
-        "calibration": {
-          "coverage": 1.0,
-          "horizons": 26,
-          "miscalibration_gap": null,
-          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
-          "observations": 650,
-          "signals": {
-            "noul": {
-              "accuracy": 0.464615,
-              "auc": 0.450187,
-              "auc_p_value": 0.965035,
-              "base_rate": 0.515385,
-              "bins": [
-                {
-                  "count": 0,
-                  "lower": 0.0,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 0.1
-                },
-                {
-                  "count": 54,
-                  "lower": 0.1,
-                  "mean_predicted": 0.164398,
-                  "observed_rate": 0.555556,
-                  "upper": 0.2
-                },
-                {
-                  "count": 179,
-                  "lower": 0.2,
-                  "mean_predicted": 0.251085,
-                  "observed_rate": 0.536313,
-                  "upper": 0.3
-                },
-                {
-                  "count": 202,
-                  "lower": 0.3,
-                  "mean_predicted": 0.349626,
-                  "observed_rate": 0.534653,
-                  "upper": 0.4
-                },
-                {
-                  "count": 106,
-                  "lower": 0.4,
-                  "mean_predicted": 0.438101,
-                  "observed_rate": 0.5,
-                  "upper": 0.5
-                },
-                {
-                  "count": 77,
-                  "lower": 0.5,
-                  "mean_predicted": 0.538528,
-                  "observed_rate": 0.428571,
-                  "upper": 0.6
-                },
-                {
-                  "count": 20,
-                  "lower": 0.6,
-                  "mean_predicted": 0.642901,
-                  "observed_rate": 0.45,
-                  "upper": 0.7
-                },
-                {
-                  "count": 11,
-                  "lower": 0.7,
-                  "mean_predicted": 0.738656,
-                  "observed_rate": 0.545455,
-                  "upper": 0.8
-                },
-                {
-                  "count": 1,
-                  "lower": 0.8,
-                  "mean_predicted": 0.836037,
-                  "observed_rate": 0.0,
-                  "upper": 0.9
-                },
-                {
-                  "count": 0,
-                  "lower": 0.9,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 1.0
-                }
-              ],
-              "brier": 0.302289,
-              "brier_skill_p_value": 0.047952,
-              "brier_skill_score": -0.210301,
-              "expected_calibration_error": 0.202155,
-              "log_loss": 0.815536,
-              "max_calibration_error": 0.836037,
-              "mean_predicted": 0.360263,
-              "n": 650,
-              "signal": "noul"
-            }
-          }
-        },
-        "decisions": 26,
-        "estimated_cost_usd": 0.007622,
-        "excess_return_ci": {
-          "draws": 1000,
-          "level": 0.95,
-          "lower": -0.071356,
-          "method": "decision-window block bootstrap",
-          "upper": 0.117431
-        },
-        "excess_return_vs_spy": 0.027391,
-        "input_tokens": 181471,
-        "invalid_outputs": 0,
-        "max_drawdown": -0.059245,
-        "mean_latency_s": 0.835,
-        "outperformance_hit_rate": 0.5385,
-        "output_tokens": 0,
-        "requests": 26,
-        "return_ci": {
-          "draws": 1000,
-          "level": 0.95,
-          "lower": -0.079317,
-          "method": "decision-window block bootstrap",
-          "upper": 0.188359
-        },
-        "risk_violations": 0,
-        "sharpe": 0.8966,
-        "spy_total_return": 0.018805,
-        "total_return": 0.046196,
-        "trades": 649
-      },
-      "model": "liquid-d1-ultra",
-      "model_label": "Liquid D1 Ultra (first-party)",
-      "noul_brier": 0.302289,
-      "noul_ece": 0.202155,
-      "policy": {
-        "base_weight": 0.5,
-        "min_names": 2,
-        "min_probability": 0.5,
-        "rebalance_band": 0.02,
-        "selection": "graded_cs",
-        "signals": "consensus",
-        "top_n": 3
-      },
-      "pricing": {
-        "cost_per_m_input": 0.042,
-        "cost_per_m_output": 0.0
-      },
-      "provider": "typesafe",
-      "question_form": "per_asset",
-      "return_ci": {
-        "draws": 1000,
-        "level": 0.95,
-        "lower": -0.079317,
-        "method": "decision-window block bootstrap",
-        "upper": 0.188359
-      },
-      "run_id": "20261023-093542_2026-04-6m_liquid-d1-ultra_55d71a13b9",
-      "scenario": "2026-04-6m",
-      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
-      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
-      "start": "2025-10-09",
-      "synthetic": false,
-      "trust": "local",
-      "year": "2026"
-    },
-    {
-      "actions": {
         "avg_buys": 6.153846153846154,
         "avg_holds": 13.538461538461538,
         "avg_sells": 5.3076923076923075,
@@ -15177,214 +14761,6 @@
         "upper": 0.375514
       },
       "run_id": "20261023-094524_2025-10-6m_standard-one-8b_f7771ca038",
-      "scenario": "2025-10-6m",
-      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
-      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
-      "start": "2025-04-09",
-      "synthetic": false,
-      "trust": "local",
-      "year": "2025"
-    },
-    {
-      "actions": {
-        "avg_buys": 5.28,
-        "avg_holds": 14.68,
-        "avg_sells": 5.04,
-        "buy": 0.2112,
-        "hold": 0.5872,
-        "sell": 0.2016
-      },
-      "answer_coverage": 1.0,
-      "auc": 0.512867,
-      "auc_p_value": 0.148851,
-      "brier": 0.303373,
-      "brier_skill_p_value": 0.685315,
-      "brier_skill_score": -0.213569,
-      "calibration_gap": null,
-      "category": "ai",
-      "created_utc": "2026-10-23T09:45:55+00:00",
-      "data_cutoff": "2025-10-09",
-      "dcn_protocol": 6,
-      "decisions": 25,
-      "dir": "runs/20261023-094555_2025-10-6m_liquid-d1-ultra_9a9302e965",
-      "ece": 0.222615,
-      "end": "2025-10-09",
-      "estimated_cost_usd": 0.007343,
-      "excess_return_ci": {
-        "draws": 1000,
-        "level": 0.95,
-        "lower": -0.116925,
-        "method": "decision-window block bootstrap",
-        "upper": 0.092567
-      },
-      "group": "ab10040cadbc17f4",
-      "invalid_outputs": 0,
-      "label": null,
-      "max_calibration_error": 0.676907,
-      "mean_latency_s": 0.919,
-      "metrics": {
-        "annual_volatility": 0.110184,
-        "answer_coverage": 1.0,
-        "avg_turnover": 0.28753,
-        "baselines": {
-          "equal_weight": 0.213265,
-          "momentum_12_1": 0.327843,
-          "sixty_forty": 0.17117
-        },
-        "cagr": 0.499095,
-        "calibration": {
-          "coverage": 1.0,
-          "horizons": 25,
-          "miscalibration_gap": null,
-          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
-          "observations": 625,
-          "signals": {
-            "noul": {
-              "accuracy": 0.48,
-              "auc": 0.512867,
-              "auc_p_value": 0.148851,
-              "base_rate": 0.504,
-              "bins": [
-                {
-                  "count": 6,
-                  "lower": 0.0,
-                  "mean_predicted": 0.085686,
-                  "observed_rate": 0.5,
-                  "upper": 0.1
-                },
-                {
-                  "count": 117,
-                  "lower": 0.1,
-                  "mean_predicted": 0.156741,
-                  "observed_rate": 0.487179,
-                  "upper": 0.2
-                },
-                {
-                  "count": 190,
-                  "lower": 0.2,
-                  "mean_predicted": 0.250831,
-                  "observed_rate": 0.457895,
-                  "upper": 0.3
-                },
-                {
-                  "count": 180,
-                  "lower": 0.3,
-                  "mean_predicted": 0.342792,
-                  "observed_rate": 0.594444,
-                  "upper": 0.4
-                },
-                {
-                  "count": 108,
-                  "lower": 0.4,
-                  "mean_predicted": 0.434537,
-                  "observed_rate": 0.5,
-                  "upper": 0.5
-                },
-                {
-                  "count": 21,
-                  "lower": 0.5,
-                  "mean_predicted": 0.53558,
-                  "observed_rate": 0.333333,
-                  "upper": 0.6
-                },
-                {
-                  "count": 3,
-                  "lower": 0.6,
-                  "mean_predicted": 0.676907,
-                  "observed_rate": 0.0,
-                  "upper": 0.7
-                },
-                {
-                  "count": 0,
-                  "lower": 0.7,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 0.8
-                },
-                {
-                  "count": 0,
-                  "lower": 0.8,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 0.9
-                },
-                {
-                  "count": 0,
-                  "lower": 0.9,
-                  "mean_predicted": 0.0,
-                  "observed_rate": null,
-                  "upper": 1.0
-                }
-              ],
-              "brier": 0.303373,
-              "brier_skill_p_value": 0.685315,
-              "brier_skill_score": -0.213569,
-              "expected_calibration_error": 0.222615,
-              "log_loss": 0.824414,
-              "max_calibration_error": 0.676907,
-              "mean_predicted": 0.301474,
-              "n": 625,
-              "signal": "noul"
-            }
-          }
-        },
-        "decisions": 25,
-        "estimated_cost_usd": 0.007343,
-        "excess_return_ci": {
-          "draws": 1000,
-          "level": 0.95,
-          "lower": -0.116925,
-          "method": "decision-window block bootstrap",
-          "upper": 0.092567
-        },
-        "excess_return_vs_spy": -0.006003,
-        "input_tokens": 174830,
-        "invalid_outputs": 0,
-        "max_drawdown": -0.031781,
-        "mean_latency_s": 0.919,
-        "outperformance_hit_rate": 0.44,
-        "output_tokens": 0,
-        "requests": 25,
-        "return_ci": {
-          "draws": 1000,
-          "level": 0.95,
-          "lower": 0.074745,
-          "method": "decision-window block bootstrap",
-          "upper": 0.390442
-        },
-        "risk_violations": 0,
-        "sharpe": 3.7319,
-        "spy_total_return": 0.230379,
-        "total_return": 0.224376,
-        "trades": 625
-      },
-      "model": "liquid-d1-ultra",
-      "model_label": "Liquid D1 Ultra (first-party)",
-      "noul_brier": 0.303373,
-      "noul_ece": 0.222615,
-      "policy": {
-        "base_weight": 0.5,
-        "min_names": 2,
-        "min_probability": 0.5,
-        "rebalance_band": 0.02,
-        "selection": "graded_cs",
-        "signals": "consensus",
-        "top_n": 3
-      },
-      "pricing": {
-        "cost_per_m_input": 0.042,
-        "cost_per_m_output": 0.0
-      },
-      "provider": "typesafe",
-      "question_form": "per_asset",
-      "return_ci": {
-        "draws": 1000,
-        "level": 0.95,
-        "lower": 0.074745,
-        "method": "decision-window block bootstrap",
-        "upper": 0.390442
-      },
-      "run_id": "20261023-094555_2025-10-6m_liquid-d1-ultra_9a9302e965",
       "scenario": "2025-10-6m",
       "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
       "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
@@ -22457,6 +21833,1878 @@
         "upper": 0.219554
       },
       "run_id": "20261118-102701_2026-6m_minara-kairos_b64ef18247",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.8,
+        "avg_holds": 13.96,
+        "avg_sells": 5.24,
+        "buy": 0.232,
+        "hold": 0.5584,
+        "sell": 0.2096
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.523635,
+      "auc_p_value": 0.148851,
+      "brier": 0.284861,
+      "brier_skill_p_value": 0.794206,
+      "brier_skill_score": -0.139517,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:09:53+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261118-160953_2025-10-6m_nace-drex-max-1-1_130278d488",
+      "ece": 0.185674,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.004797,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.154401,
+        "method": "decision-window block bootstrap",
+        "upper": 0.112093
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.432356,
+      "mean_latency_s": 0.819,
+      "metrics": {
+        "annual_volatility": 0.110036,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.290558,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.459364,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.48,
+              "auc": 0.523635,
+              "auc_p_value": 0.148851,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 2,
+                  "lower": 0.0,
+                  "mean_predicted": 0.076795,
+                  "observed_rate": 0.5,
+                  "upper": 0.1
+                },
+                {
+                  "count": 61,
+                  "lower": 0.1,
+                  "mean_predicted": 0.161901,
+                  "observed_rate": 0.42623,
+                  "upper": 0.2
+                },
+                {
+                  "count": 159,
+                  "lower": 0.2,
+                  "mean_predicted": 0.256952,
+                  "observed_rate": 0.471698,
+                  "upper": 0.3
+                },
+                {
+                  "count": 231,
+                  "lower": 0.3,
+                  "mean_predicted": 0.351325,
+                  "observed_rate": 0.532468,
+                  "upper": 0.4
+                },
+                {
+                  "count": 118,
+                  "lower": 0.4,
+                  "mean_predicted": 0.442428,
+                  "observed_rate": 0.576271,
+                  "upper": 0.5
+                },
+                {
+                  "count": 49,
+                  "lower": 0.5,
+                  "mean_predicted": 0.533303,
+                  "observed_rate": 0.428571,
+                  "upper": 0.6
+                },
+                {
+                  "count": 5,
+                  "lower": 0.6,
+                  "mean_predicted": 0.632356,
+                  "observed_rate": 0.2,
+                  "upper": 0.7
+                },
+                {
+                  "count": 0,
+                  "lower": 0.7,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.284861,
+              "brier_skill_p_value": 0.794206,
+              "brier_skill_score": -0.139517,
+              "expected_calibration_error": 0.185674,
+              "log_loss": 0.775277,
+              "max_calibration_error": 0.432356,
+              "mean_predicted": 0.341666,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.004797,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.154401,
+          "method": "decision-window block bootstrap",
+          "upper": 0.112093
+        },
+        "excess_return_vs_spy": -0.022337,
+        "input_tokens": 159902,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.043945,
+        "mean_latency_s": 0.819,
+        "outperformance_hit_rate": 0.48,
+        "output_tokens": 23226,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.068617,
+          "method": "decision-window block bootstrap",
+          "upper": 0.362866
+        },
+        "risk_violations": 0,
+        "sharpe": 3.4923,
+        "spy_total_return": 0.230379,
+        "total_return": 0.208041,
+        "trades": 625
+      },
+      "model": "nace-drex-max-1-1",
+      "model_label": "Nace AI Drex Max v1.1",
+      "noul_brier": 0.284861,
+      "noul_ece": 0.185674,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.03,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.068617,
+        "method": "decision-window block bootstrap",
+        "upper": 0.362866
+      },
+      "run_id": "20261118-160953_2025-10-6m_nace-drex-max-1-1_130278d488",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.384615384615385,
+        "avg_holds": 14.615384615384615,
+        "avg_sells": 5.0,
+        "buy": 0.2153846153846154,
+        "hold": 0.5846153846153846,
+        "sell": 0.2
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.483686,
+      "auc_p_value": 0.492507,
+      "brier": 0.286863,
+      "brier_skill_p_value": 0.354645,
+      "brier_skill_score": -0.148539,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:10:22+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261118-161022_2026-04-6m_nace-drex-max-1-1_1f9e6de098",
+      "ece": 0.157767,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.00497,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.045638,
+        "method": "decision-window block bootstrap",
+        "upper": 0.180039
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.905565,
+      "mean_latency_s": 0.808,
+      "metrics": {
+        "annual_volatility": 0.110601,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.287723,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.183268,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.489231,
+              "auc": 0.483686,
+              "auc_p_value": 0.492507,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 1,
+                  "lower": 0.0,
+                  "mean_predicted": 0.094435,
+                  "observed_rate": 1.0,
+                  "upper": 0.1
+                },
+                {
+                  "count": 28,
+                  "lower": 0.1,
+                  "mean_predicted": 0.167076,
+                  "observed_rate": 0.642857,
+                  "upper": 0.2
+                },
+                {
+                  "count": 137,
+                  "lower": 0.2,
+                  "mean_predicted": 0.266714,
+                  "observed_rate": 0.50365,
+                  "upper": 0.3
+                },
+                {
+                  "count": 264,
+                  "lower": 0.3,
+                  "mean_predicted": 0.355993,
+                  "observed_rate": 0.518939,
+                  "upper": 0.4
+                },
+                {
+                  "count": 119,
+                  "lower": 0.4,
+                  "mean_predicted": 0.444509,
+                  "observed_rate": 0.487395,
+                  "upper": 0.5
+                },
+                {
+                  "count": 65,
+                  "lower": 0.5,
+                  "mean_predicted": 0.542891,
+                  "observed_rate": 0.523077,
+                  "upper": 0.6
+                },
+                {
+                  "count": 26,
+                  "lower": 0.6,
+                  "mean_predicted": 0.638304,
+                  "observed_rate": 0.538462,
+                  "upper": 0.7
+                },
+                {
+                  "count": 9,
+                  "lower": 0.7,
+                  "mean_predicted": 0.740627,
+                  "observed_rate": 0.333333,
+                  "upper": 0.8
+                },
+                {
+                  "count": 1,
+                  "lower": 0.8,
+                  "mean_predicted": 0.809507,
+                  "observed_rate": 1.0,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.286863,
+              "brier_skill_p_value": 0.354645,
+              "brier_skill_score": -0.148539,
+              "expected_calibration_error": 0.157767,
+              "log_loss": 0.778298,
+              "max_calibration_error": 0.905565,
+              "mean_predicted": 0.380846,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.00497,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.045638,
+          "method": "decision-window block bootstrap",
+          "upper": 0.180039
+        },
+        "excess_return_vs_spy": 0.067524,
+        "input_tokens": 165676,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.055938,
+        "mean_latency_s": 0.808,
+        "outperformance_hit_rate": 0.5769,
+        "output_tokens": 24163,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.044953,
+          "method": "decision-window block bootstrap",
+          "upper": 0.238198
+        },
+        "risk_violations": 0,
+        "sharpe": 1.5769,
+        "spy_total_return": 0.018805,
+        "total_return": 0.08633,
+        "trades": 649
+      },
+      "model": "nace-drex-max-1-1",
+      "model_label": "Nace AI Drex Max v1.1",
+      "noul_brier": 0.286863,
+      "noul_ece": 0.157767,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.03,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.044953,
+        "method": "decision-window block bootstrap",
+        "upper": 0.238198
+      },
+      "run_id": "20261118-161022_2026-04-6m_nace-drex-max-1-1_1f9e6de098",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.48,
+        "avg_holds": 14.68,
+        "avg_sells": 4.84,
+        "buy": 0.2192,
+        "hold": 0.5872,
+        "sell": 0.1936
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.487015,
+      "auc_p_value": 0.448551,
+      "brier": 0.274774,
+      "brier_skill_p_value": 0.577423,
+      "brier_skill_score": -0.111873,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:10:50+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261118-161050_2026-6m_nace-drex-max-1-1_3607052978",
+      "ece": 0.148274,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.004778,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.248654,
+        "method": "decision-window block bootstrap",
+        "upper": -0.004023
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.325223,
+      "mean_latency_s": 0.815,
+      "metrics": {
+        "annual_volatility": 0.101082,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.292952,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.066605,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.536,
+              "auc": 0.487015,
+              "auc_p_value": 0.448551,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 5,
+                  "lower": 0.0,
+                  "mean_predicted": 0.074777,
+                  "observed_rate": 0.4,
+                  "upper": 0.1
+                },
+                {
+                  "count": 61,
+                  "lower": 0.1,
+                  "mean_predicted": 0.162886,
+                  "observed_rate": 0.459016,
+                  "upper": 0.2
+                },
+                {
+                  "count": 193,
+                  "lower": 0.2,
+                  "mean_predicted": 0.255847,
+                  "observed_rate": 0.455959,
+                  "upper": 0.3
+                },
+                {
+                  "count": 225,
+                  "lower": 0.3,
+                  "mean_predicted": 0.347769,
+                  "observed_rate": 0.457778,
+                  "upper": 0.4
+                },
+                {
+                  "count": 98,
+                  "lower": 0.4,
+                  "mean_predicted": 0.443647,
+                  "observed_rate": 0.428571,
+                  "upper": 0.5
+                },
+                {
+                  "count": 31,
+                  "lower": 0.5,
+                  "mean_predicted": 0.533395,
+                  "observed_rate": 0.354839,
+                  "upper": 0.6
+                },
+                {
+                  "count": 12,
+                  "lower": 0.6,
+                  "mean_predicted": 0.632905,
+                  "observed_rate": 0.416667,
+                  "upper": 0.7
+                },
+                {
+                  "count": 0,
+                  "lower": 0.7,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.274774,
+              "brier_skill_p_value": 0.577423,
+              "brier_skill_score": -0.111873,
+              "expected_calibration_error": 0.148274,
+              "log_loss": 0.754682,
+              "max_calibration_error": 0.325223,
+              "mean_predicted": 0.32887,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.004778,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.248654,
+          "method": "decision-window block bootstrap",
+          "upper": -0.004023
+        },
+        "excess_return_vs_spy": -0.117879,
+        "input_tokens": 159276,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.038508,
+        "mean_latency_s": 0.815,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 23276,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.070123,
+          "method": "decision-window block bootstrap",
+          "upper": 0.1418
+        },
+        "risk_violations": 0,
+        "sharpe": 0.6881,
+        "spy_total_return": 0.150909,
+        "total_return": 0.03303,
+        "trades": 625
+      },
+      "model": "nace-drex-max-1-1",
+      "model_label": "Nace AI Drex Max v1.1",
+      "noul_brier": 0.274774,
+      "noul_ece": 0.148274,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.03,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.070123,
+        "method": "decision-window block bootstrap",
+        "upper": 0.1418
+      },
+      "run_id": "20261118-161050_2026-6m_nace-drex-max-1-1_3607052978",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.96,
+        "avg_holds": 13.72,
+        "avg_sells": 5.32,
+        "buy": 0.2384,
+        "hold": 0.5488,
+        "sell": 0.2128
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.540405,
+      "auc_p_value": 0.045954,
+      "brier": 0.283842,
+      "brier_skill_p_value": 0.941059,
+      "brier_skill_score": -0.13544,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:13:11+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261118-161311_2025-10-6m_liquid-d1-2_864270cb82",
+      "ece": 0.159004,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.003502,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.163437,
+        "method": "decision-window block bootstrap",
+        "upper": 0.129711
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.372002,
+      "mean_latency_s": 0.505,
+      "metrics": {
+        "annual_volatility": 0.105956,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.261999,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.486335,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5344,
+              "auc": 0.540405,
+              "auc_p_value": 0.045954,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 28,
+                  "lower": 0.0,
+                  "mean_predicted": 0.076408,
+                  "observed_rate": 0.392857,
+                  "upper": 0.1
+                },
+                {
+                  "count": 90,
+                  "lower": 0.1,
+                  "mean_predicted": 0.150221,
+                  "observed_rate": 0.522222,
+                  "upper": 0.2
+                },
+                {
+                  "count": 116,
+                  "lower": 0.2,
+                  "mean_predicted": 0.255505,
+                  "observed_rate": 0.413793,
+                  "upper": 0.3
+                },
+                {
+                  "count": 96,
+                  "lower": 0.3,
+                  "mean_predicted": 0.355965,
+                  "observed_rate": 0.53125,
+                  "upper": 0.4
+                },
+                {
+                  "count": 121,
+                  "lower": 0.4,
+                  "mean_predicted": 0.452111,
+                  "observed_rate": 0.487603,
+                  "upper": 0.5
+                },
+                {
+                  "count": 121,
+                  "lower": 0.5,
+                  "mean_predicted": 0.543198,
+                  "observed_rate": 0.61157,
+                  "upper": 0.6
+                },
+                {
+                  "count": 48,
+                  "lower": 0.6,
+                  "mean_predicted": 0.638033,
+                  "observed_rate": 0.479167,
+                  "upper": 0.7
+                },
+                {
+                  "count": 5,
+                  "lower": 0.7,
+                  "mean_predicted": 0.731021,
+                  "observed_rate": 0.4,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.283842,
+              "brier_skill_p_value": 0.941059,
+              "brier_skill_score": -0.13544,
+              "expected_calibration_error": 0.159004,
+              "log_loss": 0.790628,
+              "max_calibration_error": 0.372002,
+              "mean_predicted": 0.374694,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.003502,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.163437,
+          "method": "decision-window block bootstrap",
+          "upper": 0.129711
+        },
+        "excess_return_vs_spy": -0.011225,
+        "input_tokens": 175116,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.04385,
+        "mean_latency_s": 0.505,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.088446,
+          "method": "decision-window block bootstrap",
+          "upper": 0.34926
+        },
+        "risk_violations": 0,
+        "sharpe": 3.7957,
+        "spy_total_return": 0.230379,
+        "total_return": 0.219153,
+        "trades": 625
+      },
+      "model": "liquid-d1-2",
+      "model_label": "Liquid D1.2 (first-party)",
+      "noul_brier": 0.283842,
+      "noul_ece": 0.159004,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.02,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.088446,
+        "method": "decision-window block bootstrap",
+        "upper": 0.34926
+      },
+      "run_id": "20261118-161311_2025-10-6m_liquid-d1-2_864270cb82",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.961538461538462,
+        "avg_holds": 13.423076923076923,
+        "avg_sells": 5.615384615384615,
+        "buy": 0.23846153846153847,
+        "hold": 0.536923076923077,
+        "sell": 0.2246153846153846
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.484231,
+      "auc_p_value": 0.589411,
+      "brier": 0.294752,
+      "brier_skill_p_value": 0.467532,
+      "brier_skill_score": -0.180124,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:13:35+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261118-161335_2026-04-6m_liquid-d1-2_8165dce363",
+      "ece": 0.177141,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.003635,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.065416,
+        "method": "decision-window block bootstrap",
+        "upper": 0.14008
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.674826,
+      "mean_latency_s": 0.599,
+      "metrics": {
+        "annual_volatility": 0.107027,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.273184,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.13275,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.483077,
+              "auc": 0.484231,
+              "auc_p_value": 0.589411,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 12,
+                  "lower": 0.0,
+                  "mean_predicted": 0.075174,
+                  "observed_rate": 0.75,
+                  "upper": 0.1
+                },
+                {
+                  "count": 78,
+                  "lower": 0.1,
+                  "mean_predicted": 0.155944,
+                  "observed_rate": 0.474359,
+                  "upper": 0.2
+                },
+                {
+                  "count": 127,
+                  "lower": 0.2,
+                  "mean_predicted": 0.253861,
+                  "observed_rate": 0.527559,
+                  "upper": 0.3
+                },
+                {
+                  "count": 112,
+                  "lower": 0.3,
+                  "mean_predicted": 0.351767,
+                  "observed_rate": 0.589286,
+                  "upper": 0.4
+                },
+                {
+                  "count": 118,
+                  "lower": 0.4,
+                  "mean_predicted": 0.448259,
+                  "observed_rate": 0.466102,
+                  "upper": 0.5
+                },
+                {
+                  "count": 113,
+                  "lower": 0.5,
+                  "mean_predicted": 0.543334,
+                  "observed_rate": 0.460177,
+                  "upper": 0.6
+                },
+                {
+                  "count": 77,
+                  "lower": 0.6,
+                  "mean_predicted": 0.632624,
+                  "observed_rate": 0.519481,
+                  "upper": 0.7
+                },
+                {
+                  "count": 13,
+                  "lower": 0.7,
+                  "mean_predicted": 0.740894,
+                  "observed_rate": 0.692308,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.294752,
+              "brier_skill_p_value": 0.467532,
+              "brier_skill_score": -0.180124,
+              "expected_calibration_error": 0.177141,
+              "log_loss": 0.806714,
+              "max_calibration_error": 0.674826,
+              "mean_predicted": 0.395906,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.003635,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.065416,
+          "method": "decision-window block bootstrap",
+          "upper": 0.14008
+        },
+        "excess_return_vs_spy": 0.044449,
+        "input_tokens": 181763,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.061335,
+        "mean_latency_s": 0.599,
+        "outperformance_hit_rate": 0.5385,
+        "output_tokens": 0,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.056525,
+          "method": "decision-window block bootstrap",
+          "upper": 0.206668
+        },
+        "risk_violations": 0,
+        "sharpe": 1.2181,
+        "spy_total_return": 0.018805,
+        "total_return": 0.063255,
+        "trades": 649
+      },
+      "model": "liquid-d1-2",
+      "model_label": "Liquid D1.2 (first-party)",
+      "noul_brier": 0.294752,
+      "noul_ece": 0.177141,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.02,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.056525,
+        "method": "decision-window block bootstrap",
+        "upper": 0.206668
+      },
+      "run_id": "20261118-161335_2026-04-6m_liquid-d1-2_8165dce363",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 6.2,
+        "avg_holds": 12.88,
+        "avg_sells": 5.92,
+        "buy": 0.248,
+        "hold": 0.5152,
+        "sell": 0.2368
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.465556,
+      "auc_p_value": 0.768232,
+      "brier": 0.302866,
+      "brier_skill_p_value": 0.228771,
+      "brier_skill_score": -0.225547,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:13:57+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261118-161357_2026-6m_liquid-d1-2_db389d57f5",
+      "ece": 0.196889,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.003489,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.23731,
+        "method": "decision-window block bootstrap",
+        "upper": 0.018458
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.538512,
+      "mean_latency_s": 0.519,
+      "metrics": {
+        "annual_volatility": 0.098394,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.311841,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.093165,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5344,
+              "auc": 0.465556,
+              "auc_p_value": 0.768232,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 62,
+                  "lower": 0.0,
+                  "mean_predicted": 0.074391,
+                  "observed_rate": 0.612903,
+                  "upper": 0.1
+                },
+                {
+                  "count": 127,
+                  "lower": 0.1,
+                  "mean_predicted": 0.153634,
+                  "observed_rate": 0.448819,
+                  "upper": 0.2
+                },
+                {
+                  "count": 115,
+                  "lower": 0.2,
+                  "mean_predicted": 0.24867,
+                  "observed_rate": 0.4,
+                  "upper": 0.3
+                },
+                {
+                  "count": 91,
+                  "lower": 0.3,
+                  "mean_predicted": 0.351552,
+                  "observed_rate": 0.450549,
+                  "upper": 0.4
+                },
+                {
+                  "count": 92,
+                  "lower": 0.4,
+                  "mean_predicted": 0.446158,
+                  "observed_rate": 0.369565,
+                  "upper": 0.5
+                },
+                {
+                  "count": 75,
+                  "lower": 0.5,
+                  "mean_predicted": 0.538023,
+                  "observed_rate": 0.52,
+                  "upper": 0.6
+                },
+                {
+                  "count": 49,
+                  "lower": 0.6,
+                  "mean_predicted": 0.635065,
+                  "observed_rate": 0.387755,
+                  "upper": 0.7
+                },
+                {
+                  "count": 12,
+                  "lower": 0.7,
+                  "mean_predicted": 0.720249,
+                  "observed_rate": 0.333333,
+                  "upper": 0.8
+                },
+                {
+                  "count": 2,
+                  "lower": 0.8,
+                  "mean_predicted": 0.803962,
+                  "observed_rate": 0.5,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.302866,
+              "brier_skill_p_value": 0.228771,
+              "brier_skill_score": -0.225547,
+              "expected_calibration_error": 0.196889,
+              "log_loss": 0.858231,
+              "max_calibration_error": 0.538512,
+              "mean_predicted": 0.331967,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.003489,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.23731,
+          "method": "decision-window block bootstrap",
+          "upper": 0.018458
+        },
+        "excess_return_vs_spy": -0.104994,
+        "input_tokens": 174464,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.042671,
+        "mean_latency_s": 0.519,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.066825,
+          "method": "decision-window block bootstrap",
+          "upper": 0.165692
+        },
+        "risk_violations": 0,
+        "sharpe": 0.9542,
+        "spy_total_return": 0.150909,
+        "total_return": 0.045915,
+        "trades": 624
+      },
+      "model": "liquid-d1-2",
+      "model_label": "Liquid D1.2 (first-party)",
+      "noul_brier": 0.302866,
+      "noul_ece": 0.196889,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.02,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.066825,
+        "method": "decision-window block bootstrap",
+        "upper": 0.165692
+      },
+      "run_id": "20261118-161357_2026-6m_liquid-d1-2_db389d57f5",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.8,
+        "avg_holds": 15.64,
+        "avg_sells": 4.56,
+        "buy": 0.192,
+        "hold": 0.6256,
+        "sell": 0.1824
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.526467,
+      "auc_p_value": 0.080919,
+      "brier": 0.25568,
+      "brier_skill_p_value": 0.834166,
+      "brier_skill_score": -0.022785,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:14:20+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261118-161420_2025-10-6m_liquid-d1-2-ultra_0729582b48",
+      "ece": 0.059242,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.007348,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.15527,
+        "method": "decision-window block bootstrap",
+        "upper": 0.098471
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.728396,
+      "mean_latency_s": 0.691,
+      "metrics": {
+        "annual_volatility": 0.112199,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.230573,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.474152,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.512,
+              "auc": 0.526467,
+              "auc_p_value": 0.080919,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 9,
+                  "lower": 0.2,
+                  "mean_predicted": 0.282171,
+                  "observed_rate": 0.555556,
+                  "upper": 0.3
+                },
+                {
+                  "count": 129,
+                  "lower": 0.3,
+                  "mean_predicted": 0.360891,
+                  "observed_rate": 0.449612,
+                  "upper": 0.4
+                },
+                {
+                  "count": 269,
+                  "lower": 0.4,
+                  "mean_predicted": 0.447602,
+                  "observed_rate": 0.513011,
+                  "upper": 0.5
+                },
+                {
+                  "count": 197,
+                  "lower": 0.5,
+                  "mean_predicted": 0.536294,
+                  "observed_rate": 0.538071,
+                  "upper": 0.6
+                },
+                {
+                  "count": 20,
+                  "lower": 0.6,
+                  "mean_predicted": 0.622352,
+                  "observed_rate": 0.4,
+                  "upper": 0.7
+                },
+                {
+                  "count": 1,
+                  "lower": 0.7,
+                  "mean_predicted": 0.728396,
+                  "observed_rate": 0.0,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.25568,
+              "brier_skill_p_value": 0.834166,
+              "brier_skill_score": -0.022785,
+              "expected_calibration_error": 0.059242,
+              "log_loss": 0.705211,
+              "max_calibration_error": 0.728396,
+              "mean_predicted": 0.46132,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.007348,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.15527,
+          "method": "decision-window block bootstrap",
+          "upper": 0.098471
+        },
+        "excess_return_vs_spy": -0.016232,
+        "input_tokens": 174957,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.039497,
+        "mean_latency_s": 0.691,
+        "outperformance_hit_rate": 0.56,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.08381,
+          "method": "decision-window block bootstrap",
+          "upper": 0.361464
+        },
+        "risk_violations": 0,
+        "sharpe": 3.5172,
+        "spy_total_return": 0.230379,
+        "total_return": 0.214146,
+        "trades": 625
+      },
+      "model": "liquid-d1-2-ultra",
+      "model_label": "Liquid D1.2 Ultra (first-party)",
+      "noul_brier": 0.25568,
+      "noul_ece": 0.059242,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.08381,
+        "method": "decision-window block bootstrap",
+        "upper": 0.361464
+      },
+      "run_id": "20261118-161420_2025-10-6m_liquid-d1-2-ultra_0729582b48",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.230769230769231,
+        "avg_holds": 14.884615384615385,
+        "avg_sells": 4.884615384615385,
+        "buy": 0.20923076923076922,
+        "hold": 0.5953846153846154,
+        "sell": 0.19538461538461538
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.504582,
+      "auc_p_value": 0.251748,
+      "brier": 0.254828,
+      "brier_skill_p_value": 0.763237,
+      "brier_skill_score": -0.020277,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:14:41+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261118-161441_2026-04-6m_liquid-d1-2-ultra_ca442894bc",
+      "ece": 0.070083,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.007623,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.035671,
+        "method": "decision-window block bootstrap",
+        "upper": 0.154921
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.736617,
+      "mean_latency_s": 0.581,
+      "metrics": {
+        "annual_volatility": 0.108864,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.238823,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.170473,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.489231,
+              "auc": 0.504582,
+              "auc_p_value": 0.251748,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 0,
+                  "lower": 0.2,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.3
+                },
+                {
+                  "count": 61,
+                  "lower": 0.3,
+                  "mean_predicted": 0.374571,
+                  "observed_rate": 0.508197,
+                  "upper": 0.4
+                },
+                {
+                  "count": 250,
+                  "lower": 0.4,
+                  "mean_predicted": 0.45464,
+                  "observed_rate": 0.532,
+                  "upper": 0.5
+                },
+                {
+                  "count": 272,
+                  "lower": 0.5,
+                  "mean_predicted": 0.538127,
+                  "observed_rate": 0.488971,
+                  "upper": 0.6
+                },
+                {
+                  "count": 63,
+                  "lower": 0.6,
+                  "mean_predicted": 0.630887,
+                  "observed_rate": 0.603175,
+                  "upper": 0.7
+                },
+                {
+                  "count": 4,
+                  "lower": 0.7,
+                  "mean_predicted": 0.736617,
+                  "observed_rate": 0.0,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.254828,
+              "brier_skill_p_value": 0.763237,
+              "brier_skill_score": -0.020277,
+              "expected_calibration_error": 0.070083,
+              "log_loss": 0.703317,
+              "max_calibration_error": 0.736617,
+              "mean_predicted": 0.50088,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.007623,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.035671,
+          "method": "decision-window block bootstrap",
+          "upper": 0.154921
+        },
+        "excess_return_vs_spy": 0.061728,
+        "input_tokens": 181505,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.059522,
+        "mean_latency_s": 0.581,
+        "outperformance_hit_rate": 0.5769,
+        "output_tokens": 0,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.052354,
+          "method": "decision-window block bootstrap",
+          "upper": 0.241815
+        },
+        "risk_violations": 0,
+        "sharpe": 1.5004,
+        "spy_total_return": 0.018805,
+        "total_return": 0.080533,
+        "trades": 649
+      },
+      "model": "liquid-d1-2-ultra",
+      "model_label": "Liquid D1.2 Ultra (first-party)",
+      "noul_brier": 0.254828,
+      "noul_ece": 0.070083,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.052354,
+        "method": "decision-window block bootstrap",
+        "upper": 0.241815
+      },
+      "run_id": "20261118-161441_2026-04-6m_liquid-d1-2-ultra_ca442894bc",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "local",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.76,
+        "avg_holds": 15.96,
+        "avg_sells": 4.28,
+        "buy": 0.1904,
+        "hold": 0.6384,
+        "sell": 0.1712
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.518123,
+      "auc_p_value": 0.04995,
+      "brier": 0.251409,
+      "brier_skill_p_value": 0.936064,
+      "brier_skill_score": -0.017326,
+      "calibration_gap": null,
+      "category": "ai",
+      "created_utc": "2026-11-18T16:15:05+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261118-161505_2026-6m_liquid-d1-2-ultra_fb29048651",
+      "ece": 0.045138,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.007331,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.202635,
+        "method": "decision-window block bootstrap",
+        "upper": 0.037245
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.184199,
+      "mean_latency_s": 0.716,
+      "metrics": {
+        "annual_volatility": 0.099034,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.224867,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.146468,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5456,
+              "auc": 0.518123,
+              "auc_p_value": 0.04995,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 10,
+                  "lower": 0.2,
+                  "mean_predicted": 0.273683,
+                  "observed_rate": 0.4,
+                  "upper": 0.3
+                },
+                {
+                  "count": 168,
+                  "lower": 0.3,
+                  "mean_predicted": 0.364534,
+                  "observed_rate": 0.428571,
+                  "upper": 0.4
+                },
+                {
+                  "count": 256,
+                  "lower": 0.4,
+                  "mean_predicted": 0.448483,
+                  "observed_rate": 0.429688,
+                  "upper": 0.5
+                },
+                {
+                  "count": 171,
+                  "lower": 0.5,
+                  "mean_predicted": 0.536223,
+                  "observed_rate": 0.491228,
+                  "upper": 0.6
+                },
+                {
+                  "count": 20,
+                  "lower": 0.6,
+                  "mean_predicted": 0.634199,
+                  "observed_rate": 0.45,
+                  "upper": 0.7
+                },
+                {
+                  "count": 0,
+                  "lower": 0.7,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.251409,
+              "brier_skill_p_value": 0.936064,
+              "brier_skill_score": -0.017326,
+              "expected_calibration_error": 0.045138,
+              "log_loss": 0.696484,
+              "max_calibration_error": 0.184199,
+              "mean_predicted": 0.453069,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.007331,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.202635,
+          "method": "decision-window block bootstrap",
+          "upper": 0.037245
+        },
+        "excess_return_vs_spy": -0.079595,
+        "input_tokens": 174548,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.039082,
+        "mean_latency_s": 0.716,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.049767,
+          "method": "decision-window block bootstrap",
+          "upper": 0.209781
+        },
+        "risk_violations": 0,
+        "sharpe": 1.4297,
+        "spy_total_return": 0.150909,
+        "total_return": 0.071313,
+        "trades": 625
+      },
+      "model": "liquid-d1-2-ultra",
+      "model_label": "Liquid D1.2 Ultra (first-party)",
+      "noul_brier": 0.251409,
+      "noul_ece": 0.045138,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "typesafe",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.049767,
+        "method": "decision-window block bootstrap",
+        "upper": 0.209781
+      },
+      "run_id": "20261118-161505_2026-6m_liquid-d1-2-ultra_fb29048651",
       "scenario": "2026-6m",
       "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
       "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",

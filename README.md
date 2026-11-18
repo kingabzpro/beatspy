@@ -4,7 +4,7 @@
 
 **Decision models, not chat models.**
 
-Twenty-three decision models across two protocol versions read the same frozen
+Twenty-five decision models across two protocol versions read the same frozen
 point-in-time market state, answer the same typed probability questions, and are
 scored twice: were the probabilities calibrated, and did the portfolio they built
 beat SPY? Protocol v2 (2026-10-23) adds risk and context to the state: RSI-14,
@@ -16,21 +16,21 @@ sector label, because under v1 the models mostly echoed the momentum column.
 [![CI](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml/badge.svg)](https://github.com/kingabzpro/beatspy/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](pyproject.toml)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
-[![v2 19-model run](https://img.shields.io/badge/v2%2019--model%20run-%240.29-brightgreen.svg)](#the-models)
+[![v2 21-model run](https://img.shields.io/badge/v2%2021--model%20run-%240.30-brightgreen.svg)](#the-models)
 
 </div>
 
 > [!IMPORTANT]
 > **The honest result.** Across all three v2 windows (18 months of weekly
 > decisions), the best average gap to SPY is +0.48pp and no Brier skill is
-> positive. Nine model-window cells reach a nominal AUC p-value under 0.05
+> positive. Eleven model-window cells reach a nominal AUC p-value under 0.05
 > (smallest: `kairos` p 0.002), against roughly three expected by chance at
 > this many tests; the cells share windows and models, so none survives a
 > proper correction. Four models beat SPY in two of three windows
 > (`mammoth-1`, `jev-latest`, `subq-snap-1.1`, `kairos`), and every margin sits
 > inside its bootstrap interval. The single-window leader (Clef Omni) fell to
 > mid-table once the other windows ran, which is exactly why the board scores
-> three. v2 did move mean discrimination above a coin flip for eight models
+> three. v2 did move mean discrimination above a coin flip for nine models
 > (mean AUC up to 0.526, from 0.39 on the momentum-only state), which is a
 > reason to keep testing, not a claim of edge.
 
@@ -55,17 +55,19 @@ yardstick, never held.
 | `jev-latest` | +1.39pp | +3.52pp | -6.59pp | -0.56pp | **2/3** |
 | `elephant-1` (Baseten, free) | -1.31pp | +6.35pp | -6.83pp | -0.60pp | 1/3 |
 | `clef-flash` | -1.68pp | +3.74pp | -4.79pp | -0.91pp | 1/3 |
+| `d1.2-ultra` (Liquid) | -1.62pp | +6.17pp | -7.96pp | -1.14pp | 1/3 |
 | `d3-turbo` (free) | -0.59pp | +5.26pp | -8.77pp | -1.36pp | 1/3 |
 | `ms-decision-1` | -3.85pp | +7.23pp | -7.49pp | -1.37pp | 1/3 |
 | `jev-1.14` | -0.70pp | +3.50pp | -7.87pp | -1.69pp | 1/3 |
 | `pplx-decider` | -1.20pp | -0.51pp | -5.39pp | -2.37pp | 0/3 |
+| `d1.2` (Liquid) | -1.12pp | +4.44pp | -10.50pp | -2.39pp | 1/3 |
+| `drex-max-v1.1` (Nace) | -2.23pp | +6.75pp | -11.79pp | -2.42pp | 1/3 |
 | `d3-edge` (free) | -3.47pp | +3.98pp | -7.82pp | -2.44pp | 1/3 |
 | `d3-mini` (free) | -2.54pp | +3.12pp | -8.31pp | -2.58pp | 1/3 |
-| `liquid-d1-ultra` | -0.60pp | +2.74pp | -11.43pp | -3.10pp | 1/3 |
 | `standard-one-8b` | -1.44pp | +3.05pp | -11.44pp | -3.28pp | 1/3 |
 
 Each column is the model's gap to SPY in one six-month window (SPY made
-+23.04%, +1.88% and +15.09%). The Apr 26 window lifted 18 of 19 models above
++23.04%, +1.88% and +15.09%). The Apr 26 window lifted 20 of 21 models above
 SPY because the pool itself outran a flat index there; the other two windows
 are the honest test, and there the gaps are negative or inside noise. The
 single-window returns live on the dashboard, one chip per window, with the
@@ -74,22 +76,23 @@ in: they live on the site's archive page.
 
 ## The models
 
-Nine providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
+Ten providers are wired natively: OpenAI Decisions (`gpt-6-luna`), TypeSafe
 (`jev-latest`), Cloudflare Workers AI (`clef`, `clef-flash`, `clef-omni`),
 Requesty (`jev-1.14`, `pplx-decider`, `ms-decision-1`), Standard Thinking
-(`standard-one-8b`), Liquid (`liquid-d1-ultra`), vLLM SR (`d3-turbo`, `d3-mini`,
+(`standard-one-8b`), Liquid (`d1.2`, `d1.2-ultra`), Nace (`drex-max-v1.1`,
+$0.03/M input), vLLM SR (`d3-turbo`, `d3-mini`,
 `d3-edge`, all free), Subquadratic (`subq-snap-1.1`), and Minara Cloud
 (`kairos`, a Jev-family deployment at $0.042/M input). Respan also answers
 first-party: `span-01-free` via api.respan.ai's behavior-scoring endpoint
 (free, each noul question mapped to one scored proposition) ran all three
 windows at 100% coverage, no daily-cap trouble (`span-02` first-party needs
-paid Respan credits). The paid routes (`kev-4b`, `liquid-d1`, `drex-v1.5`)
+paid Respan credits). The paid routes (`kev-4b`, `liquid-d1`)
 still wait on a zero balance, and `mercury-decide:free` keeps answering 403
 upstream. All bill input tokens only. Most answer every question in one call;
 `kairos` takes eight questions per request and re-reads the state per question
 (about 98,500 tokens per decision), as do the two small d3s, so compare cost
-per decision rather than per token. The 19-model v2 board above cost about
-**$0.29** for its latest window. `beatspy models` prints every runnable id,
+per decision rather than per token. The 21-model v2 board above cost about
+**$0.30** for its latest window. `beatspy models` prints every runnable id,
 endpoint, and price.
 
 ## Quick start

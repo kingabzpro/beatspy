@@ -646,6 +646,46 @@ DECISION_MODELS: dict[str, dict] = {
             "same System One contract, verified live 2026-10-23; "
             "a subq-snap-preview sibling exists on their /v1/models",
     },
+    "nace-drex-max-1-1": {
+        "provider": "typesafe",
+        "model": "drex-max-v1.1",
+        "label": "Nace AI Drex Max v1.1",
+        "base_url": "https://console.nace.ai/v1/systemone",
+        "api_key_env": "NACE_API_KEY",
+        "cost_per_m_input": 0.03,
+        "cost_per_m_output": 0.0,
+        "context_window": 262_144,
+        "max_questions": 64,
+        "state_note": "First-party Nace route at $0.03/M input with no output charge; same System One contract, "
+            "verified live 2026-11-18. Nace's /v1/models lists drex-v1.0, drex-v1.1, drex-v1.5 and drex-max as "
+            "retired aliases of this model, so a request for drex-v1.1 is answered by drex-max-v1.1 at its price",
+    },
+    "liquid-d1-2-ultra": {
+        "provider": "typesafe",
+        "model": "d1.2-ultra",
+        "label": "Liquid D1.2 Ultra (first-party)",
+        "base_url": "https://api.liquid.ai/v1/systemone",
+        "api_key_env": "LIQUID_API_KEY",
+        "cost_per_m_input": 0.042,
+        "cost_per_m_output": 0.0,
+        "context_window": 32_768,
+        "max_questions": 64,
+        "state_note": "Released 2026-11-16 at the d1-ultra price, $0.042/M input; first on the Artificial "
+            "Analysis Decision Index v2.1 (75); same System One contract as d1-ultra",
+    },
+    "liquid-d1-2": {
+        "provider": "typesafe",
+        "model": "d1.2",
+        "label": "Liquid D1.2 (first-party)",
+        "base_url": "https://api.liquid.ai/v1/systemone",
+        "api_key_env": "LIQUID_API_KEY",
+        "cost_per_m_input": 0.02,
+        "cost_per_m_output": 0.0,
+        "context_window": 32_768,
+        "max_questions": 64,
+        "state_note": "Released 2026-11-16 at $0.02/M input, the small sibling of d1.2-ultra; same System One "
+            "contract, so a run needs only a model id",
+    },
     "minara-kairos": {
         "provider": "typesafe",
         "model": "DMIND/Kairos",
