@@ -89,8 +89,9 @@ function modelName(model) {
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
 // Row tags identify specialized approaches alongside the decision models.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST"};
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML"};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
+const isDecisionModel = run => !modelTag(run.model) && (run.category == null || run.category === "ai");
 
 // Presentation only: how each model reads, and the logo of the company that
 // built it. Raw ids stay in the artifacts; OpenRouter and Requesty are
@@ -133,6 +134,7 @@ const MODEL_META = {
   "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
   "minara-kairos": ["Kairos", "minara.png"],
   "timestral-209m": ["Timestral", "mistral.png"],
+  "lightgbm": ["LightGBM", "lightgbm.png"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
@@ -346,6 +348,7 @@ if (typeof document !== "undefined") {
     if (!text) return;
     const tag = node("span", text, `tag tag-${text.toLowerCase()}`);
     if (text === "FORECAST") tag.title = "Time-series forecasting model";
+    else if (text === "ML") tag.title = "Machine learning model";
     else tag.title = text === "ALGO" ? "Deterministic algorithm, no LLM" : "AI decision model";
     cell.append(tag);
   };
@@ -499,6 +502,9 @@ if (typeof document !== "undefined") {
   function renderBoard() {
     if (!$("leaderboard-table")) return;
     const windows = scoredWindows(runs.filter(isCurrent));
+    const toggle = $("include-all-models");
+    if (toggle) toggle.onchange = renderBoard;
+    setHidden("model-scope-control", !windows.some(w => w.runs.some(run => !isDecisionModel(run))));
     if (!periodOpened) {
       periodOpened = true;
       const newest = windows.filter(w => w.proto >= 6).pop();
@@ -506,19 +512,21 @@ if (typeof document !== "undefined") {
     }
     if (period !== "all" && !windows.some(w => w.key === period)) period = "all";
     renderTabs(windows);
+    const includeAll = !toggle || toggle.checked;
+    const scopedWindows = includeAll ? windows : windows.map(w => ({...w, runs: w.runs.filter(isDecisionModel)}));
     // A single window (or the single-window fallback) renders the plain board.
     if (period !== "all" || windows.length < 2) {
-      const w = period === "all" ? windows[windows.length - 1] : windows.find(x => x.key === period);
+      const w = period === "all" ? scopedWindows.at(-1) : scopedWindows.find(x => x.key === period);
       visible = w ? w.runs : [];
       renderWindowBoard(w, windows.length >= 2);
     } else {
       visible = [];
-      renderAllBoard(windows);
+      renderAllBoard(scopedWindows);
     }
-    updateBoardChrome(windows);
+    updateBoardChrome(scopedWindows, includeAll);
   }
 
-  function updateBoardChrome(windows) {
+  function updateBoardChrome(windows, includeAll) {
     const source = visible.length ? visible : [];
     const allMode = period === "all" && windows.length >= 2;
     if (allMode) {
@@ -536,9 +544,13 @@ if (typeof document !== "undefined") {
         ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
         : `Synthetic demo data: ${syntheticCount} of ${source.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
     }
-    setText("status", source.length || !allMode ? (source.length ? "" : (runs.length
-      ? "No completed results yet."
-      : "No results yet. Record a decision-model run and re-render this page.")) : "");
+    const hasRows = allMode ? windows.some(w => w.runs.length) : source.length > 0;
+    let status = "";
+    if (!hasRows) {
+      if (!includeAll && windows.length) status = "No decision models in this view. Turn on Show all model types.";
+      else status = runs.length ? "No completed results yet." : "No results yet. Record a run and re-render this page.";
+    }
+    setText("status", status);
   }
 
   function renderWindowBoard(w, multiWindow) {

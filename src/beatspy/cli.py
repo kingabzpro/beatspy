@@ -636,8 +636,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     models = list(dict.fromkeys(args.model or [settings.decision.decision_model]))
     for name in models:
         spec = _require_decision_model(name)
-        if spec["provider"] == "timestral" and args.form in ("all", "rank"):
-            raise ValueError("Timestral supports --form per_asset, noul, choice, or twin")
+        if name in ("timestral-209m", "lightgbm") and args.form in ("all", "rank"):
+            raise ValueError(f"{spec['label']} supports --form per_asset, noul, choice, or twin")
 
     scenario = None
     prepared_data = None

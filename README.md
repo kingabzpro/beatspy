@@ -116,6 +116,31 @@ ran [all three windows](examples/kaggle_timestral.py) on a Tesla T4. Each run
 had 100% answer coverage and passed BeatSPY replay. The CLI model supports
 the `per_asset`, `noul`, `choice`, and `twin` question forms.
 
+### LightGBM baseline
+
+`lightgbm` refits a gradient-boosted classifier at each decision. It uses the
+protocol v2 price, risk, volume, and sector features from earlier Fridays and
+includes a training label only once the corresponding forward return is known.
+Training labels use the same trading-session horizon as the current decision.
+The benchmark keeps the published snapshots, schedule, sizing, and scoring.
+
+| Window end | LightGBM return | SPY return | Gap to SPY | AUC |
+| --- | ---: | ---: | ---: | ---: |
+| Oct 2025 | +28.15% | +23.04% | +5.11pp | 0.506 |
+| Apr 2026 | +6.93% | +1.88% | +5.05pp | 0.490 |
+| Oct 2026 | +8.20% | +15.09% | -6.89pp | 0.523 |
+
+LightGBM beat SPY in two of three windows, averaging +1.09 percentage points
+versus SPY. Brier skill was negative in each window. All three runs had 100%
+answer coverage and passed replay.
+
+The leaderboard's **Show all model types** toggle includes LightGBM, Timestral,
+and other strategies in both the single-window and all-window views. The
+[Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-lightgbm) runs
+and verifies all three windows with the [LightGBM runner](examples/kaggle_lightgbm.py).
+For the CLI, install `lightgbm==4.6.0` and `scikit-learn` in the environment
+before running `beatspy run --model lightgbm`.
+
 ## Quick start
 
 ```bash

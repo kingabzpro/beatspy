@@ -24336,6 +24336,630 @@
       "synthetic": false,
       "trust": "local",
       "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.24,
+        "avg_holds": 15.12,
+        "avg_sells": 4.64,
+        "buy": 0.2096,
+        "hold": 0.6048,
+        "sell": 0.1856
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.506144,
+      "auc_p_value": 0.215784,
+      "brier": 0.257424,
+      "brier_skill_p_value": 0.778222,
+      "brier_skill_score": -0.029763,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T17:55:15+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-175515_2025-10-6m_lightgbm_9f12ca6dc8",
+      "ece": 0.050589,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.098767,
+        "method": "decision-window block bootstrap",
+        "upper": 0.205131
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.829044,
+      "mean_latency_s": 1.322,
+      "metrics": {
+        "annual_volatility": 0.117285,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.251966,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.642285,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5248,
+              "auc": 0.506144,
+              "auc_p_value": 0.215784,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 2,
+                  "lower": 0.2,
+                  "mean_predicted": 0.282369,
+                  "observed_rate": 0.0,
+                  "upper": 0.3
+                },
+                {
+                  "count": 32,
+                  "lower": 0.3,
+                  "mean_predicted": 0.365163,
+                  "observed_rate": 0.53125,
+                  "upper": 0.4
+                },
+                {
+                  "count": 235,
+                  "lower": 0.4,
+                  "mean_predicted": 0.458228,
+                  "observed_rate": 0.47234,
+                  "upper": 0.5
+                },
+                {
+                  "count": 242,
+                  "lower": 0.5,
+                  "mean_predicted": 0.540789,
+                  "observed_rate": 0.549587,
+                  "upper": 0.6
+                },
+                {
+                  "count": 102,
+                  "lower": 0.6,
+                  "mean_predicted": 0.642077,
+                  "observed_rate": 0.470588,
+                  "upper": 0.7
+                },
+                {
+                  "count": 11,
+                  "lower": 0.7,
+                  "mean_predicted": 0.724736,
+                  "observed_rate": 0.545455,
+                  "upper": 0.8
+                },
+                {
+                  "count": 1,
+                  "lower": 0.8,
+                  "mean_predicted": 0.829044,
+                  "observed_rate": 0.0,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.257424,
+              "brier_skill_p_value": 0.778222,
+              "brier_skill_score": -0.029763,
+              "expected_calibration_error": 0.050589,
+              "log_loss": 0.709033,
+              "max_calibration_error": 0.829044,
+              "mean_predicted": 0.520156,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.098767,
+          "method": "decision-window block bootstrap",
+          "upper": 0.205131
+        },
+        "excess_return_vs_spy": 0.051138,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.034972,
+        "mean_latency_s": 1.322,
+        "outperformance_hit_rate": 0.48,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.106028,
+          "method": "decision-window block bootstrap",
+          "upper": 0.486536
+        },
+        "risk_violations": 0,
+        "sharpe": 4.292,
+        "spy_total_return": 0.230379,
+        "total_return": 0.281517,
+        "trades": 625
+      },
+      "model": "lightgbm",
+      "model_label": "LightGBM (walk-forward classifier)",
+      "noul_brier": 0.257424,
+      "noul_ece": 0.050589,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.106028,
+        "method": "decision-window block bootstrap",
+        "upper": 0.486536
+      },
+      "run_id": "20261121-175515_2025-10-6m_lightgbm_9f12ca6dc8",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 5.5,
+        "avg_holds": 14.923076923076923,
+        "avg_sells": 4.576923076923077,
+        "buy": 0.22,
+        "hold": 0.5969230769230769,
+        "sell": 0.18307692307692308
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.490111,
+      "auc_p_value": 0.701299,
+      "brier": 0.260315,
+      "brier_skill_p_value": 0.216783,
+      "brier_skill_score": -0.042245,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T17:56:01+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261121-175601_2026-04-6m_lightgbm_28f149c296",
+      "ece": 0.070867,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.021706,
+        "method": "decision-window block bootstrap",
+        "upper": 0.119323
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.267417,
+      "mean_latency_s": 1.293,
+      "metrics": {
+        "annual_volatility": 0.120834,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.25851,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.145929,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5,
+              "auc": 0.490111,
+              "auc_p_value": 0.701299,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 11,
+                  "lower": 0.2,
+                  "mean_predicted": 0.278038,
+                  "observed_rate": 0.545455,
+                  "upper": 0.3
+                },
+                {
+                  "count": 80,
+                  "lower": 0.3,
+                  "mean_predicted": 0.361942,
+                  "observed_rate": 0.5125,
+                  "upper": 0.4
+                },
+                {
+                  "count": 265,
+                  "lower": 0.4,
+                  "mean_predicted": 0.453324,
+                  "observed_rate": 0.513208,
+                  "upper": 0.5
+                },
+                {
+                  "count": 226,
+                  "lower": 0.5,
+                  "mean_predicted": 0.542568,
+                  "observed_rate": 0.535398,
+                  "upper": 0.6
+                },
+                {
+                  "count": 55,
+                  "lower": 0.6,
+                  "mean_predicted": 0.636938,
+                  "observed_rate": 0.418182,
+                  "upper": 0.7
+                },
+                {
+                  "count": 13,
+                  "lower": 0.7,
+                  "mean_predicted": 0.735108,
+                  "observed_rate": 0.615385,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.260315,
+              "brier_skill_p_value": 0.216783,
+              "brier_skill_score": -0.042245,
+              "expected_calibration_error": 0.070867,
+              "log_loss": 0.714845,
+              "max_calibration_error": 0.267417,
+              "mean_predicted": 0.491312,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.021706,
+          "method": "decision-window block bootstrap",
+          "upper": 0.119323
+        },
+        "excess_return_vs_spy": 0.050519,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.051785,
+        "mean_latency_s": 1.293,
+        "outperformance_hit_rate": 0.5385,
+        "output_tokens": 0,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.066591,
+          "method": "decision-window block bootstrap",
+          "upper": 0.250085
+        },
+        "risk_violations": 0,
+        "sharpe": 1.1875,
+        "spy_total_return": 0.018805,
+        "total_return": 0.069324,
+        "trades": 649
+      },
+      "model": "lightgbm",
+      "model_label": "LightGBM (walk-forward classifier)",
+      "noul_brier": 0.260315,
+      "noul_ece": 0.070867,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.066591,
+        "method": "decision-window block bootstrap",
+        "upper": 0.250085
+      },
+      "run_id": "20261121-175601_2026-04-6m_lightgbm_28f149c296",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.88,
+        "avg_holds": 15.76,
+        "avg_sells": 4.36,
+        "buy": 0.1952,
+        "hold": 0.6304,
+        "sell": 0.1744
+      },
+      "answer_coverage": 1.0,
+      "auc": 0.522987,
+      "auc_p_value": 0.194805,
+      "brier": 0.252408,
+      "brier_skill_p_value": 0.798202,
+      "brier_skill_score": -0.021369,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T17:56:45+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-175645_2026-6m_lightgbm_920f0f4237",
+      "ece": 0.065825,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0.0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.209687,
+        "method": "decision-window block bootstrap",
+        "upper": 0.048595
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.223797,
+      "mean_latency_s": 1.258,
+      "metrics": {
+        "annual_volatility": 0.08379,
+        "answer_coverage": 1.0,
+        "avg_turnover": 0.232184,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.169282,
+        "calibration": {
+          "coverage": 1.0,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5376,
+              "auc": 0.522987,
+              "auc_p_value": 0.194805,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0.0,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 8,
+                  "lower": 0.2,
+                  "mean_predicted": 0.276203,
+                  "observed_rate": 0.5,
+                  "upper": 0.3
+                },
+                {
+                  "count": 96,
+                  "lower": 0.3,
+                  "mean_predicted": 0.363113,
+                  "observed_rate": 0.4375,
+                  "upper": 0.4
+                },
+                {
+                  "count": 265,
+                  "lower": 0.4,
+                  "mean_predicted": 0.450979,
+                  "observed_rate": 0.415094,
+                  "upper": 0.5
+                },
+                {
+                  "count": 197,
+                  "lower": 0.5,
+                  "mean_predicted": 0.544967,
+                  "observed_rate": 0.477157,
+                  "upper": 0.6
+                },
+                {
+                  "count": 52,
+                  "lower": 0.6,
+                  "mean_predicted": 0.638701,
+                  "observed_rate": 0.480769,
+                  "upper": 0.7
+                },
+                {
+                  "count": 7,
+                  "lower": 0.7,
+                  "mean_predicted": 0.732706,
+                  "observed_rate": 0.571429,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0.0,
+                  "observed_rate": null,
+                  "upper": 1.0
+                }
+              ],
+              "brier": 0.252408,
+              "brier_skill_p_value": 0.798202,
+              "brier_skill_score": -0.021369,
+              "expected_calibration_error": 0.065825,
+              "log_loss": 0.698402,
+              "max_calibration_error": 0.223797,
+              "mean_predicted": 0.483644,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0.0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.209687,
+          "method": "decision-window block bootstrap",
+          "upper": 0.048595
+        },
+        "excess_return_vs_spy": -0.068904,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.027957,
+        "mean_latency_s": 1.258,
+        "outperformance_hit_rate": 0.4,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.051873,
+          "method": "decision-window block bootstrap",
+          "upper": 0.205865
+        },
+        "risk_violations": 0,
+        "sharpe": 1.9086,
+        "spy_total_return": 0.150909,
+        "total_return": 0.082005,
+        "trades": 625
+      },
+      "model": "lightgbm",
+      "model_label": "LightGBM (walk-forward classifier)",
+      "noul_brier": 0.252408,
+      "noul_ece": 0.065825,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.051873,
+        "method": "decision-window block bootstrap",
+        "upper": 0.205865
+      },
+      "run_id": "20261121-175645_2026-6m_lightgbm_920f0f4237",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
     }
   ],
   "schema_version": 1,

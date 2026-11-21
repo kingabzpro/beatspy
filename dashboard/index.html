@@ -47,9 +47,15 @@
       <div class="section-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div></div>
       <p id="board-window" class="caption"></p>
       <p id="demo-banner" class="pill warn" hidden>Synthetic demo data: no decision model was called and none of these numbers are real results.</p>
-      <div id="period-tabs" class="tabs" hidden></div>
+      <div class="board-controls">
+        <div id="period-tabs" class="tabs" hidden></div>
+        <label id="model-scope-control" class="model-scope" hidden>
+          <input id="include-all-models" type="checkbox" switch aria-controls="leaderboard-table">
+          Show all model types
+        </label>
+      </div>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
-      <div id="leaderboard-table" class="table-wrap"></div>
+      <div id="leaderboard-table" class="table-wrap" role="region" aria-labelledby="board-title" tabindex="0"></div>
       <p class="caption">Read <a href="method.html">how the benchmark works</a> and <a href="pricing.html">what the models charge</a>.</p>
     </section>
   </main>

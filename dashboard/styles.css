@@ -65,6 +65,12 @@ tr.leader .run-button{color:var(--accent)}
 /* Window toggle: the board scores consecutive six-month windows; the chips
    pick one window or the all-windows average. */
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+.board-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0 16px;margin:14px 0 4px}
+.board-controls .tabs{margin:0}
+.model-scope{display:inline-flex;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px;min-width:0;min-height:36px;color:var(--text);cursor:pointer}
+.model-scope input{accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer}
+.model-scope input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+#leaderboard-table:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .tab{border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--muted);padding:8px 14px;font-size:12px;cursor:pointer}
 .tab:hover{color:var(--text);border-color:var(--muted)}
 .tab.active{color:#12220a;background:var(--accent);border-color:var(--accent);font-weight:600}
@@ -75,7 +81,8 @@ tr.leader .run-button{color:var(--accent)}
 .tag-agent{color:#cb9aff;border-color:#5a3f7a}
 .tag-rl{color:#ffbc79;border-color:#6b4a2a}
 .tag-hybrid{color:#74d8cb;border-color:#2f5f58}
-.tag-forecast{color:#ffd173;border-color:#755223;white-space:nowrap}
+.tag-forecast{color:#ffeb70;border-color:#9b8433;white-space:nowrap}
+.tag-ml{color:#f5a9d9;border-color:#885171}
 
 @media(max-width:760px){
   /* Phones keep the columns the ranking reads on: return and the gap to SPY
@@ -85,6 +92,7 @@ tr.leader .run-button{color:var(--accent)}
   .col-usd_10k,.col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
   .col-windows,.col-avg_gap,.col-best_gap,.col-worst_gap{display:none}
   #leaderboard-table th,#leaderboard-table td{padding:16px 6px}
+  #leaderboard-table .col-model{white-space:normal;overflow-wrap:anywhere}
   .chip{padding:2px 6px}
   .metric-hero strong{font-size:30px}
 }

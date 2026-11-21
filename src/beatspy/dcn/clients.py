@@ -532,6 +532,10 @@ def make_client(
                 f"{decision.label} needs the frozen data service; "
                 "run it through `beatspy run` rather than constructing the client alone."
             )
+        if decision.decision_model == "lightgbm":
+            from .lightgbm import LightGBMClient
+
+            return LightGBMClient(data)
         from .tpi import TpiClient
 
         return TpiClient(data)

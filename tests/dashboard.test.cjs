@@ -189,6 +189,7 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('paperrl'), 'RL');
   assert.equal(modelTag('deeptrade'), 'HYBRID');
   assert.equal(modelTag('timestral-209m'), 'FORECAST');
+  assert.equal(modelTag('lightgbm'), 'ML');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
@@ -492,6 +493,34 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   chips[2].onclick();
   assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
   assert.match($('board-window').textContent, /SPY returned 10\.00% this window/);
+});
+
+test('the model toggle includes forecasting and algorithms without changing the selected window', async () => {
+  const {site, first, second} = siteFixture();
+  const forecast = catalogRun({run_id: 'forecast', model: 'timestral-209m', category: 'ai'});
+  const algorithm = catalogRun({run_id: 'algorithm', model: 'lightgbm', category: 'algo'});
+  first.start = '2025-04-01'; first.end = '2025-10-01';
+  site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all', runs: [first, second, forecast, algorithm]});
+  const elements = mountSite(site);
+  const toggle = fakeElement('input');
+  toggle.checked = false;
+  elements.set('include-all-models', toggle);
+  await settle();
+  const modelNames = () => elements.get('leaderboard-table').descendants()
+    .filter(node => node.className === 'run-button').map(node => node.textContent);
+  assert.deepEqual(modelNames(), ['Clef']);
+  toggle.checked = true;
+  toggle.onchange();
+  assert.deepEqual(modelNames().sort(), ['Clef', 'LightGBM', 'Timestral']);
+  const lightgbmRow = elements.get('leaderboard-table').descendants().find(node =>
+    node.tagName === 'tr' && node.descendants().some(child => child.className === 'run-button' && child.textContent === 'LightGBM'));
+  assert.equal(lightgbmRow.descendants().find(node => node.tagName === 'img').src, 'assets/logos/lightgbm.png');
+  assert.equal(lightgbmRow.descendants().find(node => node.className === 'tag tag-ml').textContent, 'ML');
+  elements.get('period-tabs').children[0].onclick();
+  assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash', 'LightGBM', 'Timestral']);
+  toggle.checked = false;
+  toggle.onchange();
+  assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash']);
 });
 
 test('per-window rank numbers follow the displayed vs-SPY order', async () => {
