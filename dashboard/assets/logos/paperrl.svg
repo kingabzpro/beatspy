@@ -1,13 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <!-- sheet with folded corner -->
-  <path d="M12 5 H32 L40 13 V25 H12 Z" fill="#EAF2F7"/>
-  <path d="M32 5 V13 H40 Z" fill="#EAF2F7" opacity="0.55"/>
-  <!-- shredder slit -->
-  <rect x="12" y="29" width="28" height="4.5" rx="1.75" fill="#EAF2F7"/>
-  <!-- falling strips -->
-  <rect x="14" y="36.5" width="3.2" height="10" rx="1.6" fill="#EAF2F7"/>
-  <rect x="19.3" y="36.5" width="3.2" height="15" rx="1.6" fill="#EAF2F7"/>
-  <rect x="24.6" y="36.5" width="3.2" height="8" rx="1.6" fill="#EAF2F7"/>
-  <rect x="29.9" y="36.5" width="3.2" height="16" rx="1.6" fill="#EAF2F7"/>
-  <rect x="35.2" y="36.5" width="3.2" height="9" rx="1.6" fill="#EAF2F7"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><path fill="#EAF2F7" d="M12 5 H32 L40 13 V25 H12 Z"/><path fill="#EAF2F7" d="M32 5 V13 H40 Z" opacity=".55"/><rect width="28" height="4.5" x="12" y="29" fill="#EAF2F7" rx="1.75"/><rect width="3.2" height="10" x="14" y="36.5" fill="#EAF2F7" rx="1.6"/><rect width="3.2" height="15" x="19.3" y="36.5" fill="#EAF2F7" rx="1.6"/><rect width="3.2" height="8" x="24.6" y="36.5" fill="#EAF2F7" rx="1.6"/><rect width="3.2" height="16" x="29.9" y="36.5" fill="#EAF2F7" rx="1.6"/><rect width="3.2" height="9" x="35.2" y="36.5" fill="#EAF2F7" rx="1.6"/></svg>

@@ -1,4 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="FastTrade">
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="#1e2a44"/>
-  <path d="M37 9 L19 36 H30 L27 55 L47 26 H36 Z" fill="#79b6ff"/>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" aria-label="FastTrade" role="img" viewBox="0 0 64 64"><rect width="60" height="60" x="2" y="2" fill="#1e2a44" rx="14"/><path fill="#79b6ff" d="M37 9 L19 36 H30 L27 55 L47 26 H36 Z"/></svg>
