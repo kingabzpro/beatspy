@@ -135,9 +135,9 @@ const MODEL_META = {
   "minara-kairos": ["Kairos", "minara.png"],
   "timestral-209m": ["Timestral", "mistral.png"],
   "lightgbm": ["LightGBM", "lightgbm.png"],
-  "logistic-regression": ["Logistic Regression", null],
-  "logistic-lightgbm": ["Logit + LightGBM", null],
-  "hrp": ["HRP", null],
+  "logistic-regression": ["Logistic Regression", "logistic.svg"],
+  "logistic-lightgbm": ["Logit + LightGBM", "ensemble.svg"],
+  "hrp": ["HRP", "hrp.svg"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;

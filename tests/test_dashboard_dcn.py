@@ -351,10 +351,18 @@ def test_committed_public_catalog_matches_the_dcn_shape():
         assert row["provider"] == meta["decision"]["provider"]
         assert row["question_form"] == meta["decision"]["question_form"]
         metrics = read_json(run_dir / "metrics.json")
-        noul = metrics["calibration"]["signals"][PRIMARY_SIGNAL]
-        assert row["brier"] == noul["brier"]
-        assert row["ece"] == noul["expected_calibration_error"]
-        assert row["calibration_gap"] == metrics["calibration"]["miscalibration_gap"]
+        calibration = metrics["calibration"]
+        if row["question_form"] == "allocation":
+            assert calibration is None
+            assert row["brier"] is None
+            assert row["ece"] is None
+            assert row["calibration_gap"] is None
+            assert metrics["answer_coverage"] == 0
+        else:
+            noul = calibration["signals"][PRIMARY_SIGNAL]
+            assert row["brier"] == noul["brier"]
+            assert row["ece"] == noul["expected_calibration_error"]
+            assert row["calibration_gap"] == calibration["miscalibration_gap"]
         assert row["answer_coverage"] == metrics["answer_coverage"]
         assert row["metrics"] == metrics
 

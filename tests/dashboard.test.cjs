@@ -504,9 +504,10 @@ test('the model toggle includes forecasting and algorithms without changing the 
   const algorithm = catalogRun({run_id: 'algorithm', model: 'lightgbm', category: 'algo'});
   const linear = catalogRun({run_id: 'linear', model: 'logistic-regression', category: 'algo'});
   const ensemble = catalogRun({run_id: 'ensemble', model: 'logistic-lightgbm', category: 'algo'});
+  const allocation = catalogRun({run_id: 'allocation', model: 'hrp', category: 'algo', question_form: 'allocation'});
   first.start = '2025-04-01'; first.end = '2025-10-01';
   site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all',
-    runs: [first, second, forecast, algorithm, linear, ensemble]});
+    runs: [first, second, forecast, algorithm, linear, ensemble, allocation]});
   const elements = mountSite(site);
   const toggle = fakeElement('input');
   toggle.checked = false;
@@ -517,13 +518,22 @@ test('the model toggle includes forecasting and algorithms without changing the 
   assert.deepEqual(modelNames(), ['Clef']);
   toggle.checked = true;
   toggle.onchange();
-  assert.deepEqual(modelNames().sort(), ['Clef', 'LightGBM', 'Logistic Regression', 'Logit + LightGBM', 'Timestral']);
-  const lightgbmRow = elements.get('leaderboard-table').descendants().find(node =>
-    node.tagName === 'tr' && node.descendants().some(child => child.className === 'run-button' && child.textContent === 'LightGBM'));
-  assert.equal(lightgbmRow.descendants().find(node => node.tagName === 'img').src, 'assets/logos/lightgbm.png');
-  assert.equal(lightgbmRow.descendants().find(node => node.className === 'tag tag-ml').textContent, 'ML');
+  const brandedModels = [
+    ['HRP', 'hrp.svg', 'ALLOC'], ['LightGBM', 'lightgbm.png', 'ML'],
+    ['Logistic Regression', 'logistic.svg', 'LINEAR'], ['Logit + LightGBM', 'ensemble.svg', 'ENSEMBLE'],
+  ];
+  const allModels = ['Clef', ...brandedModels.map(([name]) => name), 'Timestral'];
+  assert.deepEqual(modelNames().sort(), allModels);
+  for (const [name, file, tag] of brandedModels) {
+    const row = elements.get('leaderboard-table').descendants().find(node =>
+      node.tagName === 'tr' && node.descendants().some(child => child.className === 'run-button' && child.textContent === name));
+    const icon = row.descendants().find(node => node.tagName === 'img');
+    assert.equal(icon?.src, `assets/logos/${file}`);
+    assert.equal(icon.alt, '');
+    assert.equal(row.descendants().find(node => node.className === `tag tag-${tag.toLowerCase()}`).textContent, tag);
+  }
   elements.get('period-tabs').children[0].onclick();
-  assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash', 'LightGBM', 'Logistic Regression', 'Logit + LightGBM', 'Timestral']);
+  assert.deepEqual(modelNames().sort(), [...allModels, 'Clef-Flash'].sort());
   toggle.checked = false;
   toggle.onchange();
   assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash']);
