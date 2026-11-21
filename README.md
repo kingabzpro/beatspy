@@ -21,8 +21,8 @@ sector label, because under v1 the models mostly echoed the momentum column.
 </div>
 
 > [!IMPORTANT]
-> **The honest result.** Across all three v2 windows (18 months of weekly
-> decisions), the best average gap to SPY is +0.48pp and no Brier skill is
+> **The honest result.** Across the three v2 windows, the best average gap to
+> SPY among the decision models in the table below is +0.48pp and no Brier skill is
 > positive. Eleven model-window cells reach a nominal AUC p-value under 0.05
 > (smallest: `kairos` p 0.002), against roughly three expected by chance at
 > this many tests; the cells share windows and models, so none survives a
@@ -94,6 +94,27 @@ upstream. All bill input tokens only. Most answer every question in one call;
 per decision rather than per token. The 21-model v2 board above cost about
 **$0.30** for its latest window. `beatspy models` prints every runnable id,
 endpoint, and price.
+
+### Timestral forecasting benchmark
+
+`timestral-209m` forecasts each asset's adjusted closing price relative to SPY
+from up to 256 trading sessions of history through the decision date. BeatSPY
+interpolates the forecast quantiles at the current relative price to estimate
+the probability of beating SPY over the scheduled holding period. The run uses
+the published frozen snapshots, weekly schedule, portfolio policy, and scoring.
+The checkpoint's exposure to these market windows during training is unknown.
+
+| Window end | Timestral return | SPY return | Gap to SPY | AUC |
+| --- | ---: | ---: | ---: | ---: |
+| Oct 2025 | +25.69% | +23.04% | +2.65pp | 0.506 |
+| Apr 2026 | +9.09% | +1.88% | +7.21pp | 0.527 |
+| Oct 2026 | +10.68% | +15.09% | -4.41pp | 0.467 |
+
+Timestral beat SPY in two of three windows and averaged +1.82 percentage
+points versus SPY. Version 5 of the [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-timestral)
+ran [all three windows](examples/kaggle_timestral.py) on a Tesla T4. Each run
+had 100% answer coverage and passed BeatSPY replay. The CLI model supports
+the `per_asset`, `noul`, `choice`, and `twin` question forms.
 
 ## Quick start
 

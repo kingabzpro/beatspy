@@ -212,7 +212,7 @@ def _pricing(spec: dict) -> str:
 
 def _key_status(name: str, spec: dict) -> tuple[bool, str]:
     """Whether a model can authenticate, plus a one-line explanation."""
-    if spec["provider"] in ("local", "bta", "paperrl"):
+    if spec["provider"] in ("local", "bta", "paperrl", "timestral"):
         return True, "local, no key needed"
     if not decision_api_key(name):
         return False, f"missing {spec['api_key_env']}"
@@ -332,7 +332,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
 
     print("\nProbing every network decision model with a single noul question (live network calls)...")
     for name, spec in DECISION_MODELS.items():
-        if spec["provider"] in ("local", "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade"):
+        if spec["provider"] in (
+            "local", "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral"
+        ):
             print(f"  [PASS] skip {name}: needs a frozen scenario")
             continue
         ok, detail = _probe_decision_model(name)
@@ -415,7 +417,9 @@ def cmd_models(args: argparse.Namespace) -> int:
     for name, spec in DECISION_MODELS.items():
         ok, detail = _key_status(name, spec)
         marker = "*" if name == active else " "
-        context = "local" if spec["provider"] in ("local", "bta", "paperrl") else f"{spec['context_window'] // 1000}k"
+        context = "local" if spec["provider"] in ("local", "bta", "paperrl", "timestral") else (
+            f"{spec['context_window'] // 1000}k"
+        )
         price = f"{spec['cost_per_m_input']:>12.3f}"
         print(
             f"{marker:<2}{name:<{width}} {spec['provider']:<{providers}} {price} {context:>9}  "
@@ -631,7 +635,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     # snapshot, so they run concurrently rather than one after another.
     models = list(dict.fromkeys(args.model or [settings.decision.decision_model]))
     for name in models:
-        _require_decision_model(name)
+        spec = _require_decision_model(name)
+        if spec["provider"] == "timestral" and args.form in ("all", "rank"):
+            raise ValueError("Timestral supports --form per_asset, noul, choice, or twin")
 
     scenario = None
     prepared_data = None

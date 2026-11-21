@@ -75,6 +75,7 @@ tr.leader .run-button{color:var(--accent)}
 .tag-agent{color:#cb9aff;border-color:#5a3f7a}
 .tag-rl{color:#ffbc79;border-color:#6b4a2a}
 .tag-hybrid{color:#74d8cb;border-color:#2f5f58}
+.tag-forecast{color:#ffd173;border-color:#755223;white-space:nowrap}
 
 @media(max-width:760px){
   /* Phones keep the columns the ranking reads on: return and the gap to SPY

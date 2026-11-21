@@ -88,10 +88,8 @@ function modelName(model) {
   // board names the model, not the transport that happened to serve it.
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
-// Row tags distinguish the two baseline entries from the model list. The
-// catalog still records a wider category, but the board names the entries:
-// TPI is an algorithm, FastTrade is an AI-driven model.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID"};
+// Row tags identify specialized approaches alongside the decision models.
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST"};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 
 // Presentation only: how each model reads, and the logo of the company that
@@ -134,6 +132,7 @@ const MODEL_META = {
   "d3-edge": ["D3 Edge", "vllmsr.png"],
   "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
   "minara-kairos": ["Kairos", "minara.png"],
+  "timestral-209m": ["Mistral Timestral-209M", "mistral.png"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
@@ -341,13 +340,13 @@ if (typeof document !== "undefined") {
     if (key === "accuracy") return run.metrics?.calibration?.signals?.noul?.accuracy;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
-  // The baseline rows are marked in the table itself, so the board never reads
-  // as if every entry were the same kind of model.
+  // Put the model type in the table so it is visible alongside the score.
   const appendModelTag = (cell, run) => {
     const text = modelTag(run.model);
     if (!text) return;
     const tag = node("span", text, `tag tag-${text.toLowerCase()}`);
-    tag.title = text === "ALGO" ? "Deterministic algorithm, no LLM" : "AI decision model";
+    if (text === "FORECAST") tag.title = "Time-series forecasting model";
+    else tag.title = text === "ALGO" ? "Deterministic algorithm, no LLM" : "AI decision model";
     cell.append(tag);
   };
   let runs = [], visible = [], selected = null, loading = 0;

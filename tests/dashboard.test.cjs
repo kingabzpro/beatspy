@@ -188,6 +188,7 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('bettertradingagents-live'), 'AGENT');
   assert.equal(modelTag('paperrl'), 'RL');
   assert.equal(modelTag('deeptrade'), 'HYBRID');
+  assert.equal(modelTag('timestral-209m'), 'FORECAST');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });

@@ -493,7 +493,7 @@ def missing_credentials(settings) -> list[str]:
     from ..config import cloudflare_account_id, decision_api_key
 
     decision = settings.decision
-    if decision.provider in ("local", "bta", "paperrl"):
+    if decision.provider in ("local", "bta", "paperrl", "timestral"):
         return []
     missing: list[str] = []
     if not decision_api_key(decision.decision_model):
@@ -535,6 +535,12 @@ def make_client(
         from .tpi import TpiClient
 
         return TpiClient(data)
+    if provider == "timestral":
+        if data is None:
+            raise DcnError(f"{decision.label} needs the frozen data service. Run it through `beatspy run`.")
+        from .timestral import TimestralClient
+
+        return TimestralClient(data)
     if provider == "fasttrade":
         if data is None:
             raise DcnError(
@@ -618,7 +624,7 @@ def make_client(
     )
 
 
-def build_call_record(result: DcnResult, state_text: str, question_ids: list[str], client: HttpDcnClient) -> CallRecord:
+def build_call_record(result: DcnResult, state_text: str, question_ids: list[str], client: DcnClient) -> CallRecord:
     """Normalize one result into the artifact we store and replay."""
     import hashlib
 

@@ -26,7 +26,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # contract; they differ only in transport, auth, and question limits.
 PROVIDERS = (
     "openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
-    "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade",
+    "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral",
 )
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
@@ -80,6 +80,19 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 32_000,
         "max_questions": 64,
         "state_note": "FastTrade's per-symbol daily features and BUY/HOLD/SELL prompt, answered by TypeSafe Jev.",
+        "category": "ai",
+    },
+    "timestral-209m": {
+        "provider": "timestral",
+        "model": "timestral-209m",
+        "label": "Mistral Timestral-209M (relative price forecast)",
+        "base_url": "local://timestral-209m",
+        "api_key_env": None,
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 0,
+        "max_questions": 64,
+        "state_note": "Forecasts up to 256 sessions of relative closing prices from the frozen snapshot on a CUDA GPU.",
         "category": "ai",
     },
     "fasttrade-subq": {

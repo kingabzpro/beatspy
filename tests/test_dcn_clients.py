@@ -427,7 +427,12 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "acct")
     settings = Settings()
     settings.decision.decision_model = name
-    data = object() if spec["provider"] in ("local", "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade") else None
+    data = object() if spec["provider"] in (
+        "local", "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral"
+    ) else None
+    if spec["provider"] == "timestral":
+        # Construction should bind the frozen data without needing a real GPU in unit tests.
+        monkeypatch.setattr("beatspy.dcn.timestral.TimestralClient.load_forecaster", lambda self: object())
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     if spec["provider"] in ("bta-live", "deeptrade"):
@@ -438,6 +443,8 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     else:
         assert client.model == spec["model"]
         assert client.endpoint == spec["base_url"]
+    if spec["provider"] == "timestral":
+        assert client.data is data
 
 
 def test_the_local_baseline_requires_the_frozen_data():
@@ -549,9 +556,9 @@ def test_unknown_model_is_rejected_at_construction():
 
 def test_every_registered_model_has_a_key_environment_variable():
     for name, spec in DECISION_MODELS.items():
-        if spec["provider"] in ("local", "bta", "paperrl"):
-            # A deterministic replay runs in-process: no credential, no cost.
-            expected = {"local": "algo", "bta": "agent", "paperrl": "rl"}[spec["provider"]]
+        if spec["provider"] in ("local", "bta", "paperrl", "timestral"):
+            # In-process models and strategy replays have no per-token charge or credential.
+            expected = {"local": "algo", "bta": "agent", "paperrl": "rl", "timestral": "ai"}[spec["provider"]]
             assert spec.get("category") == expected, f"{name} is {spec['provider']} but has the wrong category"
             assert spec.get("api_key_env") is None
             assert spec["cost_per_m_input"] == 0.0
