@@ -132,7 +132,7 @@ const MODEL_META = {
   "d3-edge": ["D3 Edge", "vllmsr.png"],
   "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
   "minara-kairos": ["Kairos", "minara.png"],
-  "timestral-209m": ["Mistral Timestral-209M", "mistral.png"],
+  "timestral-209m": ["Timestral", "mistral.png"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
