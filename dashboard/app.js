@@ -89,7 +89,7 @@ function modelName(model) {
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
 // Row tags identify specialized approaches alongside the decision models.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR", "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC"};
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR", "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC", "stock-jepa": "JEPA"};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 const isDecisionModel = run => !modelTag(run.model) && (run.category == null || run.category === "ai");
 
@@ -138,6 +138,7 @@ const MODEL_META = {
   "logistic-regression": ["Logistic Regression", "logistic.svg"],
   "logistic-lightgbm": ["Logit + LightGBM", "ensemble.svg"],
   "hrp": ["HRP", "hrp.svg"],
+  "stock-jepa": ["Stock-JEPA", "stock-jepa.svg"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
@@ -355,6 +356,7 @@ if (typeof document !== "undefined") {
       LINEAR: "Regularized linear classifier", ENSEMBLE: "Equal-weight blend of two model probabilities",
       ALGO: "Deterministic algorithm, no LLM",
       ALLOC: "Direct portfolio allocation",
+      JEPA: "Joint-embedding predictive architecture",
     }[text] || "AI decision model";
     cell.append(tag);
   };

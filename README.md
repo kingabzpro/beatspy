@@ -186,6 +186,31 @@ Use **Show all model types** to find **HRP** with the **ALLOC** tag. The
 [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-hrp)
 uses the [HRP runner](examples/kaggle_hrp.py). The CLI uses SciPy for clustering.
 
+### Stock-JEPA
+
+BeatSPY's independent adaptation of [STOCK-JEPA](https://arxiv.org/abs/2610.07006)
+uses 32 sessions of stock and SPY returns and stock volume changes. A ridge
+model predicts market statistics at 5- and 21-session horizons. A GRU and an
+exponential moving-average target learn a latent correction to the ridge prior.
+A probability readout on the frozen representation estimates whether each
+stock will beat SPY over the upcoming decision period.
+
+Each model fits once from the frozen snapshot's history through the day before
+its window opens. The benchmark uses BeatSPY's existing portfolio policy.
+
+| Window end | Stock-JEPA | Equal weight | SPY |
+| --- | ---: | ---: | ---: |
+| Oct 2025 | +19.04% | +21.33% | +23.04% |
+| Apr 2026 | +8.27% | +8.19% | +1.88% |
+| Oct 2026 | +10.41% | +9.09% | +15.09% |
+
+Stock-JEPA beat SPY in one of three windows and equal weight in two. Its average
+gap to SPY was −0.76 percentage points. All three runs replayed with full answer
+coverage. Use **Show all model types** to find **Stock-JEPA** with the **JEPA** tag.
+The [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-stock-jepa-l4)
+uses the [GPU benchmark runner](examples/kaggle_stock_jepa.py). The CLI uses
+PyTorch with `--model stock-jepa --form per_asset`.
+
 ## Quick start
 
 ```bash

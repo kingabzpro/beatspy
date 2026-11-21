@@ -193,6 +193,7 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('logistic-regression'), 'LINEAR');
   assert.equal(modelTag('logistic-lightgbm'), 'ENSEMBLE');
   assert.equal(modelTag('hrp'), 'ALLOC');
+  assert.equal(modelTag('stock-jepa'), 'JEPA');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });

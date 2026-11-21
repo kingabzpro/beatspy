@@ -538,6 +538,10 @@ def make_client(
             from .lightgbm import LightGBMClient
 
             return LightGBMClient(data)
+        if decision.decision_model == "stock-jepa":
+            from .stock_jepa import StockJepaClient
+
+            return StockJepaClient(data)
         if decision.decision_model in ("logistic-regression", "logistic-lightgbm"):
             from .logistic import LogisticEnsembleClient, LogisticRegressionClient
 

@@ -636,6 +636,8 @@ def cmd_run(args: argparse.Namespace) -> int:
     models = list(dict.fromkeys(args.model or [settings.decision.decision_model]))
     for name in models:
         spec = _require_decision_model(name)
+        if name == "stock-jepa" and args.form not in ("per_asset", "noul"):
+            raise ValueError("Stock-JEPA supports --form per_asset or noul")
         if name in ("timestral-209m", "lightgbm", "logistic-regression", "logistic-lightgbm") and args.form in (
             "all", "rank"
         ):

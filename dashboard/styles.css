@@ -86,6 +86,7 @@ tr.leader .run-button{color:var(--accent)}
 .tag-linear{color:#a8dcff;border-color:#517d9d}
 .tag-ensemble{color:#ffd4a1;border-color:#9b6f40}
 .tag-alloc{color:#a7f3cf;border-color:#43866d}
+.tag-jepa{color:#e9b7ff;border-color:#916caa}
 
 @media(max-width:760px){
   /* Phones keep the columns the ranking reads on: return and the gap to SPY
