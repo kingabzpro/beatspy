@@ -418,7 +418,7 @@ def test_score_answers_pass_through_unchanged():
 # --------------------------------------------------------------------------- #
 
 
-@pytest.mark.parametrize("name", sorted(DECISION_MODELS))
+@pytest.mark.parametrize("name", sorted(DECISION_MODELS.keys() - {"hrp"}))
 def test_make_client_builds_every_configured_model(name, monkeypatch):
     spec = DECISION_MODELS[name]
     # Supply whatever this provider needs so construction is what is under test.

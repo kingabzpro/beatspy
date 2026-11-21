@@ -83,6 +83,9 @@ tr.leader .run-button{color:var(--accent)}
 .tag-hybrid{color:#74d8cb;border-color:#2f5f58}
 .tag-forecast{color:#ffeb70;border-color:#9b8433;white-space:nowrap}
 .tag-ml{color:#f5a9d9;border-color:#885171}
+.tag-linear{color:#a8dcff;border-color:#517d9d}
+.tag-ensemble{color:#ffd4a1;border-color:#9b6f40}
+.tag-alloc{color:#a7f3cf;border-color:#43866d}
 
 @media(max-width:760px){
   /* Phones keep the columns the ranking reads on: return and the gap to SPY

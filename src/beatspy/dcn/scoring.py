@@ -134,7 +134,8 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
     coverages = [decision.coverage for decision in decisions]
     turnover_values = [value for _, value in result.turnover]
 
-    calibration = build_report(
+    direct_allocation = settings.decision.decision_model == "hrp"
+    calibration = None if direct_allocation else build_report(
         list(observations),
         coverage=statistics.mean(coverages) if coverages else 0.0,
         horizons=len(decisions),

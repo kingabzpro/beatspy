@@ -474,12 +474,28 @@ async def replay_run(run_dir: Path) -> dict:
     observations: list[Observation] = []
     clusters: list[str] = []
     executable = {ticker.upper() for ticker in scenario.tradable}
+    is_hrp = settings.decision.decision_model == "hrp"
+    if is_hrp and decision.get("question_form") != "allocation":
+        raise ValueError("HRP runs must use the allocation form")
     for line in submitted:
         day = line["date"]
         record, weights, observed = _read_decision(day, line)
         outside = sorted(set(weights) - executable)
         if outside:
             raise ValueError(f"{day}: recorded weights hold tickers outside the scenario universe: {outside}")
+        if is_hrp:
+            from .hrp import allocation
+
+            expected = allocation(data, scenario, record.date)
+            matched_weights = weights.keys() == expected.weights.keys() and all(
+                math.isclose(weight, expected.weights[ticker], rel_tol=1e-10, abs_tol=1e-12)
+                for ticker, weight in weights.items()
+            )
+            if (
+                not matched_weights or observed or record.call or record.coverage or record.error
+                or record.validated.invalid
+            ):
+                raise ValueError(f"{day}: recorded HRP decision disagrees with the frozen-price allocation")
         records.append(record)
         observations.extend(observed)
         clusters.extend([day] * len(observed))

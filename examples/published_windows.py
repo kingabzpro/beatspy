@@ -28,7 +28,7 @@ def progress(index: int, count: int, day: date) -> None:
 async def benchmark(
     output: Path,
     settings: Settings,
-    client_factory: Callable[[DataService], DcnClient],
+    client_factory: Callable[[DataService], DcnClient] | None,
     runtime: dict,
 ) -> None:
     output.mkdir(parents=True, exist_ok=True)
@@ -43,7 +43,7 @@ async def benchmark(
         prices, manifest = read_snapshot(snapshot, scenario)
         data = DataService(prices, benchmark=scenario.benchmark)
         manifest = {**manifest, "path": str(snapshot)}
-        client = client_factory(data)
+        client = client_factory(data) if client_factory else None
 
         print(f"{name} ({start} through {end})", flush=True)
         run_dir = await run_dcn(
@@ -58,20 +58,22 @@ async def benchmark(
             max_consecutive_failures=1,
         )
         meta, metrics, decisions = read_run(run_dir)
+        allocation_only = meta["decision"]["question_form"] == "allocation"
         if any(
-            line["coverage"] != 1.0 or line["error"] or len(line["observed"]) != len(line["questions"])
+            line["coverage"] != (0.0 if allocation_only else 1.0) or line["error"]
+            or line["validated"]["invalid"] or len(line["observed"]) != len(line["questions"])
             for line in decisions
         ):
             raise RuntimeError(f"{name} has incomplete forecast or outcome coverage")
         group = comparison_group(meta)
-        if group != board_groups[name]:
+        if not allocation_only and group != board_groups[name]:
             raise RuntimeError(f"{name} comparison group {group} differs from the published {board_groups[name]}")
         await replay_run(run_dir)
         row = summary(meta, metrics, f"runs/{run_dir.name}")
         row["snapshot_dir"] = f"snapshots/{meta['data']['snapshot_id']}"
-        row["actions"] = decision_actions(run_dir)
+        row["actions"] = None if allocation_only else decision_actions(run_dir)
         catalog_rows.append(row)
-        calibration = metrics["calibration"]["signals"]["noul"]
+        calibration = (metrics["calibration"] or {}).get("signals", {}).get("noul", {})
         results.append({
             "window": name,
             "start": scenario.start,
@@ -84,11 +86,14 @@ async def benchmark(
             "total_return": metrics["total_return"],
             "spy_total_return": metrics["spy_total_return"],
             "excess_return_vs_spy": metrics["excess_return_vs_spy"],
-            "brier": calibration["brier"],
-            "brier_skill_score": calibration["brier_skill_score"],
-            "auc": calibration["auc"],
+            "equal_weight_return": metrics["baselines"]["equal_weight"],
+            "max_drawdown": metrics["max_drawdown"],
+            "avg_turnover": metrics["avg_turnover"],
+            "brier": calibration.get("brier"),
+            "brier_skill_score": calibration.get("brier_skill_score"),
+            "auc": calibration.get("auc"),
         })
-        print(f"{name} replay verified with 100% coverage, SPY gap {metrics['excess_return_vs_spy']:+.2%}", flush=True)
+        print(f"{name} replay verified, SPY gap {metrics['excess_return_vs_spy']:+.2%}", flush=True)
 
     atomic_json(output / "catalog_rows.json", catalog_rows)
     atomic_json(output / "summary.json", {**runtime, "windows": results})

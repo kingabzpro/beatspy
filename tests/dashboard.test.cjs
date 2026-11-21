@@ -190,6 +190,9 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('deeptrade'), 'HYBRID');
   assert.equal(modelTag('timestral-209m'), 'FORECAST');
   assert.equal(modelTag('lightgbm'), 'ML');
+  assert.equal(modelTag('logistic-regression'), 'LINEAR');
+  assert.equal(modelTag('logistic-lightgbm'), 'ENSEMBLE');
+  assert.equal(modelTag('hrp'), 'ALLOC');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
@@ -499,8 +502,11 @@ test('the model toggle includes forecasting and algorithms without changing the 
   const {site, first, second} = siteFixture();
   const forecast = catalogRun({run_id: 'forecast', model: 'timestral-209m', category: 'ai'});
   const algorithm = catalogRun({run_id: 'algorithm', model: 'lightgbm', category: 'algo'});
+  const linear = catalogRun({run_id: 'linear', model: 'logistic-regression', category: 'algo'});
+  const ensemble = catalogRun({run_id: 'ensemble', model: 'logistic-lightgbm', category: 'algo'});
   first.start = '2025-04-01'; first.end = '2025-10-01';
-  site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all', runs: [first, second, forecast, algorithm]});
+  site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all',
+    runs: [first, second, forecast, algorithm, linear, ensemble]});
   const elements = mountSite(site);
   const toggle = fakeElement('input');
   toggle.checked = false;
@@ -511,13 +517,13 @@ test('the model toggle includes forecasting and algorithms without changing the 
   assert.deepEqual(modelNames(), ['Clef']);
   toggle.checked = true;
   toggle.onchange();
-  assert.deepEqual(modelNames().sort(), ['Clef', 'LightGBM', 'Timestral']);
+  assert.deepEqual(modelNames().sort(), ['Clef', 'LightGBM', 'Logistic Regression', 'Logit + LightGBM', 'Timestral']);
   const lightgbmRow = elements.get('leaderboard-table').descendants().find(node =>
     node.tagName === 'tr' && node.descendants().some(child => child.className === 'run-button' && child.textContent === 'LightGBM'));
   assert.equal(lightgbmRow.descendants().find(node => node.tagName === 'img').src, 'assets/logos/lightgbm.png');
   assert.equal(lightgbmRow.descendants().find(node => node.className === 'tag tag-ml').textContent, 'ML');
   elements.get('period-tabs').children[0].onclick();
-  assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash', 'LightGBM', 'Timestral']);
+  assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash', 'LightGBM', 'Logistic Regression', 'Logit + LightGBM', 'Timestral']);
   toggle.checked = false;
   toggle.onchange();
   assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash']);
@@ -589,6 +595,20 @@ test('the run page loads one run from the query string', async () => {
   assert.equal($('downloads').children.length, 6);
   // No board on this page: the script must not require it.
   assert.equal($('leaderboard-table'), undefined);
+});
+
+test('allocation-only runs show returns and hide forecast metrics', async () => {
+  const {site, first} = siteFixture();
+  first.model = 'hrp'; first.question_form = 'allocation'; first.metrics.calibration = null;
+  site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all', runs: [first]});
+  site[`data/${first.dir}/metrics.json`] = JSON.stringify(first.metrics);
+  const elements = mountSite(site, 'run.html', `?run=${encodeURIComponent(first.run_id)}`);
+  await settle();
+  assert.equal(elements.get('run-title').textContent, 'HRP · allocation');
+  assert.equal(elements.get('calibration').hidden, true);
+  const metricText = elements.get('metrics').descendants().map(node => node.textContent).join(' ');
+  assert.match(metricText, /Excess vs pool/);
+  assert.doesNotMatch(metricText, /Answer coverage|Brier/);
 });
 
 test('the pricing page renders the standardized table', async () => {

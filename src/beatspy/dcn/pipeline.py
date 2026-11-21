@@ -85,6 +85,8 @@ class DcnDecision:
     @property
     def coverage(self) -> float:
         """Share of requested questions the provider actually answered."""
+        if self.question_form == "allocation":
+            return 0.0
         if not self.question_ids:
             return 1.0
         return (len(self.question_ids) - len(self.missing_ids)) / len(self.question_ids)

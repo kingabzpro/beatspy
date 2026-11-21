@@ -30,6 +30,10 @@ from ..schemas import CalibrationReport
 from . import DCN_PROTOCOL
 from .calibration import Observation, build_report
 from .clients import DcnClient, make_client
+from .hrp import FORM as ALLOCATION_FORM
+from .hrp import LOOKBACK as HRP_LOOKBACK
+from .hrp import MODEL as HRP_MODEL
+from .hrp import allocation as hrp_allocation
 from .pipeline import DcnDecision, DcnPipeline, label_observations
 
 log = logging.getLogger(__name__)
@@ -156,12 +160,15 @@ async def run_dcn(
         update={"start": start or scenario.start, "end": end or scenario.end, "frequency": freq or scenario.frequency}
     )
     data, manifest = prepared_data or await asyncio.to_thread(ensure_data, scenario, data_root, refresh_data)
+    direct_allocation = settings.decision.decision_model == HRP_MODEL
+    if direct_allocation:
+        question_form = ALLOCATION_FORM
     owns_client = client is None
-    dcn_client = client or make_client(settings, data=data)
+    dcn_client = None if direct_allocation else client or make_client(settings, data=data)
     try:
         from .scoring import estimate_cost, score_run
 
-        pipeline = DcnPipeline(settings, scenario, dcn_client, question_form=question_form)
+        pipeline = DcnPipeline(settings, scenario, dcn_client, question_form=question_form) if dcn_client else None
         start_day = date.fromisoformat(start or scenario.start)
         end_day = date.fromisoformat(end or scenario.end)
         decision_dates = data.decision_dates(
@@ -183,15 +190,22 @@ async def run_dcn(
             period = data.decision_period(day, decision_dates, end_day)
             if progress is not None:
                 progress(len(decisions) + 1, len(decision_dates), day)
-            decision = await pipeline.decide(
-                data,
-                day,
-                holdings=invested,
-                cash=1.0 - sum(invested.values()),
-                horizon_trading_days=period["horizon_trading_days"],
-                next_decision_date=period["next_decision_date"],
-                recent=list(recent[-3:]),
-            )
+            if pipeline is None:
+                state = {"as_of": day.isoformat(), "lookback_sessions": HRP_LOOKBACK, "universe": scenario.tradable}
+                decision = DcnDecision(
+                    date=day, question_form=question_form, state=state, state_text=json.dumps(state, sort_keys=True),
+                    tickers=scenario.tradable, validated=hrp_allocation(data, scenario, day),
+                )
+            else:
+                decision = await pipeline.decide(
+                    data,
+                    day,
+                    holdings=invested,
+                    cash=1.0 - sum(invested.values()),
+                    horizon_trading_days=period["horizon_trading_days"],
+                    next_decision_date=period["next_decision_date"],
+                    recent=list(recent[-3:]),
+                )
             decision.observed = label_observations(data, scenario, decision)
             observations.extend(decision.observed)
             decisions.append(decision)
@@ -254,7 +268,9 @@ async def run_dcn(
             "beatspy_version": __version__,
             "created_utc": datetime.now(UTC).isoformat(timespec="seconds"),
             "synthetic": False,
-            "disclaimer": DISCLAIMER,
+            "disclaimer": (
+                "Historical allocation benchmark using frozen market prices." if direct_allocation else DISCLAIMER
+            ),
             # One full state sample, so an auditor can read exactly what the model
             # saw. Every decision still records its own hash and size.
             "state_sample": (
@@ -281,7 +297,8 @@ async def run_dcn(
                     "cost_per_m_input": settings.decision.cost_per_m_input,
                     "cost_per_m_output": settings.decision.cost_per_m_output,
                 },
-                "policy": {
+                "policy": {"method": HRP_MODEL, "lookback_sessions": HRP_LOOKBACK, "rebalance_band": 0.0}
+                if direct_allocation else {
                     "selection": settings.decision.selection,
                     # Recorded in full so the artifact alone explains the weights.
                     "base_weight": settings.decision.base_weight,
@@ -333,7 +350,7 @@ async def run_dcn(
         atomic_json(out_dir / "run.json", run_meta)
         return out_dir
     finally:
-        if owns_client:
+        if owns_client and dcn_client is not None:
             await dcn_client.close()
 
 

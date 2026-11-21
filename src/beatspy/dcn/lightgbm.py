@@ -85,19 +85,27 @@ class LightGBMClient:
                 labels.append(int(end / start > benchmark_return))
         return _feature_frame(inputs, pd.MultiIndex.from_tuples(index, names=["origin", "ticker"])), labels
 
-    async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
-        started = time.perf_counter()
+    def _predict_probabilities(self, training: pd.DataFrame, labels: list[int], inputs: pd.DataFrame):
         try:
             from lightgbm import LGBMClassifier
         except ImportError as exc:
             raise DcnError("LightGBM requires `pip install lightgbm==4.6.0`.") from exc
 
+        model = LGBMClassifier(
+            n_estimators=80, num_leaves=7, learning_rate=0.05, min_child_samples=40,
+            reg_lambda=1.0, random_state=42, deterministic=True, force_col_wise=True, n_jobs=2, verbosity=-1,
+        )
+        model.fit(training, labels)
+        return model.predict_proba(inputs)[:, 1]
+
+    async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
+        started = time.perf_counter()
         day = date.fromisoformat(state["as_of"])
         horizon = state["horizon_trading_days"]
         tickers = sorted({question.instructions["ticker"] for question in questions.values()})
         training, labels = self.training_data(day, horizon, tickers)
         if len(training) < MIN_TRAINING_ROWS or len(set(labels)) < 2:
-            raise DcnError(f"Insufficient settled LightGBM training labels on {day} ({len(training)} rows).")
+            raise DcnError(f"Insufficient settled {self.model} training labels on {day} ({len(training)} rows).")
         current = {}
         for ticker in tickers:
             row = self._feature_row(ticker, day)
@@ -106,13 +114,8 @@ class LightGBMClient:
         if not current:
             return DcnResult(missing_ids=list(questions), requests=0)
 
-        model = LGBMClassifier(
-            n_estimators=80, num_leaves=7, learning_rate=0.05, min_child_samples=40,
-            reg_lambda=1.0, random_state=42, deterministic=True, force_col_wise=True, n_jobs=2, verbosity=-1,
-        )
-        model.fit(training, labels)
         inputs = _feature_frame(list(current.values()), pd.Index(current))
-        probabilities = dict(zip(current, model.predict_proba(inputs)[:, 1], strict=True))
+        probabilities = dict(zip(current, self._predict_probabilities(training, labels, inputs), strict=True))
         answers: dict[str, NoulAnswer | ChoiceAnswer] = {}
         for question_id, question in questions.items():
             probability = probabilities.get(question.instructions["ticker"])

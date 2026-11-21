@@ -89,7 +89,7 @@ function modelName(model) {
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
 // Row tags identify specialized approaches alongside the decision models.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML"};
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR", "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC"};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 const isDecisionModel = run => !modelTag(run.model) && (run.category == null || run.category === "ai");
 
@@ -135,6 +135,9 @@ const MODEL_META = {
   "minara-kairos": ["Kairos", "minara.png"],
   "timestral-209m": ["Timestral", "mistral.png"],
   "lightgbm": ["LightGBM", "lightgbm.png"],
+  "logistic-regression": ["Logistic Regression", null],
+  "logistic-lightgbm": ["Logit + LightGBM", null],
+  "hrp": ["HRP", null],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
@@ -347,9 +350,12 @@ if (typeof document !== "undefined") {
     const text = modelTag(run.model);
     if (!text) return;
     const tag = node("span", text, `tag tag-${text.toLowerCase()}`);
-    if (text === "FORECAST") tag.title = "Time-series forecasting model";
-    else if (text === "ML") tag.title = "Machine learning model";
-    else tag.title = text === "ALGO" ? "Deterministic algorithm, no LLM" : "AI decision model";
+    tag.title = {
+      FORECAST: "Time-series forecasting model", ML: "Machine learning model",
+      LINEAR: "Regularized linear classifier", ENSEMBLE: "Equal-weight blend of two model probabilities",
+      ALGO: "Deterministic algorithm, no LLM",
+      ALLOC: "Direct portfolio allocation",
+    }[text] || "AI decision model";
     cell.append(tag);
   };
   let runs = [], visible = [], selected = null, loading = 0;
@@ -895,9 +901,10 @@ if (typeof document !== "undefined") {
       const meta = JSON.parse(texts[0]), metrics = JSON.parse(texts[1]);
       const equity = parseCSV(texts[2]), decisions = texts[3].split(/\r?\n/).filter(Boolean).map(line => JSON.parse(line));
       const calibration = metrics.calibration || run.metrics.calibration || {};
+      const allocationOnly = run.question_form === "allocation";
       setHidden("run-details", false);
       setText("status", "");
-      $("run-title").textContent = `${displayModel(run.model)} · ${run.question_form} questions`;
+      $("run-title").textContent = `${displayModel(run.model)} · ${allocationOnly ? "allocation" : `${run.question_form} questions`}`;
       // The pill keeps its border when empty, so hide it unless a trust state
       // earns a label.
       $("run-trust").textContent = TRUST[run.trust] || "";
@@ -931,6 +938,7 @@ if (typeof document !== "undefined") {
         held = target;
       }
       const perDecision = value => (value / Math.max(decisions.length, 1)).toFixed(1);
+      const fillDetails = `${plural(run.metrics.trades, "fill")} filled`;
       const tiles = [
         ["Portfolio return", percent(run.metrics.total_return), run.metrics.total_return,
           `a $10,000 start ends at ${usd(START_USD * (1 + (Number.isFinite(Number(run.metrics.total_return)) ? run.metrics.total_return : 0)))}`
@@ -944,7 +952,9 @@ if (typeof document !== "undefined") {
         ["Maximum drawdown", percent(run.metrics.max_drawdown), run.metrics.max_drawdown, "peak to trough"],
         ["Turnover per decision", percent(run.metrics.avg_turnover), null, "share of the book traded, one-sided"],
         ["Decisions", count(run.metrics.decisions), null,
-          `${plural(run.metrics.trades, "fill")} filled · ${perDecision(buys)} buys, ${perDecision(sells)} sells, ${perDecision(holds)} holds per decision`],
+          allocationOnly ? fillDetails : `${fillDetails} · ${perDecision(buys)} buys, ${perDecision(sells)} sells, ${perDecision(holds)} holds per decision`],
+      ];
+      if (!allocationOnly) tiles.push(
         ["Answer coverage", percent(run.metrics.answer_coverage), null,
           `${plural(run.metrics.invalid_outputs, "invalid answer")}: missing answers stay unscored and carry no conviction`],
         ["Brier (noul)", score(noulStats.brier), null, `sample rate ${score(noulStats.base_rate)}: what a constant would score`],
@@ -955,7 +965,7 @@ if (typeof document !== "undefined") {
         ["ECE (noul)", score(noulStats.expected_calibration_error), null,
           `expected calibration error; worst bin ${score(noulStats.max_calibration_error)}`],
         ["Accuracy (noul)", percent(noulStats.accuracy), null, "share of labels the called side got right"],
-      ];
+      );
       tiles.forEach(([title, formatted, value, note], index) => {
         // The first two tiles are the headline: what it returned and whether
         // that beat SPY. They render larger so the page has a focal point.
@@ -974,7 +984,8 @@ if (typeof document !== "undefined") {
         return result;
       });
       chart("drawdown", drawdown, series, percent);
-      reliabilityChart("reliability", calibration);
+      setHidden("calibration", allocationOnly);
+      if (!allocationOnly) reliabilityChart("reliability", calibration);
       const allocationRowsData = allocationRows(decisions);
       const tickers = [...new Set(allocationRowsData.flatMap(row => Object.keys(row).filter(key => key !== "date")))];
       allocationRowsData.forEach(row => tickers.forEach(key => {row[key] = row[key] || 0;}));
@@ -990,7 +1001,9 @@ if (typeof document !== "undefined") {
       const selectionText = meta.scenario?.selection_top
         ? ` · trades the top ${count(meta.scenario.selection_top)} trailing performers, ranked point-in-time`
         : "";
-      $("run-cost").textContent = `Input-only estimate ${dollars(cost)} · ${count(run.metrics.input_tokens)} input tokens · `
+      $("run-cost").textContent = allocationOnly
+        ? `Direct allocation · ${plural(policy.lookback_sessions, "session")} of trailing history · ${percent(meta.scenario?.max_position_weight)} position cap`
+        : `Input-only estimate ${dollars(cost)} · ${count(run.metrics.input_tokens)} input tokens · `
         + `${count(run.metrics.output_tokens)} output tokens · ${plural(run.metrics.requests, "request")} · `
         + `mean latency ${FORMAT.millis(run.metrics.mean_latency_s)} · ${policyText}${selectionText}`;
       $("price-source").replaceChildren();
@@ -1000,7 +1013,9 @@ if (typeof document !== "undefined") {
         $("price-source").append(link);
       }
       $("settings").textContent = JSON.stringify(meta, null, 2);
-      $("coverage").textContent = `Scored ${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")}, `
+      $("coverage").textContent = allocationOnly
+        ? "Allocation weights are replayed from the frozen snapshot."
+        : `Scored ${plural(calibration.observations, "observation")} over ${plural(calibration.horizons, "horizon")}, `
         + `labeled against realized benchmark-relative outcomes. ${calibration.note || ""}`.trim();
       $("downloads").replaceChildren();
       for (const name of ["run.json", "metrics.json", "equity_curve.csv", "trades.csv", "decisions.jsonl", "events.jsonl"]) {

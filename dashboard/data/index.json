@@ -24960,6 +24960,1554 @@
       "synthetic": false,
       "trust": "replayed",
       "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 2.04,
+        "avg_holds": 21.08,
+        "avg_sells": 1.88,
+        "buy": 0.0816,
+        "hold": 0.8432,
+        "sell": 0.0752
+      },
+      "answer_coverage": 1,
+      "auc": 0.510067,
+      "auc_p_value": 0.224775,
+      "brier": 0.258762,
+      "brier_skill_p_value": 0.777223,
+      "brier_skill_score": -0.035113,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:25:21+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-182521_2025-10-6m_logistic-regression_8276653c3c",
+      "ece": 0.067168,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.190545,
+        "method": "decision-window block bootstrap",
+        "upper": 0.163621
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.406688,
+      "mean_latency_s": 1.398,
+      "metrics": {
+        "annual_volatility": 0.132125,
+        "answer_coverage": 1,
+        "avg_turnover": 0.095207,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.492118,
+        "calibration": {
+          "coverage": 1,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5088,
+              "auc": 0.510067,
+              "auc_p_value": 0.224775,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 0,
+                  "lower": 0.2,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.3
+                },
+                {
+                  "count": 7,
+                  "lower": 0.3,
+                  "mean_predicted": 0.382462,
+                  "observed_rate": 0.285714,
+                  "upper": 0.4
+                },
+                {
+                  "count": 188,
+                  "lower": 0.4,
+                  "mean_predicted": 0.460901,
+                  "observed_rate": 0.5,
+                  "upper": 0.5
+                },
+                {
+                  "count": 285,
+                  "lower": 0.5,
+                  "mean_predicted": 0.541427,
+                  "observed_rate": 0.505263,
+                  "upper": 0.6
+                },
+                {
+                  "count": 99,
+                  "lower": 0.6,
+                  "mean_predicted": 0.642742,
+                  "observed_rate": 0.535354,
+                  "upper": 0.7
+                },
+                {
+                  "count": 38,
+                  "lower": 0.7,
+                  "mean_predicted": 0.742672,
+                  "observed_rate": 0.473684,
+                  "upper": 0.8
+                },
+                {
+                  "count": 6,
+                  "lower": 0.8,
+                  "mean_predicted": 0.829825,
+                  "observed_rate": 0.5,
+                  "upper": 0.9
+                },
+                {
+                  "count": 2,
+                  "lower": 0.9,
+                  "mean_predicted": 0.906688,
+                  "observed_rate": 0.5,
+                  "upper": 1
+                }
+              ],
+              "brier": 0.258762,
+              "brier_skill_p_value": 0.777223,
+              "brier_skill_score": -0.035113,
+              "expected_calibration_error": 0.067168,
+              "log_loss": 0.713853,
+              "max_calibration_error": 0.406688,
+              "mean_predicted": 0.547646,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.190545,
+          "method": "decision-window block bootstrap",
+          "upper": 0.163621
+        },
+        "excess_return_vs_spy": -0.008856,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.057879,
+        "mean_latency_s": 1.398,
+        "outperformance_hit_rate": 0.52,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.048679,
+          "method": "decision-window block bootstrap",
+          "upper": 0.402312
+        },
+        "risk_violations": 0,
+        "sharpe": 3.0968,
+        "spy_total_return": 0.230379,
+        "total_return": 0.221523,
+        "trades": 625
+      },
+      "model": "logistic-regression",
+      "model_label": "Logistic Regression (walk-forward)",
+      "noul_brier": 0.258762,
+      "noul_ece": 0.067168,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.048679,
+        "method": "decision-window block bootstrap",
+        "upper": 0.402312
+      },
+      "run_id": "20261121-182521_2025-10-6m_logistic-regression_8276653c3c",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 3.0384615384615383,
+        "avg_holds": 19.5,
+        "avg_sells": 2.4615384615384617,
+        "buy": 0.12153846153846154,
+        "hold": 0.78,
+        "sell": 0.09846153846153846
+      },
+      "answer_coverage": 1,
+      "auc": 0.518275,
+      "auc_p_value": 0.164835,
+      "brier": 0.252893,
+      "brier_skill_p_value": 0.84016,
+      "brier_skill_score": -0.012529,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:26:11+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261121-182611_2026-04-6m_logistic-regression_6ffaa716f8",
+      "ece": 0.044033,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.018309,
+        "method": "decision-window block bootstrap",
+        "upper": 0.191284
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.289008,
+      "mean_latency_s": 1.365,
+      "metrics": {
+        "annual_volatility": 0.116179,
+        "answer_coverage": 1,
+        "avg_turnover": 0.130426,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.214796,
+        "calibration": {
+          "coverage": 1,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.513846,
+              "auc": 0.518275,
+              "auc_p_value": 0.164835,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 1,
+                  "lower": 0.2,
+                  "mean_predicted": 0.289008,
+                  "observed_rate": 0,
+                  "upper": 0.3
+                },
+                {
+                  "count": 50,
+                  "lower": 0.3,
+                  "mean_predicted": 0.382505,
+                  "observed_rate": 0.5,
+                  "upper": 0.4
+                },
+                {
+                  "count": 300,
+                  "lower": 0.4,
+                  "mean_predicted": 0.455361,
+                  "observed_rate": 0.503333,
+                  "upper": 0.5
+                },
+                {
+                  "count": 248,
+                  "lower": 0.5,
+                  "mean_predicted": 0.540085,
+                  "observed_rate": 0.524194,
+                  "upper": 0.6
+                },
+                {
+                  "count": 45,
+                  "lower": 0.6,
+                  "mean_predicted": 0.638362,
+                  "observed_rate": 0.577778,
+                  "upper": 0.7
+                },
+                {
+                  "count": 6,
+                  "lower": 0.7,
+                  "mean_predicted": 0.733093,
+                  "observed_rate": 0.5,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 1
+                }
+              ],
+              "brier": 0.252893,
+              "brier_skill_p_value": 0.84016,
+              "brier_skill_score": -0.012529,
+              "expected_calibration_error": 0.044033,
+              "log_loss": 0.699214,
+              "max_calibration_error": 0.289008,
+              "mean_predicted": 0.497059,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.018309,
+          "method": "decision-window block bootstrap",
+          "upper": 0.191284
+        },
+        "excess_return_vs_spy": 0.081672,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.045889,
+        "mean_latency_s": 1.365,
+        "outperformance_hit_rate": 0.5,
+        "output_tokens": 0,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.050565,
+          "method": "decision-window block bootstrap",
+          "upper": 0.315388
+        },
+        "risk_violations": 0,
+        "sharpe": 1.733,
+        "spy_total_return": 0.018805,
+        "total_return": 0.100477,
+        "trades": 650
+      },
+      "model": "logistic-regression",
+      "model_label": "Logistic Regression (walk-forward)",
+      "noul_brier": 0.252893,
+      "noul_ece": 0.044033,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.050565,
+        "method": "decision-window block bootstrap",
+        "upper": 0.315388
+      },
+      "run_id": "20261121-182611_2026-04-6m_logistic-regression_6ffaa716f8",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 2.48,
+        "avg_holds": 20.64,
+        "avg_sells": 1.88,
+        "buy": 0.0992,
+        "hold": 0.8256,
+        "sell": 0.0752
+      },
+      "answer_coverage": 1,
+      "auc": 0.548304,
+      "auc_p_value": 0.076923,
+      "brier": 0.249552,
+      "brier_skill_p_value": 0.919081,
+      "brier_skill_score": -0.009811,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:26:59+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-182659_2026-6m_logistic-regression_ddf1afe1da",
+      "ece": 0.045281,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.228256,
+        "method": "decision-window block bootstrap",
+        "upper": 0.032682
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.540328,
+      "mean_latency_s": 1.328,
+      "metrics": {
+        "annual_volatility": 0.082986,
+        "answer_coverage": 1,
+        "avg_turnover": 0.108376,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.12962,
+        "calibration": {
+          "coverage": 1,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.544,
+              "auc": 0.548304,
+              "auc_p_value": 0.076923,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 1,
+                  "lower": 0.2,
+                  "mean_predicted": 0.294567,
+                  "observed_rate": 0,
+                  "upper": 0.3
+                },
+                {
+                  "count": 83,
+                  "lower": 0.3,
+                  "mean_predicted": 0.370577,
+                  "observed_rate": 0.361446,
+                  "upper": 0.4
+                },
+                {
+                  "count": 253,
+                  "lower": 0.4,
+                  "mean_predicted": 0.456345,
+                  "observed_rate": 0.426877,
+                  "upper": 0.5
+                },
+                {
+                  "count": 242,
+                  "lower": 0.5,
+                  "mean_predicted": 0.541029,
+                  "observed_rate": 0.495868,
+                  "upper": 0.6
+                },
+                {
+                  "count": 41,
+                  "lower": 0.6,
+                  "mean_predicted": 0.638103,
+                  "observed_rate": 0.487805,
+                  "upper": 0.7
+                },
+                {
+                  "count": 5,
+                  "lower": 0.7,
+                  "mean_predicted": 0.740328,
+                  "observed_rate": 0.2,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 1
+                }
+              ],
+              "brier": 0.249552,
+              "brier_skill_p_value": 0.919081,
+              "brier_skill_score": -0.009811,
+              "expected_calibration_error": 0.045281,
+              "log_loss": 0.692673,
+              "max_calibration_error": 0.540328,
+              "mean_predicted": 0.491681,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.228256,
+          "method": "decision-window block bootstrap",
+          "upper": 0.032682
+        },
+        "excess_return_vs_spy": -0.087558,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.03566,
+        "mean_latency_s": 1.328,
+        "outperformance_hit_rate": 0.4,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.049046,
+          "method": "decision-window block bootstrap",
+          "upper": 0.189292
+        },
+        "risk_violations": 0,
+        "sharpe": 1.5102,
+        "spy_total_return": 0.150909,
+        "total_return": 0.06335,
+        "trades": 624
+      },
+      "model": "logistic-regression",
+      "model_label": "Logistic Regression (walk-forward)",
+      "noul_brier": 0.249552,
+      "noul_ece": 0.045281,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.049046,
+        "method": "decision-window block bootstrap",
+        "upper": 0.189292
+      },
+      "run_id": "20261121-182659_2026-6m_logistic-regression_ddf1afe1da",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 3.44,
+        "avg_holds": 18.48,
+        "avg_sells": 3.08,
+        "buy": 0.1376,
+        "hold": 0.7392,
+        "sell": 0.1232
+      },
+      "answer_coverage": 1,
+      "auc": 0.5081,
+      "auc_p_value": 0.192807,
+      "brier": 0.25608,
+      "brier_skill_p_value": 0.814186,
+      "brier_skill_score": -0.024384,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:25:24+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-182524_2025-10-6m_logistic-lightgbm_92763cae58",
+      "ece": 0.052212,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.144572,
+        "method": "decision-window block bootstrap",
+        "upper": 0.18371
+      },
+      "group": "ab10040cadbc17f4",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.813329,
+      "mean_latency_s": 1.531,
+      "metrics": {
+        "annual_volatility": 0.125517,
+        "answer_coverage": 1,
+        "avg_turnover": 0.146361,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.552061,
+        "calibration": {
+          "coverage": 1,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5136,
+              "auc": 0.5081,
+              "auc_p_value": 0.192807,
+              "base_rate": 0.504,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 0,
+                  "lower": 0.2,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.3
+                },
+                {
+                  "count": 7,
+                  "lower": 0.3,
+                  "mean_predicted": 0.380361,
+                  "observed_rate": 0.285714,
+                  "upper": 0.4
+                },
+                {
+                  "count": 221,
+                  "lower": 0.4,
+                  "mean_predicted": 0.461665,
+                  "observed_rate": 0.493213,
+                  "upper": 0.5
+                },
+                {
+                  "count": 280,
+                  "lower": 0.5,
+                  "mean_predicted": 0.544742,
+                  "observed_rate": 0.525,
+                  "upper": 0.6
+                },
+                {
+                  "count": 99,
+                  "lower": 0.6,
+                  "mean_predicted": 0.639238,
+                  "observed_rate": 0.474747,
+                  "upper": 0.7
+                },
+                {
+                  "count": 17,
+                  "lower": 0.7,
+                  "mean_predicted": 0.727757,
+                  "observed_rate": 0.588235,
+                  "upper": 0.8
+                },
+                {
+                  "count": 1,
+                  "lower": 0.8,
+                  "mean_predicted": 0.813329,
+                  "observed_rate": 0,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 1
+                }
+              ],
+              "brier": 0.25608,
+              "brier_skill_p_value": 0.814186,
+              "brier_skill_score": -0.024384,
+              "expected_calibration_error": 0.052212,
+              "log_loss": 0.706282,
+              "max_calibration_error": 0.813329,
+              "mean_predicted": 0.533901,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.144572,
+          "method": "decision-window block bootstrap",
+          "upper": 0.18371
+        },
+        "excess_return_vs_spy": 0.015439,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.042935,
+        "mean_latency_s": 1.531,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": 0.076334,
+          "method": "decision-window block bootstrap",
+          "upper": 0.442119
+        },
+        "risk_violations": 0,
+        "sharpe": 3.5674,
+        "spy_total_return": 0.230379,
+        "total_return": 0.245817,
+        "trades": 625
+      },
+      "model": "logistic-lightgbm",
+      "model_label": "Logit + LightGBM (50/50 ensemble)",
+      "noul_brier": 0.25608,
+      "noul_ece": 0.052212,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": 0.076334,
+        "method": "decision-window block bootstrap",
+        "upper": 0.442119
+      },
+      "run_id": "20261121-182524_2025-10-6m_logistic-lightgbm_92763cae58",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2025"
+    },
+    {
+      "actions": {
+        "avg_buys": 4.384615384615385,
+        "avg_holds": 16.846153846153847,
+        "avg_sells": 3.769230769230769,
+        "buy": 0.1753846153846154,
+        "hold": 0.6738461538461539,
+        "sell": 0.15076923076923077
+      },
+      "answer_coverage": 1,
+      "auc": 0.49883,
+      "auc_p_value": 0.508492,
+      "brier": 0.255034,
+      "brier_skill_p_value": 0.52048,
+      "brier_skill_score": -0.021103,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:26:15+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261121-182615_2026-04-6m_logistic-lightgbm_9eb08da47e",
+      "ece": 0.045966,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.011045,
+        "method": "decision-window block bootstrap",
+        "upper": 0.158347
+      },
+      "group": "9da20a9587d27c06",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.275764,
+      "mean_latency_s": 1.478,
+      "metrics": {
+        "annual_volatility": 0.118783,
+        "answer_coverage": 1,
+        "avg_turnover": 0.190744,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.190299,
+        "calibration": {
+          "coverage": 1,
+          "horizons": 26,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 650,
+          "signals": {
+            "noul": {
+              "accuracy": 0.510769,
+              "auc": 0.49883,
+              "auc_p_value": 0.508492,
+              "base_rate": 0.515385,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 1,
+                  "lower": 0.2,
+                  "mean_predicted": 0.275764,
+                  "observed_rate": 0,
+                  "upper": 0.3
+                },
+                {
+                  "count": 47,
+                  "lower": 0.3,
+                  "mean_predicted": 0.370835,
+                  "observed_rate": 0.510638,
+                  "upper": 0.4
+                },
+                {
+                  "count": 307,
+                  "lower": 0.4,
+                  "mean_predicted": 0.455186,
+                  "observed_rate": 0.504886,
+                  "upper": 0.5
+                },
+                {
+                  "count": 246,
+                  "lower": 0.5,
+                  "mean_predicted": 0.536863,
+                  "observed_rate": 0.53252,
+                  "upper": 0.6
+                },
+                {
+                  "count": 42,
+                  "lower": 0.6,
+                  "mean_predicted": 0.635317,
+                  "observed_rate": 0.47619,
+                  "upper": 0.7
+                },
+                {
+                  "count": 7,
+                  "lower": 0.7,
+                  "mean_predicted": 0.717427,
+                  "observed_rate": 0.714286,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 1
+                }
+              ],
+              "brier": 0.255034,
+              "brier_skill_p_value": 0.52048,
+              "brier_skill_score": -0.021103,
+              "expected_calibration_error": 0.045966,
+              "log_loss": 0.703454,
+              "max_calibration_error": 0.275764,
+              "mean_predicted": 0.494186,
+              "n": 650,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 26,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.011045,
+          "method": "decision-window block bootstrap",
+          "upper": 0.158347
+        },
+        "excess_return_vs_spy": 0.070695,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.045791,
+        "mean_latency_s": 1.478,
+        "outperformance_hit_rate": 0.4615,
+        "output_tokens": 0,
+        "requests": 26,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.062349,
+          "method": "decision-window block bootstrap",
+          "upper": 0.297841
+        },
+        "risk_violations": 0,
+        "sharpe": 1.526,
+        "spy_total_return": 0.018805,
+        "total_return": 0.089501,
+        "trades": 650
+      },
+      "model": "logistic-lightgbm",
+      "model_label": "Logit + LightGBM (50/50 ensemble)",
+      "noul_brier": 0.255034,
+      "noul_ece": 0.045966,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.062349,
+        "method": "decision-window block bootstrap",
+        "upper": 0.297841
+      },
+      "run_id": "20261121-182615_2026-04-6m_logistic-lightgbm_9eb08da47e",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    },
+    {
+      "actions": {
+        "avg_buys": 3.8,
+        "avg_holds": 17.8,
+        "avg_sells": 3.4,
+        "buy": 0.152,
+        "hold": 0.712,
+        "sell": 0.136
+      },
+      "answer_coverage": 1,
+      "auc": 0.537313,
+      "auc_p_value": 0.124875,
+      "brier": 0.249471,
+      "brier_skill_p_value": 0.886114,
+      "brier_skill_score": -0.009486,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:27:05+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-182705_2026-6m_logistic-lightgbm_7229fc80e6",
+      "ece": 0.050774,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.223949,
+        "method": "decision-window block bootstrap",
+        "upper": 0.0438
+      },
+      "group": "98e27eb02d1eabad",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": 0.712842,
+      "mean_latency_s": 1.459,
+      "metrics": {
+        "annual_volatility": 0.084466,
+        "answer_coverage": 1,
+        "avg_turnover": 0.172829,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.150061,
+        "calibration": {
+          "coverage": 1,
+          "horizons": 25,
+          "miscalibration_gap": null,
+          "note": "labels are benchmark-relative: did the ticker beat the benchmark over the same horizon",
+          "observations": 625,
+          "signals": {
+            "noul": {
+              "accuracy": 0.5424,
+              "auc": 0.537313,
+              "auc_p_value": 0.124875,
+              "base_rate": 0.4464,
+              "bins": [
+                {
+                  "count": 0,
+                  "lower": 0,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.1
+                },
+                {
+                  "count": 0,
+                  "lower": 0.1,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.2
+                },
+                {
+                  "count": 1,
+                  "lower": 0.2,
+                  "mean_predicted": 0.287158,
+                  "observed_rate": 1,
+                  "upper": 0.3
+                },
+                {
+                  "count": 77,
+                  "lower": 0.3,
+                  "mean_predicted": 0.373254,
+                  "observed_rate": 0.402597,
+                  "upper": 0.4
+                },
+                {
+                  "count": 274,
+                  "lower": 0.4,
+                  "mean_predicted": 0.453093,
+                  "observed_rate": 0.416058,
+                  "upper": 0.5
+                },
+                {
+                  "count": 233,
+                  "lower": 0.5,
+                  "mean_predicted": 0.539904,
+                  "observed_rate": 0.476395,
+                  "upper": 0.6
+                },
+                {
+                  "count": 36,
+                  "lower": 0.6,
+                  "mean_predicted": 0.63797,
+                  "observed_rate": 0.555556,
+                  "upper": 0.7
+                },
+                {
+                  "count": 4,
+                  "lower": 0.7,
+                  "mean_predicted": 0.712344,
+                  "observed_rate": 0.5,
+                  "upper": 0.8
+                },
+                {
+                  "count": 0,
+                  "lower": 0.8,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 0.9
+                },
+                {
+                  "count": 0,
+                  "lower": 0.9,
+                  "mean_predicted": 0,
+                  "observed_rate": null,
+                  "upper": 1
+                }
+              ],
+              "brier": 0.249471,
+              "brier_skill_p_value": 0.886114,
+              "brier_skill_score": -0.009486,
+              "expected_calibration_error": 0.050774,
+              "log_loss": 0.692219,
+              "max_calibration_error": 0.712842,
+              "mean_predicted": 0.487663,
+              "n": 625,
+              "signal": "noul"
+            }
+          }
+        },
+        "decisions": 25,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.223949,
+          "method": "decision-window block bootstrap",
+          "upper": 0.0438
+        },
+        "excess_return_vs_spy": -0.077904,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.033674,
+        "mean_latency_s": 1.459,
+        "outperformance_hit_rate": 0.44,
+        "output_tokens": 0,
+        "requests": 25,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.05403,
+          "method": "decision-window block bootstrap",
+          "upper": 0.199955
+        },
+        "risk_violations": 0,
+        "sharpe": 1.6976,
+        "spy_total_return": 0.150909,
+        "total_return": 0.073004,
+        "trades": 624
+      },
+      "model": "logistic-lightgbm",
+      "model_label": "Logit + LightGBM (50/50 ensemble)",
+      "noul_brier": 0.249471,
+      "noul_ece": 0.050774,
+      "policy": {
+        "base_weight": 0.5,
+        "min_names": 2,
+        "min_probability": 0.5,
+        "rebalance_band": 0.02,
+        "selection": "graded_cs",
+        "signals": "consensus",
+        "top_n": 3
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "per_asset",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.05403,
+        "method": "decision-window block bootstrap",
+        "upper": 0.199955
+      },
+      "run_id": "20261121-182705_2026-6m_logistic-lightgbm_7229fc80e6",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    },
+    {
+      "actions": null,
+      "answer_coverage": 0,
+      "auc": null,
+      "auc_p_value": null,
+      "brier": null,
+      "brier_skill_p_value": null,
+      "brier_skill_score": null,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:35:16+00:00",
+      "data_cutoff": "2025-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-183516_2025-10-6m_hrp_bb460d7509",
+      "ece": null,
+      "end": "2025-10-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.301534,
+        "method": "decision-window block bootstrap",
+        "upper": 0.029539
+      },
+      "group": "3a293e924e49281e",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": null,
+      "mean_latency_s": 0,
+      "metrics": {
+        "annual_volatility": 0.088284,
+        "answer_coverage": 0,
+        "avg_turnover": 0.078675,
+        "baselines": {
+          "equal_weight": 0.213265,
+          "momentum_12_1": 0.327843,
+          "sixty_forty": 0.17117
+        },
+        "cagr": 0.216763,
+        "calibration": null,
+        "decisions": 25,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.301534,
+          "method": "decision-window block bootstrap",
+          "upper": 0.029539
+        },
+        "excess_return_vs_spy": -0.127309,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.025914,
+        "mean_latency_s": 0,
+        "outperformance_hit_rate": 0.36,
+        "output_tokens": 0,
+        "requests": 0,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.005862,
+          "method": "decision-window block bootstrap",
+          "upper": 0.218743
+        },
+        "risk_violations": 0,
+        "sharpe": 2.267,
+        "spy_total_return": 0.230379,
+        "total_return": 0.10307,
+        "trades": 625
+      },
+      "model": "hrp",
+      "model_label": "Hierarchical Risk Parity",
+      "policy": {
+        "lookback_sessions": 126,
+        "method": "hrp",
+        "rebalance_band": 0
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "allocation",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.005862,
+        "method": "decision-window block bootstrap",
+        "upper": 0.218743
+      },
+      "run_id": "20261121-183516_2025-10-6m_hrp_bb460d7509",
+      "scenario": "2025-10-6m",
+      "snapshot_dir": "snapshots/01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "snapshot_id": "01a0b732bcd0226fdf9d7a66f4cc52b381f6140f930e3ced4b87567e049f0128",
+      "start": "2025-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2025"
+    },
+    {
+      "actions": null,
+      "answer_coverage": 0,
+      "auc": null,
+      "auc_p_value": null,
+      "brier": null,
+      "brier_skill_p_value": null,
+      "brier_skill_score": null,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:35:21+00:00",
+      "data_cutoff": "2026-04-09",
+      "dcn_protocol": 6,
+      "decisions": 26,
+      "dir": "runs/20261121-183521_2026-04-6m_hrp_4088cf0b38",
+      "ece": null,
+      "end": "2026-04-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.083657,
+        "method": "decision-window block bootstrap",
+        "upper": 0.166106
+      },
+      "group": "12ddd25bdca8db60",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": null,
+      "mean_latency_s": 0,
+      "metrics": {
+        "annual_volatility": 0.081891,
+        "answer_coverage": 0,
+        "avg_turnover": 0.120552,
+        "baselines": {
+          "equal_weight": 0.081854,
+          "momentum_12_1": 0.233089,
+          "sixty_forty": 0.004191
+        },
+        "cagr": 0.154256,
+        "calibration": null,
+        "decisions": 26,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.083657,
+          "method": "decision-window block bootstrap",
+          "upper": 0.166106
+        },
+        "excess_return_vs_spy": 0.054335,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.059375,
+        "mean_latency_s": 0,
+        "outperformance_hit_rate": 0.5385,
+        "output_tokens": 0,
+        "requests": 0,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.040515,
+          "method": "decision-window block bootstrap",
+          "upper": 0.201926
+        },
+        "risk_violations": 0,
+        "sharpe": 1.7929,
+        "spy_total_return": 0.018805,
+        "total_return": 0.073141,
+        "trades": 650
+      },
+      "model": "hrp",
+      "model_label": "Hierarchical Risk Parity",
+      "policy": {
+        "lookback_sessions": 126,
+        "method": "hrp",
+        "rebalance_band": 0
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "allocation",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.040515,
+        "method": "decision-window block bootstrap",
+        "upper": 0.201926
+      },
+      "run_id": "20261121-183521_2026-04-6m_hrp_4088cf0b38",
+      "scenario": "2026-04-6m",
+      "snapshot_dir": "snapshots/f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "snapshot_id": "f03a0b374ba481e50962b58f00062aae041eb3bf10f81319903eab863200511d",
+      "start": "2025-10-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
+    },
+    {
+      "actions": null,
+      "answer_coverage": 0,
+      "auc": null,
+      "auc_p_value": null,
+      "brier": null,
+      "brier_skill_p_value": null,
+      "brier_skill_score": null,
+      "calibration_gap": null,
+      "category": "algo",
+      "created_utc": "2026-11-21T18:35:26+00:00",
+      "data_cutoff": "2026-10-09",
+      "dcn_protocol": 6,
+      "decisions": 25,
+      "dir": "runs/20261121-183526_2026-6m_hrp_9bb9c18e83",
+      "ece": null,
+      "end": "2026-10-09",
+      "estimated_cost_usd": 0,
+      "excess_return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.294123,
+        "method": "decision-window block bootstrap",
+        "upper": 0.028752
+      },
+      "group": "45f73f9840a2b182",
+      "invalid_outputs": 0,
+      "label": null,
+      "max_calibration_error": null,
+      "mean_latency_s": 0,
+      "metrics": {
+        "annual_volatility": 0.078072,
+        "answer_coverage": 0,
+        "avg_turnover": 0.101162,
+        "baselines": {
+          "equal_weight": 0.09091,
+          "momentum_12_1": -0.002574,
+          "sixty_forty": 0.051921
+        },
+        "cagr": 0.057228,
+        "calibration": null,
+        "decisions": 25,
+        "estimated_cost_usd": 0,
+        "excess_return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.294123,
+          "method": "decision-window block bootstrap",
+          "upper": 0.028752
+        },
+        "excess_return_vs_spy": -0.122466,
+        "input_tokens": 0,
+        "invalid_outputs": 0,
+        "max_drawdown": -0.039354,
+        "mean_latency_s": 0,
+        "outperformance_hit_rate": 0.32,
+        "output_tokens": 0,
+        "requests": 0,
+        "return_ci": {
+          "draws": 1000,
+          "level": 0.95,
+          "lower": -0.068247,
+          "method": "decision-window block bootstrap",
+          "upper": 0.128055
+        },
+        "risk_violations": 2,
+        "sharpe": 0.7516,
+        "spy_total_return": 0.150909,
+        "total_return": 0.028443,
+        "trades": 625
+      },
+      "model": "hrp",
+      "model_label": "Hierarchical Risk Parity",
+      "policy": {
+        "lookback_sessions": 126,
+        "method": "hrp",
+        "rebalance_band": 0
+      },
+      "pricing": {
+        "cost_per_m_input": 0,
+        "cost_per_m_output": 0
+      },
+      "provider": "local",
+      "question_form": "allocation",
+      "return_ci": {
+        "draws": 1000,
+        "level": 0.95,
+        "lower": -0.068247,
+        "method": "decision-window block bootstrap",
+        "upper": 0.128055
+      },
+      "run_id": "20261121-183526_2026-6m_hrp_9bb9c18e83",
+      "scenario": "2026-6m",
+      "snapshot_dir": "snapshots/fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "snapshot_id": "fd1dd42655bfba041c21594eb22ffc3eb684557709a36f629a149a97942fd45d",
+      "start": "2026-04-09",
+      "synthetic": false,
+      "trust": "replayed",
+      "year": "2026"
     }
   ],
   "schema_version": 1,

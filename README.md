@@ -141,6 +141,51 @@ and verifies all three windows with the [LightGBM runner](examples/kaggle_lightg
 For the CLI, install `lightgbm==4.6.0` and `scikit-learn` in the environment
 before running `beatspy run --model lightgbm`.
 
+### Logistic regression and the LightGBM blend
+
+`logistic-regression` fits an L2-regularized classifier to the same features,
+dates, and settled outperformance labels as LightGBM. Imputation, scaling, and
+sector encoding are fitted from each decision's training data. The
+`logistic-lightgbm` model averages the two outperformance probabilities with
+fixed 50/50 weights. Both use the same sizing, costs, and three frozen windows.
+
+| Model | Oct 2025 vs SPY | Apr 2026 vs SPY | Oct 2026 vs SPY | Average gap |
+| --- | ---: | ---: | ---: | ---: |
+| Logistic Regression | -0.89pp | +8.17pp | -8.76pp | -0.49pp |
+| Logit + LightGBM | +1.54pp | +7.07pp | -7.79pp | +0.27pp |
+| LightGBM | +5.11pp | +5.05pp | -6.89pp | +1.09pp |
+
+The blend improved Brier skill over standalone LightGBM in every window, and
+its Brier skill stayed negative in all three. All six new runs passed replay
+with full answer coverage.
+
+On the leaderboard, **Show all model types** reveals **LINEAR** for Logistic
+Regression and **ENSEMBLE** for Logit + LightGBM. The
+[Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-logistic-benchmarks)
+uses the [benchmark runner](examples/kaggle_logistic.py).
+
+### Hierarchical Risk Parity
+
+`hrp` estimates covariance from up to 126 aligned daily returns through the
+decision close. It uses single-linkage clustering on correlation distances
+and recursive bisection by cluster variance. The existing position cap,
+weekly schedule, next-open execution, and trading costs apply to the
+allocation. Equal weight rebalances on the same schedule, and SPY is held
+as the benchmark. The run records weights directly for replay.
+
+| Window end | HRP | Equal weight | SPY |
+| --- | ---: | ---: | ---: |
+| Oct 2025 | +10.31% | +21.33% | +23.04% |
+| Apr 2026 | +7.31% | +8.19% | +1.88% |
+| Oct 2026 | +2.84% | +9.09% | +15.09% |
+
+HRP beat SPY in one window and equal weight in zero. Its maximum drawdown
+was smaller than SPY's in all three windows. All three runs passed replay.
+
+Use **Show all model types** to find **HRP** with the **ALLOC** tag. The
+[Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-hrp)
+uses the [HRP runner](examples/kaggle_hrp.py). The CLI uses SciPy for clustering.
+
 ## Quick start
 
 ```bash

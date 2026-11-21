@@ -527,6 +527,8 @@ def make_client(
             f"`beatspy models` shows which credentials resolve."
         )
     if provider == "local":
+        if decision.decision_model == "hrp":
+            raise DcnError("HRP supplies direct weights through `beatspy run --model hrp`.")
         if data is None:
             raise DcnError(
                 f"{decision.label} needs the frozen data service; "
@@ -536,6 +538,11 @@ def make_client(
             from .lightgbm import LightGBMClient
 
             return LightGBMClient(data)
+        if decision.decision_model in ("logistic-regression", "logistic-lightgbm"):
+            from .logistic import LogisticEnsembleClient, LogisticRegressionClient
+
+            return (LogisticEnsembleClient if decision.decision_model == "logistic-lightgbm"
+                    else LogisticRegressionClient)(data)
         from .tpi import TpiClient
 
         return TpiClient(data)
