@@ -12,9 +12,11 @@ class FakeLlm:
     def __init__(self, replies):
         self.replies = list(replies)
         self.prompts = []
+        self.calls = []
 
-    def prompt(self, text):
+    def prompt(self, text, **kwargs):
         self.prompts.append(text)
+        self.calls.append(kwargs)
         return self.replies.pop(0)
 
 
@@ -62,6 +64,21 @@ def test_decide_reports_missing_after_exhausting_retries():
     assert result.answers == {}
     assert set(result.missing_ids) == {"noul_AAPL", "noul_MSFT"}
     assert result.attempts == 2
+
+
+def test_decide_caps_output_tokens_to_lower_the_quota_reservation():
+    from beatspy.dcn.kbench import KbenchClient
+
+    ok = (
+        '{"answers": {"noul_AAPL": {"type": "noul", "noul": 0.5},'
+        ' "noul_MSFT": {"type": "noul", "noul": 0.5}}}'
+    )
+    llm = FakeLlm([ok])
+    asyncio.run(KbenchClient(llm).decide({}, questions()))
+    assert llm.calls[0] == {"extra_api_params": {"max_completion_tokens": 1024}}
+    llm = FakeLlm([ok])
+    asyncio.run(KbenchClient(llm, max_output_tokens=512).decide({}, questions()))
+    assert llm.calls[0]["extra_api_params"]["max_completion_tokens"] == 512
 
 
 def test_register_makes_a_proxy_slug_usable_as_decision_model():

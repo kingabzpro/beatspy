@@ -68,11 +68,14 @@ class KbenchClient:
     provider = "kaggle"
     endpoint = "kaggle://model-proxy"
 
-    def __init__(self, llm, *, model: str | None = None, max_retries: int = 2):
+    def __init__(self, llm, *, model: str | None = None, max_retries: int = 2, max_output_tokens: int = 1024):
         self.llm = llm
         raw = model or getattr(llm, "model", None) or getattr(llm, "name", None) or "kaggle-llm"
         self.model = canonical_model(raw)
         self.max_retries = max_retries
+        # The proxy pre-reserves quota from the max output size; without a cap the
+        # reservation ($1.4+ on premium models) exceeds the account quota with 403s.
+        self.max_output_tokens = max_output_tokens
 
     async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
         ids = list(questions)
@@ -85,7 +88,11 @@ class KbenchClient:
         text = ""
         for attempt in range(1, self.max_retries + 2):
             note = "" if attempt == 1 else RETRY_NOTE
-            text = await asyncio.to_thread(self.llm.prompt, INSTRUCTIONS + request + note)
+            text = await asyncio.to_thread(
+                self.llm.prompt,
+                INSTRUCTIONS + request + note,
+                extra_api_params={"max_completion_tokens": self.max_output_tokens},
+            )
             answers, missing = parse_answers(_extract_json(text), ids)
             if not missing:
                 break
