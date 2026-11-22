@@ -59,7 +59,7 @@ from beatspy.dcn.kbench import KbenchClient, register  # noqa: E402
 
 
 # %%
-@kbench.task(name="beatspy")
+@kbench.task(name="beatspy-decisions")
 def beatspy_decisions(llm) -> dict:
     slug = register(getattr(llm, "model", None) or getattr(llm, "name", None) or "kaggle-llm")
     settings = Settings(decision=DecisionConfig(decision_model=slug))
