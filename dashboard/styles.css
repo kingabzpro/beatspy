@@ -65,28 +65,17 @@ tr.leader .run-button{color:var(--accent)}
 /* Window toggle: the board scores consecutive six-month windows; the chips
    pick one window or the all-windows average. */
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
-.board-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0 16px;margin:14px 0 4px}
+.board-controls{display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;gap:12px 16px;margin:14px 0 4px}
 .board-controls .tabs{margin:0}
-.model-scope{display:inline-flex;flex:0 0 auto;flex-direction:row;align-items:center;gap:8px;min-width:0;min-height:36px;color:var(--text);cursor:pointer}
-.model-scope input{accent-color:var(--accent);width:16px;height:16px;margin:0;cursor:pointer}
-.model-scope input:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.model-filter{display:grid;gap:4px;max-inline-size:100%}
+.model-filter label{font-size:.75rem;color:var(--muted)}
+.model-filter select{min-block-size:3rem;min-inline-size:10rem;max-inline-size:100%;padding-inline:.75rem;border:1px solid #64707c;border-radius:6px;background:var(--panel);color:var(--text);font-size:1rem;cursor:pointer}
+.hero .lede a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
 #leaderboard-table:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .tab{border:1px solid var(--line);border-radius:99px;background:transparent;color:var(--muted);padding:8px 14px;font-size:12px;cursor:pointer}
 .tab:hover{color:var(--text);border-color:var(--muted)}
 .tab.active{color:#12220a;background:var(--accent);border-color:var(--accent);font-weight:600}
 .cell-note{display:block;font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap}
-.tag{display:inline-block;margin-left:7px;border:1px solid var(--line);border-radius:99px;padding:1px 6px;font:9px ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1px;color:var(--accent);vertical-align:middle}
-.tag-algo{color:var(--accent)}
-.tag-ai{color:#79b6ff;border-color:#31577a}
-.tag-agent{color:#cb9aff;border-color:#5a3f7a}
-.tag-rl{color:#ffbc79;border-color:#6b4a2a}
-.tag-hybrid{color:#74d8cb;border-color:#2f5f58}
-.tag-forecast{color:#ffeb70;border-color:#9b8433;white-space:nowrap}
-.tag-ml{color:#f5a9d9;border-color:#885171}
-.tag-linear{color:#a8dcff;border-color:#517d9d}
-.tag-ensemble{color:#ffd4a1;border-color:#9b6f40}
-.tag-alloc{color:#a7f3cf;border-color:#43866d}
-.tag-jepa{color:#e9b7ff;border-color:#916caa}
 
 @media(max-width:760px){
   /* Phones keep the columns the ranking reads on: return and the gap to SPY

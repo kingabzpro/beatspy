@@ -2,14 +2,13 @@
 
 # BeatSPY
 
-**Decision models, not chat models.**
+**Can your model beat the market?**
 
-Thirty-one decision models across two protocol versions read the same frozen
-point-in-time market state, answer the same typed probability questions, and are
-scored twice: were the probabilities calibrated, and did the portfolio they built
-beat SPY? Protocol v2 (2026-10-23) adds risk and context to the state: RSI-14,
-30-day realized volatility, distance from the 52-week high, a volume ratio, and a
-sector label, because under v1 the models mostly echoed the momentum column.
+BeatSPY is an open benchmark for trading models and strategies. Run a decision
+API, machine-learning model, foundation model, rule-based strategy, LLM,
+agent, or hybrid on frozen market data. Compare portfolio returns against
+SPY and equal weight across three six-month windows. Runs that produce
+probabilities also report calibration and ranking quality.
 
 [Live dashboard](https://beatspy.vercel.app) · [Architecture](ARCHITECTURE.md) · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
@@ -34,7 +33,7 @@ sector label, because under v1 the models mostly echoed the momentum column.
 > for eleven models (mean AUC up to 0.526, from 0.39 on the momentum-only
 > state): a reason to keep testing, not a claim of edge.
 
-## Latest benchmark: three windows under protocol v2
+## Decision AI benchmark results
 
 Protocol v2, scored on three consecutive six-month windows (oldest to newest:
 Oct 2025, Apr 2026, Oct 2026 endpoints), weekly decisions, frozen adjusted
@@ -141,8 +140,8 @@ LightGBM beat SPY in two of three windows, averaging +1.09 percentage points
 versus SPY. Brier skill was negative in each window. All three runs had 100%
 answer coverage and passed replay.
 
-The leaderboard's **Show all model types** toggle includes LightGBM, Timestral,
-and other strategies in both the single-window and all-window views. The
+Select **ML** in the leaderboard's **Model category** dropdown to find
+LightGBM in either window view. The
 [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-lightgbm) runs
 and verifies all three windows with the [LightGBM runner](examples/kaggle_lightgbm.py).
 For the CLI, install `lightgbm==4.6.0` and `scikit-learn` in the environment
@@ -166,8 +165,7 @@ The blend improved Brier skill over standalone LightGBM in every window, and
 its Brier skill stayed negative in all three. All six new runs passed replay
 with full answer coverage.
 
-On the leaderboard, **Show all model types** reveals **LINEAR** for Logistic
-Regression and **ENSEMBLE** for Logit + LightGBM. The
+Both models appear under the **ML** category. The
 [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-logistic-benchmarks)
 uses the [benchmark runner](examples/kaggle_logistic.py).
 
@@ -189,7 +187,7 @@ as the benchmark. The run records weights directly for replay.
 HRP beat SPY in one window and equal weight in zero. Its maximum drawdown
 was smaller than SPY's in all three windows. All three runs passed replay.
 
-Use **Show all model types** to find **HRP** with the **ALLOC** tag. The
+HRP appears under **Rule-based**. The
 [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-hrp)
 uses the [HRP runner](examples/kaggle_hrp.py). The CLI uses SciPy for clustering.
 
@@ -213,7 +211,7 @@ its window opens. The benchmark uses BeatSPY's existing portfolio policy.
 
 Stock-JEPA beat SPY in one of three windows and equal weight in two. Its average
 gap to SPY was −0.76 percentage points. All three runs replayed with full answer
-coverage. Use **Show all model types** to find **Stock-JEPA** with the **JEPA** tag.
+coverage. Stock-JEPA appears under **ML**.
 The [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-stock-jepa-l4)
 uses the [GPU benchmark runner](examples/kaggle_stock_jepa.py). The CLI uses
 PyTorch with `--model stock-jepa --form per_asset`.
@@ -236,7 +234,7 @@ against the historical windows.
 | Chronos-2 | −3.78 pp | +4.05 pp | −8.88 pp | −2.87 pp |
 
 Each new model beat SPY in one window. All nine runs replayed with full answer
-coverage. Use **Show all model types** to find the **FORECAST** rows.
+coverage. These forecasters appear under **Foundation**.
 
 The [Kaggle runner](examples/kaggle_foundation_forecast.py) pins checkpoint
 revisions and records the package version and GPU in each result summary.
@@ -276,8 +274,15 @@ and [benchmark runner](examples/kaggle_stock_signals.py).
 | Elastic Net | −1.10 pp | −1.16 pp | −11.04 pp | −4.43 pp | −3.96 pp | −0.036 | 14.9% |
 
 All 15 runs replayed with full answer coverage. Some Shallow MLP fits reached
-the fixed 200-iteration budget before convergence. Use **Show all model types**
-to find the runs on the leaderboard.
+the fixed 200-iteration budget before convergence. The leaderboard groups
+the residual rules under **Rule-based** and the fitted models under **ML**.
+
+## Browse the leaderboard
+
+The **Model category** dropdown starts on **All**. Choose **Decision AI**,
+**ML**, **Foundation**, **Rule-based**, **LLM**, **Agents**, or **Hybrids**
+while keeping your current benchmark window. Open a row for its complete
+run, including trades, drawdown, calibration when available, and downloads.
 
 ## Quick start
 
@@ -285,26 +290,33 @@ to find the runs on the leaderboard.
 git clone https://github.com/kingabzpro/beatspy.git
 cd beatspy
 uv sync --extra dev
-uv run beatspy setup                 # pick a model and store its key
-uv run beatspy run --model clef-flash --scenario 2026-6m
-uv run beatspy report --open         # render the dashboard locally
+uv run beatspy models
+uv run beatspy run --model tpi-rs --scenario 2026-6m
+uv run beatspy report --open
 ```
 
-No keys yet? `uv run beatspy demo` builds synthetic runs and renders the same
-dashboard offline.
+TPI-RS runs without an API key. Use `uv run beatspy setup` for a model that
+requires credentials, or install the dependencies for a local model.
+`uv run beatspy demo` builds synthetic runs and opens the dashboard offline.
+
+### Benchmark your own model
+
+Run the benchmark locally or in a notebook. A custom adapter can translate
+the output of a local or hosted model into a probability that each asset will
+outperform SPY. See the [custom model integration guide](CONTRIBUTING.md#benchmark-your-own-model)
+and the [direct allocation example](examples/kaggle_hrp.py).
 
 ## How it works
 
 1. Prices are frozen into a content-addressed snapshot.
-2. The state is built from data dated on or before the decision date only,
-   inside an enforced token budget.
-3. Each model answers one typed question per asset; refusals are recorded as
-   missing coverage, never invented.
-4. A fixed policy turns probabilities into target weights. The model never
-   states an allocation.
-5. Orders fill at the next session's open, then every answer is labeled by
-   whether that asset beat SPY and scored for calibration (Brier, AUC,
-   reliability) and P&L (vs SPY, equal weight, 60/40, momentum).
+2. Each model sees only data available through the decision date. API models
+   receive a compact market state under a token budget.
+3. Decision APIs answer typed questions. Other models can map their forecasts
+   or signals to probabilities through an adapter. Direct allocators supply weights.
+4. A fixed policy converts probabilities into target weights. Orders fill at
+   the next session's open with fees and slippage.
+5. Returns are compared with SPY and fixed baselines. Probability runs also
+   report answer coverage, Brier score, AUC, and reliability.
 
 Trust: `beatspy verify` replays a finished run offline and requires exact
 agreement with the stored metrics; `examples/leakage_audit.py` tampers with

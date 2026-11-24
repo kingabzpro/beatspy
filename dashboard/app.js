@@ -88,21 +88,26 @@ function modelName(model) {
   // board names the model, not the transport that happened to serve it.
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
-// Row tags identify specialized approaches alongside the decision models.
-const MODEL_TAGS = {
-  "tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT",
-  "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID",
-  "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR",
-  "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC", "stock-jepa": "JEPA",
-  "chronos-2": "FORECAST", "timesfm-3.0": "FORECAST", "t0-gamma": "FORECAST",
-  "lambdamart": "ML",
-  "residual-momentum": "ALGO",
-  "elastic-net": "LINEAR",
-  "residual-reversal": "ALGO",
-  "shallow-mlp": "ML",
+// Older runs recorded broad categories such as "ai" and "algo".
+const LEGACY_MODEL_CATEGORIES = {
+  "fasttrade": "llm", "fasttrade-subq": "llm",
+  "bettertradingagents": "agents", "bettertradingagents-live": "agents",
+  "paperrl": "ml", "deeptrade": "hybrids",
+  "timestral-209m": "foundation", "chronos-2": "foundation", "timesfm-3.0": "foundation", "t0-gamma": "foundation",
+  "tpi-rs": "rule-based", "hrp": "rule-based", "residual-momentum": "rule-based", "residual-reversal": "rule-based",
+  "lightgbm": "ml", "logistic-regression": "ml", "logistic-lightgbm": "ml", "stock-jepa": "ml",
+  "lambdamart": "ml", "elastic-net": "ml", "shallow-mlp": "ml",
 };
-const modelTag = model => MODEL_TAGS[modelName(model)] || null;
-const isDecisionModel = run => !modelTag(run.model) && (run.category == null || run.category === "ai");
+const MODEL_CATEGORIES = new Set(["decision-ai", "ml", "foundation", "rule-based", "llm", "agents", "hybrids"]);
+const LEGACY_CATEGORIES = {ai: "decision-ai", algo: "rule-based", agent: "agents", hybrid: "hybrids", rl: "ml"};
+
+function modelCategory(run) {
+  if (MODEL_CATEGORIES.has(run.category)) return run.category;
+  const name = modelName(run.model);
+  if (Object.hasOwn(LEGACY_MODEL_CATEGORIES, name)) return LEGACY_MODEL_CATEGORIES[name];
+  if (Object.hasOwn(LEGACY_CATEGORIES, run.category)) return LEGACY_CATEGORIES[run.category];
+  return run.category == null ? (run.provider === "local" ? "rule-based" : "decision-ai") : null;
+}
 
 // Presentation only: how each model reads, and the logo of the company that
 // built it. Raw ids stay in the artifacts; OpenRouter and Requesty are
@@ -306,7 +311,7 @@ function catalogProblems(catalog) {
   for (const run of catalog.runs) {
     if (typeof run?.run_id !== "string" || !run.run_id) problems.push("run without a run_id");
     else if (run.dir !== `runs/${run.run_id}`) problems.push(`bad artifact path for ${run.run_id}`);
-    if (typeof run?.model !== "string" || !run.model) problems.push(`run ${run?.run_id} has no decision model`);
+    if (typeof run?.model !== "string" || !run.model) problems.push(`run ${run?.run_id} has no model`);
     if (typeof run?.provider !== "string" || !run.provider) problems.push(`run ${run?.run_id} has no provider`);
     if (!Number.isFinite(Number(run?.metrics?.total_return))) problems.push(`run ${run?.run_id} has no total return`);
     if (!Number.isFinite(Number(run?.metrics?.excess_return_vs_spy))) problems.push(`run ${run?.run_id} has no excess return`);
@@ -318,7 +323,7 @@ if (typeof module !== "undefined") module.exports = {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
   monthLabel, windowLabel, scoredWindows, allPeriodRows,
-  modelTag,
+  modelCategory,
 };
 
 if (typeof document !== "undefined") {
@@ -370,20 +375,6 @@ if (typeof document !== "undefined") {
     // Call accuracy is the plain-words stand-in for the calibration scores.
     if (key === "accuracy") return run.metrics?.calibration?.signals?.noul?.accuracy;
     return source === "metrics" ? run.metrics?.[key] : run[key];
-  };
-  // Put the model type in the table so it is visible alongside the score.
-  const appendModelTag = (cell, run) => {
-    const text = modelTag(run.model);
-    if (!text) return;
-    const tag = node("span", text, `tag tag-${text.toLowerCase()}`);
-    tag.title = {
-      FORECAST: "Time-series forecasting model", ML: "Machine learning model",
-      LINEAR: "Regularized linear classifier", ENSEMBLE: "Equal-weight blend of two model probabilities",
-      ALGO: "Deterministic algorithm, no LLM",
-      ALLOC: "Direct portfolio allocation",
-      JEPA: "Joint-embedding predictive architecture",
-    }[text] || "AI decision model";
-    cell.append(tag);
   };
   let runs = [], visible = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
@@ -535,9 +526,8 @@ if (typeof document !== "undefined") {
   function renderBoard() {
     if (!$("leaderboard-table")) return;
     const windows = scoredWindows(runs.filter(isCurrent));
-    const toggle = $("include-all-models");
-    if (toggle) toggle.onchange = renderBoard;
-    setHidden("model-scope-control", !windows.some(w => w.runs.some(run => !isDecisionModel(run))));
+    const filter = $("model-category");
+    if (filter) filter.onchange = renderBoard;
     if (!periodOpened) {
       periodOpened = true;
       const newest = windows.filter(w => w.proto >= 6).pop();
@@ -545,22 +535,24 @@ if (typeof document !== "undefined") {
     }
     if (period !== "all" && !windows.some(w => w.key === period)) period = "all";
     renderTabs(windows);
-    const includeAll = !toggle || toggle.checked;
-    const scopedWindows = includeAll ? windows : windows.map(w => ({...w, runs: w.runs.filter(isDecisionModel)}));
+    const category = filter?.value || "all";
+    const scopedWindows = category === "all" ? windows
+      : windows.map(w => ({...w, runs: w.runs.filter(run => modelCategory(run) === category)}));
     // A single window (or the single-window fallback) renders the plain board.
+    let displayed;
     if (period !== "all" || windows.length < 2) {
       const w = period === "all" ? scopedWindows.at(-1) : scopedWindows.find(x => x.key === period);
       visible = w ? w.runs : [];
       renderWindowBoard(w, windows.length >= 2);
+      displayed = visible;
     } else {
       visible = [];
-      renderAllBoard(scopedWindows);
+      displayed = renderAllBoard(scopedWindows);
     }
-    updateBoardChrome(scopedWindows, includeAll);
+    updateBoardChrome(scopedWindows, category, displayed);
   }
 
-  function updateBoardChrome(windows, includeAll) {
-    const source = visible.length ? visible : [];
+  function updateBoardChrome(windows, category, source) {
     const allMode = period === "all" && windows.length >= 2;
     if (allMode) {
       setText("hero-scope", `${windows[0].start} → ${windows[windows.length - 1].end} · ${plural(windows.length, "window")}`);
@@ -574,13 +566,12 @@ if (typeof document !== "undefined") {
     setHidden("demo-banner", syntheticCount === 0);
     if (syntheticCount) {
       setText("demo-banner", syntheticCount === source.length
-        ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No decision model was called, so every number here is meaningless as a result.`
+        ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No real model was run.`
         : `Synthetic demo data: ${syntheticCount} of ${source.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
     }
-    const hasRows = allMode ? windows.some(w => w.runs.length) : source.length > 0;
     let status = "";
-    if (!hasRows) {
-      if (!includeAll && windows.length) status = "No decision models in this view. Turn on Show all model types.";
+    if (!source.length) {
+      if (category !== "all" && windows.length) status = "No results for this category in the selected view.";
       else status = runs.length ? "No completed results yet." : "No results yet. Record a run and re-render this page.";
     }
     setText("status", status);
@@ -638,12 +629,11 @@ if (typeof document !== "undefined") {
         td.append(img);
       }
       td.append(link);
-      appendModelTag(td, run);
       if (run.synthetic) {
         // Mark the row itself: the details panel is one click away, and a
         // fabricated number must not read as a real result before that click.
         const chip = node("span", "synthetic", "synthetic-chip");
-        chip.title = "Synthetic demo run: fabricated by `beatspy demo`, not produced by a decision model.";
+        chip.title = "Synthetic demo run fabricated by `beatspy demo`.";
         td.append(chip);
       }
       row.append(td);
@@ -732,7 +722,6 @@ if (typeof document !== "undefined") {
         td.append(img);
       }
       td.append(link);
-      appendModelTag(td, row.latest);
       tr.append(td);
       tr.onclick = event => {
         if (!row.latest || event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
@@ -764,6 +753,7 @@ if (typeof document !== "undefined") {
       body.append(tr);
     });
     $("leaderboard-table").replaceChildren(element);
+    return rows.map(row => row.latest);
   }
   function runBars(target, rows) {
     const container = $(target); container.replaceChildren();
@@ -783,7 +773,7 @@ if (typeof document !== "undefined") {
   }
   // Equity columns arrive as snake_case keys; the legend should read like prose.
   const SERIES_LABELS = {
-    portfolio: "decision model",
+    portfolio: "model portfolio",
     spy_buy_hold: "SPY buy-and-hold",
     equal_weight: "whole pool, equal weight",
     selection_equal_weight: "its investable set, equal weight",

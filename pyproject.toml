@@ -1,7 +1,7 @@
 [project]
 name = "beatspy"
 version = "0.4.0"
-description = "Benchmark decision models, not chat models: do calibrated probabilities about markets become a portfolio that beats SPY?"
+description = "Benchmark trading models and strategies against SPY on frozen market data."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -46,8 +46,17 @@ packages = ["src/beatspy"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "dashboard/index.html" = "beatspy/reporting/static/index.html"
+"dashboard/run.html" = "beatspy/reporting/static/run.html"
+"dashboard/pricing.html" = "beatspy/reporting/static/pricing.html"
+"dashboard/method.html" = "beatspy/reporting/static/method.html"
+"dashboard/archive.html" = "beatspy/reporting/static/archive.html"
+"dashboard/contribute.html" = "beatspy/reporting/static/contribute.html"
 "dashboard/styles.css" = "beatspy/reporting/static/styles.css"
 "dashboard/app.js" = "beatspy/reporting/static/app.js"
+"dashboard/favicon.ico" = "beatspy/reporting/static/favicon.ico"
+"dashboard/site.webmanifest" = "beatspy/reporting/static/site.webmanifest"
+"dashboard/robots.txt" = "beatspy/reporting/static/robots.txt"
+"dashboard/sitemap.xml" = "beatspy/reporting/static/sitemap.xml"
 "dashboard/assets" = "beatspy/reporting/static/assets"
 
 [tool.ruff]

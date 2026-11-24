@@ -3,17 +3,40 @@
 ## Run the benchmark
 
 1. Clone the repo and run `uv sync --extra dev` (Python 3.11+ required).
-2. Run `uv run beatspy models` to see the decision models and which keys resolve.
-3. Run `uv run beatspy setup` to pick a model and store its key, or export the key
+2. Run `uv run beatspy models` to list supported models and check API credentials.
+3. For a model that requires a key, run `uv run beatspy setup` or export the key
    yourself (`OPENAI_API_KEY`, `TYPESAFE_API_KEY`, or `CLOUDFLARE_ACCOUNT_ID` plus
    `CLOUDFLARE_AUTH_TOKEN`). Each also has a `BEATSPY_`-prefixed form that wins.
-4. Run `uv run beatspy run --model <id>`.
+4. Run `uv run beatspy run --model <id>`. Try `tpi-rs` for a key-free run.
 5. Inspect the result with `uv run beatspy calibrate <run-id>`, `uv run beatspy
    compare`, or `uv run beatspy report --open`.
 
 Add `--probe` to `beatspy doctor` to make one live call per model and see exactly
 what each provider returns, including its question limits and latency. Without
 `--probe`, `doctor` makes no network calls at all.
+
+## Benchmark your own model
+
+Register a model ID in [`DECISION_MODELS`](src/beatspy/config.py) and implement
+the [`DcnClient` contract](src/beatspy/dcn/clients.py). Set `category` in the
+model entry to one of `decision-ai`, `ml`, `foundation`, `rule-based`, `llm`,
+`agents`, or `hybrids`. The report uses that value in the category dropdown.
+
+For the default `per_asset` benchmark, `decide(state, questions)` returns a
+`DcnResult` containing a `NoulAnswer` per answered question. Read the decision
+date and horizon from `state` and the asset from each question's instructions.
+Use only information available through that date. The
+[`LightGBMClient`](src/beatspy/dcn/lightgbm.py) shows how to fit on settled
+training outcomes and return probabilities. The
+[`TimestralClient`](src/beatspy/dcn/timestral.py) shows how to adapt a forecaster.
+
+Wire your client into `make_client` to run it with `uv run beatspy run --model <id>`,
+or pass a factory to the [published-window runner](examples/published_windows.py)
+to benchmark it from a notebook. Keep the same model registration when you
+replay the run. Use `uv run beatspy report --open` to view the resulting leaderboard.
+For strategies that supply weights directly, follow the
+[HRP runner](examples/kaggle_hrp.py) and the
+[allocation implementation](src/beatspy/dcn/hrp.py).
 
 ## What a contribution should not do
 
@@ -99,7 +122,7 @@ bins fails immediately.
 ## Dashboard
 
 The static frontend in `dashboard/` reads `data/index.json`. It shows the latest
-execution per decision model and never selects the best score. Details include
+execution per model and never selects the best score. Details include
 the equity curve with baselines and a reliability curve per run, with the
 noul/choice/rank curves and the miscalibration gap. Never render data as HTML;
 the frontend already escapes it.

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="How the benchmark works: frozen snapshots, typed questions, a fixed sizing policy, and two scores per run.">
+  <meta name="description" content="How BeatSPY evaluates trading models and strategies with frozen data, consistent execution, and replayable scores.">
   <meta name="theme-color" content="#101214">
   <meta name="color-scheme" content="dark">
   <meta name="application-name" content="BeatSPY">
@@ -23,18 +23,18 @@
   <main id="main-content" tabindex="-1">
     <section id="how" class="how" aria-labelledby="how-title">
       <div class="section-heading"><div><p class="eyebrow">METHOD</p><h2 id="how-title">How this benchmark works</h2></div></div>
-      <p class="how-lede">Six steps run identically for every model, so a difference on the board is a difference between models, not between setups.</p>
+      <p class="how-lede">BeatSPY compares models on frozen snapshots and shared execution rules. Models can produce outperformance probabilities through an adapter or supply target weights through an allocation strategy.</p>
       <ol class="how-steps">
-        <li><strong>Freeze the market.</strong>Prices are downloaded once into a content-addressed snapshot; every run re-uses those bytes.</li>
-        <li><strong>Build the state.</strong>One compact JSON per decision date, holding only data dated on or before it, with the token budget enforced before it is sent.</li>
-        <li><strong>Ask typed questions.</strong>One probability question per asset, phrased identically for every model. Answers must be typed probabilities; a refusal counts as missing coverage, never invented.</li>
-        <li><strong>Size the book.</strong>A fixed policy turns probabilities into weights across the whole pool. The index is never bought, and the rule was recorded before any result was seen.</li>
+        <li><strong>Freeze the market.</strong>Prices are stored in a content-addressed snapshot. Runs in the same benchmark window reuse those bytes.</li>
+        <li><strong>Build point-in-time inputs.</strong>Models use data available on or before each decision date. API models receive compact JSON within a token budget. Local models can also read the frozen price history.</li>
+        <li><strong>Run the model.</strong>Decision APIs answer typed probability questions. Adapters can convert forecasts, stock signals, or LLM outputs into the same probabilities. Allocation strategies supply weights directly.</li>
+        <li><strong>Size the portfolio.</strong>A fixed policy converts probabilities into target weights. Direct allocations use the weights supplied by the strategy and follow the benchmark's portfolio limits.</li>
         <li><strong>Fill the orders.</strong>Trades fire only when a weight moves past the 2% rebalance band, and fill at the next session's open with fees and slippage. Most names sit inside the band, so a typical weekly decision is mostly holds: on the published board models keep 52% to 91% of the book steady.</li>
-        <li><strong>Score it twice, on three windows.</strong>Calibration first (Brier, Brier skill, AUC, reliability bins), then the portfolio the answers built, against SPY and fixed baselines. The same steps run on three consecutive six-month windows, so a model must hold up in a rally, a flat stretch, and a run it cannot simply ride; the board shows each window and the average.</li>
+        <li><strong>Score the results.</strong>Every run reports portfolio performance against SPY and fixed baselines. Runs with probabilities also report calibration, including Brier score and AUC. The board shows individual windows and a multi-window average.</li>
       </ol>
       <h3 class="how-sub">How a probability becomes buy, hold, or sell</h3>
       <div class="how-notes">
-        <p><strong>The models never say buy, hold, or sell.</strong>Each answers one typed question per asset - will it beat the benchmark over the coming five sessions - and returns a probability. Half the book is spread evenly; the other half follows conviction, each probability's distance above that week's own mean.</p>
+        <p><strong>From probabilities to weights.</strong>The model estimates whether each stock will beat SPY over the next decision period. The sizing policy spreads half the portfolio evenly and allocates the other half by how far each probability sits above that decision's mean.</p>
         <p><strong>The 2% band decides the trade.</strong>A name is bought when its target weight sits more than 2 percentage points above what is held, sold when it sits more than 2 below, and held inside the band, where nothing trades and no fee is paid. A name leaving the pool is always sold, and the first decision is all buys from cash.</p>
         <p><strong>Holds measure temperament.</strong>The share of holds is not a setting; it falls out of how stable a model's probabilities are. On the current board it runs from about 51% of weekly name-level decisions (D3 Turbo, roughly half the book reshuffled every week) to about 88% (Span-01 free, about three names traded per week), and the calmer models pay less in fees and slippage.</p>
       </div>

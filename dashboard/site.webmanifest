@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "BeatSPY · AI Trading Benchmark",
+  "name": "BeatSPY · Trading Model Benchmark",
   "short_name": "BeatSPY",
-  "description": "Compare AI trading portfolios against SPY using frozen historical market data.",
+  "description": "Compare trading models and strategies against SPY using frozen historical market data.",
   "start_url": "./",
   "scope": "./",
   "display": "minimal-ui",

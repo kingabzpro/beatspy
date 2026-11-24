@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd, monthLabel, scoredWindows, allPeriodRows,
-  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelTag
+  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory
 } = require('../dashboard/app.js');
 
 // A minimal catalog row in the DCN shape the Python renderer writes.
@@ -174,39 +174,30 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
   assert.equal(broken.runs[0].dir, '../secret');
   const problems = catalogProblems(broken);
   assert.ok(problems.some(problem => problem.includes('bad artifact path')));
-  assert.ok(problems.some(problem => problem.includes('no decision model')));
+  assert.ok(problems.some(problem => problem.includes('no model')));
   assert.ok(problems.some(problem => problem.includes('no provider')));
   assert.ok(problems.some(problem => problem.includes('no total return')));
   assert.deepEqual(catalogProblems(catalog([])), []);
 });
 
-test('the baseline rows carry their model tags', () => {
-  assert.equal(modelTag('tpi-rs'), 'ALGO');
-  assert.equal(modelTag('fasttrade'), 'AI');
-  assert.equal(modelTag('fasttrade-subq'), 'AI');
-  assert.equal(modelTag('bettertradingagents'), 'AGENT');
-  assert.equal(modelTag('bettertradingagents-live'), 'AGENT');
-  assert.equal(modelTag('paperrl'), 'RL');
-  assert.equal(modelTag('deeptrade'), 'HYBRID');
-  assert.equal(modelTag('timestral-209m'), 'FORECAST');
-  assert.equal(modelTag('lightgbm'), 'ML');
-  assert.equal(modelTag('logistic-regression'), 'LINEAR');
-  assert.equal(modelTag('logistic-lightgbm'), 'ENSEMBLE');
-  assert.equal(modelTag('hrp'), 'ALLOC');
-  assert.equal(modelTag('stock-jepa'), 'JEPA');
-  for (const model of ['chronos-2', 'timesfm-3.0', 't0-gamma']) {
-    assert.equal(modelTag(model), 'FORECAST');
+test('the category filter supports existing models and explicit categories for new runs', () => {
+  for (const [category, models] of Object.entries({
+    'decision-ai': ['clef'],
+    ml: ['lightgbm', 'logistic-regression', 'logistic-lightgbm', 'stock-jepa', 'paperrl', 'elastic-net'],
+    foundation: ['timestral-209m', 'chronos-2', 'timesfm-3.0', 't0-gamma'],
+    'rule-based': ['tpi-rs', 'hrp', 'residual-momentum', 'residual-reversal'],
+    llm: ['openrouter-fasttrade', 'fasttrade-subq'],
+    agents: ['bettertradingagents', 'bettertradingagents-live'],
+    hybrids: ['deeptrade'],
+  })) {
+    for (const model of models) assert.equal(modelCategory({model}), category, model);
+    assert.equal(modelCategory({model: 'custom-model', category}), category);
   }
-  assert.equal(modelTag('lambdamart'), 'ML');
-  assert.equal(modelTag('residual-momentum'), 'ALGO');
-  assert.equal(modelTag('elastic-net'), 'LINEAR');
-  assert.equal(modelTag('residual-reversal'), 'ALGO');
-  assert.equal(modelTag('shallow-mlp'), 'ML');
-  assert.equal(modelTag('openrouter-fasttrade'), 'AI');
-  assert.equal(modelTag('clef'), null);
+  assert.equal(modelCategory({model: 'custom-agent', category: 'agent'}), 'agents');
+  assert.equal(modelCategory({model: 'custom-rule', category: 'algo'}), 'rule-based');
 });
 
-test('the frontend uses safe text rendering, keeps the design, and tags the baselines', () => {
+test('the frontend uses safe text rendering and keeps the design and logos', () => {
   const js = readFileSync('dashboard/app.js', 'utf8');
   const css = readFileSync('dashboard/styles.css', 'utf8');
   const pages = Object.fromEntries(['index.html', 'run.html', 'pricing.html', 'method.html', 'contribute.html']
@@ -217,10 +208,9 @@ test('the frontend uses safe text rendering, keeps the design, and tags the base
   assert.match(pages['index.html'], /aria-live="polite"/);
   assert.match(pages['index.html'], /styles\.css/);
   assert.match(pages['index.html'], /app\.js/);
-  // The baseline rows carry their own logos and row tags.
-  assert.match(js, /"ALGO"/);
-  assert.match(js, /"AI"/);
-  assert.match(js, /"AGENT"/);
+  assert.match(pages['index.html'], /<label for="model-category">Model category<\/label>/);
+  assert.match(pages['index.html'], /<option value="all" selected>All<\/option>/);
+  assert.doesNotMatch(css, /\.tag-/);
   assert.match(js, /"tpi-rs": \["TPI baseline", "tpi\.svg"\]/);
   assert.match(js, /"fasttrade": \["FastTrade", "fasttrade\.svg"\]/);
   assert.match(js, /"fasttrade-subq": \["FastTrade", "fasttrade\.svg"\]/);
@@ -392,7 +382,7 @@ test('the leaderboard page renders the board and links each row to its run page'
   assert.equal($('pricing-table'), undefined);
 });
 
-test('the baseline rows carry their ALGO, AI, AGENT, RL and HYBRID tags', async () => {
+test('the baseline rows are visible together without model tags', async () => {
   const {site} = siteFixture();
   const catalog = JSON.parse(site['data/index.json']);
   catalog.runs.push(catalogRun({
@@ -426,14 +416,7 @@ test('the baseline rows carry their ALGO, AI, AGENT, RL and HYBRID tags', async 
   assert.ok(table.descendants().some(node => node.textContent === 'BetterTradingAgents'));
   assert.ok(table.descendants().some(node => node.textContent === 'PaperRL'));
   assert.ok(table.descendants().some(node => node.textContent === 'DeepTrade'));
-  const tags = table.descendants().filter(
-    node => ['tag tag-algo', 'tag tag-ai', 'tag tag-agent', 'tag tag-rl', 'tag tag-hybrid'].includes(node.className));
-  assert.equal(tags.length, 5);
-  assert.ok(tags.some(node => node.textContent === 'ALGO'));
-  assert.ok(tags.some(node => node.textContent === 'AI'));
-  assert.ok(tags.some(node => node.textContent === 'AGENT'));
-  assert.ok(tags.some(node => node.textContent === 'RL'));
-  assert.ok(tags.some(node => node.textContent === 'HYBRID'));
+  assert.ok(table.descendants().every(node => !node.className.includes('tag-')));
 });
 
 test('scored windows group runs by frozen window and average gaps per model', () => {
@@ -507,7 +490,7 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   assert.match($('board-window').textContent, /SPY returned 10\.00% this window/);
 });
 
-test('the model toggle includes forecasting and algorithms without changing the selected window', async () => {
+test('the category dropdown defaults to All and filters independently of the window', async () => {
   const {site, first, second} = siteFixture();
   const forecast = catalogRun({run_id: 'forecast', model: 'timestral-209m', category: 'ai'});
   const newForecasters = [
@@ -524,35 +507,40 @@ test('the model toggle includes forecasting and algorithms without changing the 
   site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all',
     runs: [first, second, forecast, ...forecasts, algorithm, linear, ensemble, allocation]});
   const elements = mountSite(site);
-  const toggle = fakeElement('input');
-  toggle.checked = false;
-  elements.set('include-all-models', toggle);
+  const category = fakeElement('select');
+  category.value = 'all';
+  elements.set('model-category', category);
   await settle();
   const modelNames = () => elements.get('leaderboard-table').descendants()
     .filter(node => node.className === 'run-button').map(node => node.textContent);
-  assert.deepEqual(modelNames(), ['Clef']);
-  toggle.checked = true;
-  toggle.onchange();
   const brandedModels = [
-    ['HRP', 'hrp.svg', 'ALLOC'], ['LightGBM', 'lightgbm.png', 'ML'],
-    ['Logistic Regression', 'logistic.svg', 'LINEAR'], ['Logit + LightGBM', 'ensemble.svg', 'ENSEMBLE'],
-    ...newForecasters.map(([, name, file]) => [name, file, 'FORECAST']),
+    ['HRP', 'hrp.svg'], ['LightGBM', 'lightgbm.png'],
+    ['Logistic Regression', 'logistic.svg'], ['Logit + LightGBM', 'ensemble.svg'],
+    ...newForecasters.map(([, name, file]) => [name, file]),
   ];
   const allModels = ['Clef', ...brandedModels.map(([name]) => name), 'Timestral'].sort();
   assert.deepEqual(modelNames().sort(), allModels);
-  for (const [name, file, tag] of brandedModels) {
+  for (const [name, file] of brandedModels) {
     const row = elements.get('leaderboard-table').descendants().find(node =>
       node.tagName === 'tr' && node.descendants().some(child => child.className === 'run-button' && child.textContent === name));
     const icon = row.descendants().find(node => node.tagName === 'img');
     assert.equal(icon?.src, `assets/logos/${file}`);
     assert.equal(icon.alt, '');
-    assert.equal(row.descendants().find(node => node.className === `tag tag-${tag.toLowerCase()}`).textContent, tag);
   }
+  const selectedWindow = () => elements.get('period-tabs').children.find(chip => chip.attrs['aria-pressed'] === 'true').textContent;
+  const initialWindow = selectedWindow();
+  const selectCategory = value => {category.value = value; category.onchange();};
+  selectCategory('foundation');
+  assert.deepEqual(modelNames().sort(), ['Chronos-2', 'T0-Gamma', 'TimesFM 3.0', 'Timestral'].sort());
+  assert.equal(selectedWindow(), initialWindow);
+  selectCategory('agents');
+  assert.deepEqual(modelNames(), []);
+  assert.match(elements.get('status').textContent, /No results for this category/);
   elements.get('period-tabs').children[0].onclick();
-  assert.deepEqual(modelNames().sort(), [...allModels, 'Clef-Flash'].sort());
-  toggle.checked = false;
-  toggle.onchange();
+  selectCategory('decision-ai');
   assert.deepEqual(modelNames().sort(), ['Clef', 'Clef-Flash']);
+  selectCategory('all');
+  assert.deepEqual(modelNames().sort(), [...allModels, 'Clef-Flash'].sort());
 });
 
 test('per-window rank numbers follow the displayed vs-SPY order', async () => {
@@ -733,5 +721,5 @@ test('an all-synthetic leaderboard says so unambiguously', async () => {
   await settle();
   const $ = id => elements.get(id);
   assert.match($('demo-banner').textContent, /all 2 rows are fabricated/);
-  assert.match($('demo-banner').textContent, /No decision model was called/);
+  assert.match($('demo-banner').textContent, /No real model was run/);
 });

@@ -371,8 +371,7 @@ def test_public_site_assets_have_no_removed_agent_harness_wording():
     pages = {name: (static_dir() / name).read_text(encoding="utf-8") for name in PAGES}
     js = (static_dir() / "app.js").read_text(encoding="utf-8")
     css = (static_dir() / "styles.css").read_text(encoding="utf-8")
-    # The AI tabs are gone for now; the board is one ranked list. The copy from
-    # the removed five-agent harness stays banned.
+    # The copy from the removed five-agent harness stays banned.
     banned = ("pipeline", "critic", "reasoning effort", "reasoning_effort", "tool call", "tool_call",
               "telemetry", "five trading", "max turns", "max_turns", "web search", "web_search", "read_file",
               "shell command")
@@ -380,18 +379,15 @@ def test_public_site_assets_have_no_removed_agent_harness_wording():
         lowered = text.lower()
         for word in banned:
             assert word not in lowered, f"{name} mentions {word!r}"
-    assert "ALGO" in js
-    assert "AI" in js
-    assert "AGENT" in js
-    assert "RL" in js
-    assert "HYBRID" in js
+    for category in ("All", "Decision AI", "ML", "Foundation", "Rule-based", "LLM", "Agents", "Hybrids"):
+        assert f">{category}</option>" in pages["index.html"]
     assert "tpi.svg" in js
     assert "fasttrade.svg" in js
     assert "bettertradingagents.png" in js
     assert "paperrl.svg" in js
     assert "deeptrade.svg" in js
     # The DCN payload is what the site renders, wherever a token lives.
-    for token in ("reliability", "brier", "decision model", "calibration", "provider"):
+    for token in ("reliability", "brier", "model", "calibration", "provider"):
         assert any(token in text.lower() for text in pages.values()), token
 
 
