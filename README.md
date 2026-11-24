@@ -248,6 +248,37 @@ The notebooks ran sequentially on Tesla T4 GPUs.
 TimesFM 3.0 was used for non-commercial research evaluation under
 [Google's model license](https://huggingface.co/google/timesfm-3.0-pytorch/blob/main/LICENSE).
 
+### Stock-selection signals
+
+Five methods use the same frozen windows and weekly portfolio rules as
+LightGBM. **LambdaMART** learns to rank next-period returns within each
+rebalance date. **Elastic Net** and **Shallow MLP** regress next-period excess
+returns. **Residual Momentum** ranks the prior 60 trading sessions of
+beta-adjusted returns, skipping the most recent five. **Residual Reversal**
+ranks the negative of the most recent five sessions. Both residual signals
+estimate beta against SPY using up to 126 daily returns and scale by residual
+volatility.
+
+Each rebalance uses only settled training outcomes. A later block of settled
+outcomes fits an increasing probability mapping for each method, so the
+portfolio can use BeatSPY's existing probability-based sizing. Returns include
+the benchmark's 5 bps fee and 5 bps slippage per trade leg. Rank IC is the mean
+within-rebalance Spearman correlation between the signal and realized excess
+returns. See the [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-stock-signals)
+and [benchmark runner](examples/kaggle_stock_signals.py).
+
+| Model | Oct 2025 vs SPY | Apr 2026 vs SPY | Oct 2026 vs SPY | Mean vs SPY | Mean vs equal weight | Rank IC | Turnover |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| LambdaMART | −0.04 pp | +10.51 pp | −6.50 pp | +1.32 pp | +1.79 pp | 0.062 | 20.8% |
+| Residual Reversal | −1.55 pp | +13.09 pp | −7.58 pp | +1.32 pp | +1.79 pp | 0.029 | 32.7% |
+| Shallow MLP | −0.81 pp | +8.08 pp | −4.94 pp | +0.78 pp | +1.25 pp | 0.026 | 18.7% |
+| Residual Momentum | −1.07 pp | +12.25 pp | −12.06 pp | −0.29 pp | +0.18 pp | 0.026 | 8.0% |
+| Elastic Net | −1.10 pp | −1.16 pp | −11.04 pp | −4.43 pp | −3.96 pp | −0.036 | 14.9% |
+
+All 15 runs replayed with full answer coverage. Some Shallow MLP fits reached
+the fixed 200-iteration budget before convergence. Use **Show all model types**
+to find the runs on the leaderboard.
+
 ## Quick start
 
 ```bash

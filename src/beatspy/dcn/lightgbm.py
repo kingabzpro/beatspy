@@ -56,6 +56,10 @@ class LightGBMClient:
         return self._features[key]
 
     def training_data(self, as_of: date, horizon: int, tickers: list[str]) -> tuple[pd.DataFrame, list[int]]:
+        features, excess_returns = self.training_returns(as_of, horizon, tickers)
+        return features, [int(value > 0) for value in excess_returns]
+
+    def training_returns(self, as_of: date, horizon: int, tickers: list[str]) -> tuple[pd.DataFrame, list[float]]:
         """Use Friday origins whose horizon-end close is observable by `as_of`."""
         if horizon < 1:
             raise ValueError("Forecast horizon must be positive")
@@ -82,7 +86,7 @@ class LightGBMClient:
                     continue
                 index.append((origin, ticker))
                 inputs.append(row)
-                labels.append(int(end / start > benchmark_return))
+                labels.append(end / start - benchmark_return)
         return _feature_frame(inputs, pd.MultiIndex.from_tuples(index, names=["origin", "ticker"])), labels
 
     def _predict_probabilities(self, training: pd.DataFrame, labels: list[int], inputs: pd.DataFrame):
@@ -98,14 +102,17 @@ class LightGBMClient:
         model.fit(training, labels)
         return model.predict_proba(inputs)[:, 1]
 
+    def decision_probabilities(self, day: date, horizon: int, tickers: list[str], inputs: pd.DataFrame):
+        training, labels = self.training_data(day, horizon, tickers)
+        if len(training) < MIN_TRAINING_ROWS or len(set(labels)) < 2:
+            raise DcnError(f"Insufficient settled {self.model} training labels on {day} ({len(training)} rows).")
+        return self._predict_probabilities(training, labels, inputs)
+
     async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
         started = time.perf_counter()
         day = date.fromisoformat(state["as_of"])
         horizon = state["horizon_trading_days"]
         tickers = sorted({question.instructions["ticker"] for question in questions.values()})
-        training, labels = self.training_data(day, horizon, tickers)
-        if len(training) < MIN_TRAINING_ROWS or len(set(labels)) < 2:
-            raise DcnError(f"Insufficient settled {self.model} training labels on {day} ({len(training)} rows).")
         current = {}
         for ticker in tickers:
             row = self._feature_row(ticker, day)
@@ -115,7 +122,7 @@ class LightGBMClient:
             return DcnResult(missing_ids=list(questions), requests=0)
 
         inputs = _feature_frame(list(current.values()), pd.Index(current))
-        probabilities = dict(zip(current, self._predict_probabilities(training, labels, inputs), strict=True))
+        probabilities = dict(zip(current, self.decision_probabilities(day, horizon, tickers, inputs), strict=True))
         answers: dict[str, NoulAnswer | ChoiceAnswer] = {}
         for question_id, question in questions.items():
             probability = probabilities.get(question.instructions["ticker"])

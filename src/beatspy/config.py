@@ -29,6 +29,14 @@ PROVIDERS = (
     "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral",
 )
 
+STOCK_SIGNAL_MODELS = {
+    "lambdamart": "LambdaMART",
+    "residual-momentum": "Residual Momentum",
+    "elastic-net": "Elastic Net",
+    "residual-reversal": "Residual Reversal",
+    "shallow-mlp": "Shallow MLP",
+}
+
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
 # run against them needs no new transport:
 #   Requesty  POST https://router.requesty.ai/v1/decisions   (models by id, e.g. sference/clef)
@@ -153,6 +161,22 @@ DECISION_MODELS: dict[str, dict] = {
             ("timesfm-3.0", "TimesFM 3.0"),
             ("t0-gamma", "T0-Gamma"),
         )
+    },
+    **{
+        name: {
+            "provider": "local",
+            "model": name,
+            "label": label,
+            "base_url": f"local://{name}",
+            "api_key_env": None,
+            "cost_per_m_input": 0.0,
+            "cost_per_m_output": 0.0,
+            "context_window": 0,
+            "max_questions": 64,
+            "state_note": "Uses point-in-time stock signals and settled returns from the frozen snapshot.",
+            "category": "algo",
+        }
+        for name, label in STOCK_SIGNAL_MODELS.items()
     },
     "logistic-regression": {
         "provider": "local",

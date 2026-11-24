@@ -34,6 +34,7 @@ from .config import (
     ACCOUNT_ID_ENV,
     DECISION_MODELS,
     DEFAULT_DECISION_MODEL,
+    STOCK_SIGNAL_MODELS,
     DecisionConfig,
     Settings,
     cloudflare_account_id,
@@ -640,7 +641,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             raise ValueError("Stock-JEPA supports --form per_asset or noul")
         if name in (
             "timestral-209m", "chronos-2", "timesfm-3.0", "t0-gamma",
-            "lightgbm", "logistic-regression", "logistic-lightgbm",
+            "lightgbm", "logistic-regression", "logistic-lightgbm", *STOCK_SIGNAL_MODELS,
         ) and args.form in ("all", "rank"):
             raise ValueError(f"{spec['label']} supports --form per_asset, noul, choice, or twin")
 

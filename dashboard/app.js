@@ -89,7 +89,18 @@ function modelName(model) {
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
 // Row tags identify specialized approaches alongside the decision models.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR", "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC", "stock-jepa": "JEPA", "chronos-2": "FORECAST", "timesfm-3.0": "FORECAST", "t0-gamma": "FORECAST"};
+const MODEL_TAGS = {
+  "tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT",
+  "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID",
+  "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR",
+  "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC", "stock-jepa": "JEPA",
+  "chronos-2": "FORECAST", "timesfm-3.0": "FORECAST", "t0-gamma": "FORECAST",
+  "lambdamart": "ML",
+  "residual-momentum": "ALGO",
+  "elastic-net": "LINEAR",
+  "residual-reversal": "ALGO",
+  "shallow-mlp": "ML",
+};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 const isDecisionModel = run => !modelTag(run.model) && (run.category == null || run.category === "ai");
 
@@ -148,6 +159,11 @@ const MODEL_META = {
   "logistic-lightgbm": ["Logit + LightGBM", "ensemble.svg"],
   "hrp": ["HRP", "hrp.svg"],
   "stock-jepa": ["Stock-JEPA", "stock-jepa.svg"],
+  "lambdamart": ["LambdaMART", null],
+  "residual-momentum": ["Residual Momentum", null],
+  "elastic-net": ["Elastic Net", null],
+  "residual-reversal": ["Residual Reversal", null],
+  "shallow-mlp": ["Shallow MLP", null],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
 const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;

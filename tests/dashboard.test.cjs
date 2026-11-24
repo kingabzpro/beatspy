@@ -197,6 +197,11 @@ test('the baseline rows carry their model tags', () => {
   for (const model of ['chronos-2', 'timesfm-3.0', 't0-gamma']) {
     assert.equal(modelTag(model), 'FORECAST');
   }
+  assert.equal(modelTag('lambdamart'), 'ML');
+  assert.equal(modelTag('residual-momentum'), 'ALGO');
+  assert.equal(modelTag('elastic-net'), 'LINEAR');
+  assert.equal(modelTag('residual-reversal'), 'ALGO');
+  assert.equal(modelTag('shallow-mlp'), 'ML');
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
