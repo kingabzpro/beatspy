@@ -286,6 +286,31 @@ def test_summarize_decisions_reports_latency_and_failures(dcn_run_dir):
     assert summary["failed_decisions"] == []
 
 
+def test_replay_agrees_with_the_latency_the_artifacts_keep(tmp_path, scenario, frozen_data):
+    """A run averages exact latencies, but decisions.jsonl keeps only milliseconds.
+
+    Near a rounding boundary the two averages part ways, so a run the engine
+    produced honestly failed its own replay. The stored mean has to be the one
+    the recorded latencies reproduce.
+    """
+    import asyncio
+
+    from beatspy.dcn.verify import replay_run
+
+    latencies = iter([0.0121, 0.0126, 0.0127])
+
+    class TimedClient(OfflineDcnClient):
+        async def decide(self, state, questions):
+            result = await super().decide(state, questions)
+            result.latency_s = next(latencies)
+            return result
+
+    run_dir = run_offline(tmp_path, scenario, frozen_data, TimedClient(), question_form="per_asset")
+    # The exact mean 0.012467 rounds down to 0.012; the recorded milliseconds average 0.012667.
+    assert read_run(run_dir)[1]["mean_latency_s"] == 0.013
+    asyncio.run(replay_run(run_dir))
+
+
 def test_run_directory_name_identifies_model_and_scenario(dcn_run_dir):
     assert scenario_slug(dcn_run_dir.name)
     assert dcn_run_dir.name.count("_") >= 3

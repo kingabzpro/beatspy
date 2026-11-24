@@ -128,7 +128,8 @@ async def score_run(data, scenario, settings, result, decision_dates, decisions,
     input_tokens = sum(call.input_tokens for call in calls)
     output_tokens = sum(call.output_tokens for call in calls)
     requests = sum(call.requests for call in calls)
-    latencies = [call.latency_s for call in calls]
+    # Rounded as decisions.jsonl records each one, so offline replay averages the same numbers.
+    latencies = [round(call.latency_s, 3) for call in calls]
     invalid_outputs = sum(1 for decision in decisions if decision.error or decision.validated.invalid)
     risk_violations = sum(len(decision.validated.violations) for decision in decisions)
     coverages = [decision.coverage for decision in decisions]
