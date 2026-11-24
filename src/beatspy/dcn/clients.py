@@ -513,28 +513,39 @@ class OpenRouterDecisionsClient(TypeSafeClient):
 
 
 class StructuredProbabilitiesClient(HttpDcnClient):
-    """Request one strict JSON probability per question via chat completions."""
+    """Shared JSON probability contract and default Chat Completions transport."""
+
+    instructions = (
+        "Estimate each question's probability using only the supplied market state through its as-of date. "
+        "Respond only with the JSON object specified by the response schema."
+    )
 
     def completion_options(self) -> dict:
         return {}
 
-    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+    def probability_request(
+        self, state: dict, questions: dict[str, Question], *, bounds: bool = True,
+    ) -> tuple[str, dict]:
         if any(question.type != "noul" for question in questions.values()):
             raise DcnError(f"{self.model} supports only binary probability questions")
+        probability = {"type": "number", "minimum": 0, "maximum": 1} if bounds else {
+            "type": "number", "description": "Probability from 0 to 1 inclusive",
+        }
         schema = {
             "type": "object",
-            "properties": {qid: {"type": "number", "minimum": 0, "maximum": 1} for qid in questions},
+            "properties": dict.fromkeys(questions, probability),
             "required": list(questions),
             "additionalProperties": False,
         }
+        return _state_text({"state": state, "questions": _questions_payload(questions)}), schema
+
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        prompt, schema = self.probability_request(state, questions)
         body = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": (
-                    "Estimate each question's probability using only the supplied market state through its as-of date. "
-                    "Respond only with the JSON object specified by the response schema."
-                )},
-                {"role": "user", "content": _state_text({"state": state, "questions": _questions_payload(questions)})},
+                {"role": "system", "content": self.instructions},
+                {"role": "user", "content": prompt},
             ],
             "response_format": {
                 "type": "json_schema",
@@ -559,7 +570,12 @@ class StructuredProbabilitiesClient(HttpDcnClient):
         )
         if any(message.get(key) for key in extra_content):
             raise DcnError(f"{self.model} returned content outside the probability object")
+        usage = payload.get("usage") or {}
+        return self.probability_result(
+            message.get("content"), question_ids, usage.get("prompt_tokens"), usage.get("completion_tokens"),
+        )
 
+    def probability_result(self, text, question_ids: list[str], input_tokens, output_tokens) -> DcnResult:
         def unique_fields(fields: list[tuple[str, Any]]) -> dict[str, Any]:
             result = dict(fields)
             if len(result) != len(fields):
@@ -567,18 +583,17 @@ class StructuredProbabilitiesClient(HttpDcnClient):
             return result
 
         try:
-            probabilities = json.loads(message.get("content"), object_pairs_hook=unique_fields)
+            probabilities = json.loads(text, object_pairs_hook=unique_fields)
         except (TypeError, ValueError) as exc:
             raise DcnError(f"{self.model} did not return a valid JSON answer") from exc
         if not isinstance(probabilities, dict) or probabilities.keys() != set(question_ids):
             raise DcnError(f"{self.model} returned the wrong question IDs")
         if any(type(value) not in (int, float) or not 0 <= value <= 1 for value in probabilities.values()):
             raise DcnError(f"{self.model} returned a value outside the probability schema")
-        usage = payload.get("usage") or {}
         return DcnResult(
             answers={qid: NoulAnswer(noul=probabilities[qid]) for qid in question_ids},
-            input_tokens=int(usage.get("prompt_tokens") or 0),
-            output_tokens=int(usage.get("completion_tokens") or 0),
+            input_tokens=int(input_tokens or 0),
+            output_tokens=int(output_tokens or 0),
         )
 
 
@@ -611,6 +626,63 @@ class NebiusProbabilitiesClient(StructuredProbabilitiesClient):
         return super().parse_response(payload, question_ids)
 
 
+class AnthropicProbabilitiesClient(StructuredProbabilitiesClient):
+    provider = "anthropic-llm"
+
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        prompt, schema = self.probability_request(state, questions, bounds=False)
+        body = {
+            "model": self.model,
+            "system": self.instructions,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": 2048,
+            "thinking": {"type": "disabled"},
+            "output_config": {"format": {"type": "json_schema", "schema": schema}},
+        }
+        return "POST", self.endpoint, {"x-api-key": self.api_key, "anthropic-version": "2023-06-01"}, body
+
+    def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
+        content = payload.get("content") or []
+        if payload.get("stop_reason") != "end_turn" or len(content) != 1 or content[0].get("type") != "text":
+            raise DcnError(f"{self.model} did not return one complete JSON text block")
+        usage = payload.get("usage") or {}
+        input_tokens = sum(usage.get(key) or 0 for key in (
+            "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens",
+        ))
+        return self.probability_result(content[0].get("text"), question_ids, input_tokens, usage.get("output_tokens"))
+
+
+class OpenAIResponsesProbabilitiesClient(StructuredProbabilitiesClient):
+    provider = "openai-llm"
+
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        prompt, schema = self.probability_request(state, questions)
+        body = {
+            "model": self.model,
+            "instructions": self.instructions,
+            "input": prompt,
+            "reasoning": {"effort": "none"},
+            "max_output_tokens": 2048,
+            "store": False,
+            "text": {"format": {
+                "type": "json_schema", "name": "market_probabilities", "strict": True, "schema": schema,
+            }},
+        }
+        return "POST", self.endpoint, {"Authorization": f"Bearer {self.api_key}"}, body
+
+    def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
+        output = payload.get("output") or []
+        if payload.get("status") != "completed" or len(output) != 1 or output[0].get("type") != "message":
+            raise DcnError(f"{self.model} did not return one complete message")
+        content = output[0].get("content") or []
+        if len(content) != 1 or content[0].get("type") != "output_text":
+            raise DcnError(f"{self.model} did not return one JSON text block")
+        usage = payload.get("usage") or {}
+        return self.probability_result(
+            content[0].get("text"), question_ids, usage.get("input_tokens"), usage.get("output_tokens"),
+        )
+
+
 def _state_text(state: dict) -> str:
     import json
 
@@ -626,6 +698,8 @@ _CLIENTS = {
     "openrouter": OpenRouterDecisionsClient,
     "openrouter-llm": OpenRouterLlamaClient,
     "nebius": NebiusProbabilitiesClient,
+    "anthropic-llm": AnthropicProbabilitiesClient,
+    "openai-llm": OpenAIResponsesProbabilitiesClient,
     "respan": RespanScoresClient,
 }
 

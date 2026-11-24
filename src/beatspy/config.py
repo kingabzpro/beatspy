@@ -24,6 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 PROVIDERS = (
     "openai_decisions", "google_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
     "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral", "openrouter-llm", "nebius",
+    "anthropic-llm", "openai-llm",
 )
 
 # Nebius Token Factory's shared endpoint lists these serverless models.
@@ -34,6 +35,8 @@ NEBIUS_MODELS = {
     "glm-5.3-flash": ("zai-org/GLM-5.3-Flash", "GLM-5.3 Flash", 0.15, 0.50),
     "glm-5.3": ("zai-org/GLM-5.3", "GLM-5.3", 1.40, 4.40),
 }
+
+DIRECT_LLM_MODELS = ("claude-haiku-5-5", "gpt-6-luna-llm")
 
 STOCK_SIGNAL_MODELS = {
     "lambdamart": "LambdaMART",
@@ -106,6 +109,30 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 131_072,
         "max_questions": 64,
         "state_note": "Receives frozen market state and returns JSON probabilities for the requested questions.",
+        "category": "llm",
+    },
+    "claude-haiku-5-5": {
+        "provider": "anthropic-llm",
+        "model": "claude-haiku-5-5",
+        "label": "Claude Haiku 5.5",
+        "base_url": "https://api.anthropic.com/v1/messages",
+        "api_key_env": "ANTHROPIC_API_KEY",
+        "cost_per_m_input": 0.10,
+        "cost_per_m_output": 0.50,
+        "context_window": 1_000_000,
+        "max_questions": 64,
+        "category": "llm",
+    },
+    "gpt-6-luna-llm": {
+        "provider": "openai-llm",
+        "model": "gpt-6-luna",
+        "label": "GPT-6 Luna (Responses API)",
+        "base_url": "https://api.openai.com/v1/responses",
+        "api_key_env": "OPENAI_API_KEY",
+        "cost_per_m_input": 0.10,
+        "cost_per_m_output": 0.50,
+        "context_window": 1_050_000,
+        "max_questions": 64,
         "category": "llm",
     },
     **{

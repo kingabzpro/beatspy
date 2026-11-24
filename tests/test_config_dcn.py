@@ -158,7 +158,7 @@ def test_registry_entries_are_complete(name):
     for key in ("provider", "model", "label", "base_url", "api_key_env", "cost_per_m_input",
                 "cost_per_m_output", "context_window", "max_questions"):
         assert key in spec, f"{name} is missing {key}"
-    if spec["provider"] in ("bta-live", "deeptrade", "openrouter-llm", "nebius"):
+    if spec.get("category") == "llm" or spec["provider"] in ("bta-live", "deeptrade"):
         assert spec["cost_per_m_output"] > 0.0
     else:
         assert spec["cost_per_m_output"] == 0.0, "decision models bill input only"

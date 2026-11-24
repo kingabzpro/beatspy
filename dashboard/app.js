@@ -126,6 +126,8 @@ const MODEL_META = {
   "paperrl": ["PaperRL", "paperrl.svg"],
   "deeptrade": ["DeepTrade", "deeptrade.svg"],
   "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
+  "gpt-6-luna-llm": ["GPT-6 Luna (Responses API)", "openai.svg"],
+  "claude-haiku-5-5": ["Claude Haiku 5.5", "claude.png"],
   "jev-latest": ["Jev-Latest", "typesafe.png"],
   "jev-1-14": ["Jev 1.14", "typesafe.png"],
   "clef": ["Clef", "cloudflare.svg"],

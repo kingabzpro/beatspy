@@ -128,6 +128,51 @@ def test_nebius_glm_uses_structured_content_and_excludes_separate_reasoning(monk
     assert result.output_tokens == 120
 
 
+@pytest.mark.parametrize("name", ["claude-haiku-5-5", "gpt-6-luna-llm"])
+@pytest.mark.parametrize("probability", [0.43, 1.1])
+def test_direct_llms_enforce_structured_probabilities(monkeypatch, name, probability):
+    import asyncio
+
+    spec = DECISION_MODELS[name]
+    monkeypatch.setenv(f"BEATSPY_{spec['api_key_env']}", "test-key")
+    settings = Settings(decision=DecisionConfig(decision_model=name))
+    questions = build_questions("noul", ["AAPL"], "SPY", 20).questions
+    content = json.dumps({"noul_AAPL": probability})
+    usage = {"input_tokens": 10, "output_tokens": 42}
+    payloads = {
+        "claude-haiku-5-5": {
+            "stop_reason": "end_turn", "content": [{"type": "text", "text": content}], "usage": usage,
+        },
+        "gpt-6-luna-llm": {
+            "status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": content}]}],
+            "usage": usage,
+        },
+    }
+    calls: list[httpx.Request] = []
+    client = make_client(settings, client=_client(_capture(payloads[name], calls=calls)))
+    if probability > 1:
+        with pytest.raises(DcnError, match="outside the probability schema"):
+            asyncio.run(client.decide({}, questions))
+    else:
+        result = asyncio.run(client.decide({}, questions))
+        assert result.answers["noul_AAPL"].noul == probability
+        assert (result.input_tokens, result.output_tokens) == (10, 42)
+
+    assert str(calls[0].url) == spec["base_url"]
+    request = json.loads(calls[0].content)
+    assert "tools" not in request
+    if name == "claude-haiku-5-5":
+        assert request["thinking"] == {"type": "disabled"}
+        schema = request["output_config"]["format"]["schema"]
+        assert "maximum" not in schema["properties"]["noul_AAPL"]
+    else:
+        assert request["reasoning"] == {"effort": "none"}
+        assert request["text"]["format"]["strict"] is True
+        schema = request["text"]["format"]["schema"]
+    assert schema["required"] == ["noul_AAPL"]
+    assert schema["additionalProperties"] is False
+
+
 # --------------------------------------------------------------------------- #
 # Request shapes
 # --------------------------------------------------------------------------- #
@@ -695,7 +740,7 @@ def test_every_registered_model_has_a_key_environment_variable():
         assert spec["api_key_env"], f"{name} has no api_key_env"
         assert spec["provider"] in PROVIDERS, f"{name} has unknown provider {spec['provider']!r}"
         assert spec["cost_per_m_input"] is not None
-        if spec["provider"] in ("bta-live", "deeptrade", "openrouter-llm", "nebius"):
+        if spec.get("category") == "llm" or spec["provider"] in ("bta-live", "deeptrade"):
             # The live chat models bill output tokens too, unlike the typed
             # decision APIs.
             assert spec["cost_per_m_output"] > 0.0
