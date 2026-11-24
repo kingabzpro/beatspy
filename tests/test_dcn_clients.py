@@ -13,7 +13,16 @@ import json
 import httpx
 import pytest
 
-from beatspy.config import DECISION_MODELS, HYBRID_MODELS, PROVIDERS, DecisionConfig, Settings, decision_api_key
+from beatspy.config import (
+    AGENT_CONTROLS,
+    AGENT_MODELS,
+    DECISION_MODELS,
+    HYBRID_MODELS,
+    PROVIDERS,
+    DecisionConfig,
+    Settings,
+    decision_api_key,
+)
 from beatspy.dcn.clients import (
     CloudflareClefClient,
     DcnError,
@@ -610,6 +619,13 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     if name == "chronos-lightgbm":
         monkeypatch.setenv("BEATSPY_CHRONOS_CHECKPOINT", "local-model")
         monkeypatch.setattr("beatspy.dcn.hybrids.load_chronos_checkpoint", lambda path, device: object())
+    if name in AGENT_MODELS or name in AGENT_CONTROLS:
+        # The routing agents ran through a one-off local runner. Their recorded runs replay,
+        # but this build holds no client to run them again, and it says so instead of quietly
+        # building another local model.
+        with pytest.raises(DcnError, match="no client"):
+            make_client(settings, data=data)
+        return
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     if spec["provider"] in ("bta-live", "deeptrade"):
@@ -738,12 +754,18 @@ def test_every_registered_model_has_a_key_environment_variable():
             expected = {"local": "algo", "bta": "agent", "paperrl": "rl", "timestral": "ai"}[spec["provider"]]
             if name in HYBRID_MODELS:
                 expected = "hybrid"
+            if name in AGENT_MODELS:
+                expected = "agent"
             assert spec.get("category") == expected, f"{name} is {spec['provider']} but has the wrong category"
             assert spec.get("api_key_env") is None
             assert spec["cost_per_m_input"] == 0.0
             continue
         assert spec["api_key_env"], f"{name} has no api_key_env"
         assert spec["provider"] in PROVIDERS, f"{name} has unknown provider {spec['provider']!r}"
+        if spec["cost_per_m_input"] is None:
+            # A private deployment with no public token rate: no cost is reported, none is invented.
+            assert (name in AGENT_MODELS or name in AGENT_CONTROLS) and spec["cost_per_m_output"] is None
+            continue
         assert spec["cost_per_m_input"] is not None
         if spec.get("category") == "llm" or spec["provider"] in ("bta-live", "deeptrade"):
             # The live chat models bill output tokens too, unlike the typed

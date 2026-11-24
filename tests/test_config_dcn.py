@@ -150,6 +150,24 @@ def test_the_baseline_is_a_separate_category():
     assert DecisionConfig(decision_model="bettertradingagents-live").category == "agent"
     assert DecisionConfig(decision_model="paperrl").category == "rl"
     assert DecisionConfig(decision_model="deeptrade").category == "hybrid"
+    for agent in ("desk-router", "trade-memory", "risk-review", "bandit-router", "risk-proposal"):
+        assert DecisionConfig(decision_model=agent).category == "agent", agent
+
+
+def test_the_routing_agents_on_modal_report_no_cost_and_name_their_credential():
+    """A private deployment has no public token rate, so its price is left empty, never guessed."""
+    from beatspy.config import PROVIDERS
+
+    assert "modal-deepseek" in PROVIDERS
+    for agent in ("desk-router", "trade-memory", "risk-review", "risk-proposal"):
+        spec = DECISION_MODELS[agent]
+        assert spec["provider"] == "modal-deepseek" and spec["model"] == "deepseek-ai/DeepSeek-V4.1-Flash-1017"
+        assert spec["base_url"].endswith(".modal.direct/v1/chat/completions")
+        assert spec["api_key_env"] == "MODAL_PROXY_KEY"
+        assert spec["cost_per_m_input"] is None and spec["cost_per_m_output"] is None
+    bandit = DECISION_MODELS["bandit-router"]
+    assert bandit["provider"] == "local" and bandit["api_key_env"] is None  # CPU LinUCB, never calls an API
+    assert bandit["cost_per_m_input"] == 0.0 and bandit["cost_per_m_output"] == 0.0
 
 
 @pytest.mark.parametrize("name", sorted(DECISION_MODELS))
@@ -158,7 +176,9 @@ def test_registry_entries_are_complete(name):
     for key in ("provider", "model", "label", "base_url", "api_key_env", "cost_per_m_input",
                 "cost_per_m_output", "context_window", "max_questions"):
         assert key in spec, f"{name} is missing {key}"
-    if spec.get("category") == "llm" or spec["provider"] in ("bta-live", "deeptrade"):
+    if spec["cost_per_m_input"] is None:
+        assert spec["cost_per_m_output"] is None, "an unpriced model reports no cost on both sides"
+    elif spec.get("category") == "llm" or spec["provider"] in ("bta-live", "deeptrade"):
         assert spec["cost_per_m_output"] > 0.0
     else:
         assert spec["cost_per_m_output"] == 0.0, "decision models bill input only"

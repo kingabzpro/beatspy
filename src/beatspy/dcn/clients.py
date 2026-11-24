@@ -736,7 +736,15 @@ def make_client(
     compact state, while the TPI and FastTrade clients read the frozen
     `DataService` the harness already holds.
     """
-    from ..config import HYBRID_CONTROLS, HYBRID_MODELS, STOCK_SIGNAL_MODELS, cloudflare_account_id, decision_api_key
+    from ..config import (
+        AGENT_CONTROLS,
+        AGENT_MODELS,
+        HYBRID_CONTROLS,
+        HYBRID_MODELS,
+        STOCK_SIGNAL_MODELS,
+        cloudflare_account_id,
+        decision_api_key,
+    )
 
     decision = settings.decision
     provider = decision.provider
@@ -747,6 +755,11 @@ def make_client(
             f"Export it, or add it to .env next to the repository, then retry. "
             f"`beatspy models` shows which credentials resolve."
         )
+    if decision.decision_model in AGENT_MODELS or decision.decision_model in AGENT_CONTROLS:
+        # The routing agents ran through a one-off local runner. Their recorded runs
+        # replay, but this build holds no client to run them again, so it says that
+        # rather than quietly building another local model.
+        raise DcnError(f"no client for {decision.label}: its recorded runs replay, but this build cannot run it again")
     if provider == "local":
         if decision.decision_model == "hrp":
             raise DcnError("HRP supplies direct weights through `beatspy run --model hrp`.")

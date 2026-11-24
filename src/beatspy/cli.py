@@ -207,6 +207,8 @@ def _percent(value, digits: int = 1) -> str:
 
 
 def _pricing(spec: dict) -> str:
+    if spec["cost_per_m_input"] is None:
+        return "no published rate"  # a private deployment: never a made-up price
     out = spec.get("cost_per_m_output") or 0.0
     return f"${spec['cost_per_m_input']:.3f}/M input, ${out:.3f}/M output"
 
@@ -419,9 +421,9 @@ def cmd_models(args: argparse.Namespace) -> int:
         ok, detail = _key_status(name, spec)
         marker = "*" if name == active else " "
         context = "local" if spec["provider"] in ("local", "bta", "paperrl", "timestral") else (
-            f"{spec['context_window'] // 1000}k"
+            f"{spec['context_window'] // 1000}k" if spec["context_window"] else "n/a"
         )
-        price = f"{spec['cost_per_m_input']:>12.3f}"
+        price = "n/a" if spec["cost_per_m_input"] is None else f"{spec['cost_per_m_input']:>12.3f}"
         print(
             f"{marker:<2}{name:<{width}} {spec['provider']:<{providers}} {price} {context:>9}  "
             f"{'yes' if ok else 'no'} ({detail})"

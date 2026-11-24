@@ -187,7 +187,7 @@ test('the category filter supports existing models and explicit categories for n
     foundation: ['timestral-209m', 'chronos-2', 'timesfm-3.0', 't0-gamma'],
     'rule-based': ['tpi-rs', 'hrp', 'residual-momentum', 'residual-reversal'],
     llm: ['llama-3.3-70b'],
-    agents: ['bettertradingagents', 'bettertradingagents-live'],
+    agents: ['bettertradingagents', 'bettertradingagents-live', 'desk-router', 'trade-memory', 'risk-review', 'bandit-router'],
     hybrids: ['deeptrade'],
   })) {
     for (const model of models) assert.equal(modelCategory({model}), category, model);
@@ -514,9 +514,16 @@ test('the category dropdown defaults to All and filters independently of the win
   const linear = catalogRun({run_id: 'linear', model: 'logistic-regression', category: 'algo'});
   const ensemble = catalogRun({run_id: 'ensemble', model: 'logistic-lightgbm', category: 'algo'});
   const allocation = catalogRun({run_id: 'allocation', model: 'hrp', category: 'algo', question_form: 'allocation'});
+  const routingAgents = [
+    ['desk-router', 'Desk Router', 'agent-desk-router.svg'],
+    ['trade-memory', 'Trade Memory', 'agent-trade-memory.svg'],
+    ['risk-review', 'Risk Review', 'agent-risk-review.svg'],
+    ['bandit-router', 'Bandit Router', 'agent-bandit-router.svg'],
+  ];
+  const agents = routingAgents.map(([model]) => catalogRun({run_id: model, model, category: 'agent'}));
   first.start = '2025-04-01'; first.end = '2025-10-01';
   site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all',
-    runs: [first, second, forecast, ...forecasts, algorithm, linear, ensemble, allocation]});
+    runs: [first, second, forecast, ...forecasts, algorithm, linear, ensemble, allocation, ...agents]});
   const elements = mountSite(site);
   const category = fakeElement('select');
   category.value = 'all';
@@ -528,6 +535,7 @@ test('the category dropdown defaults to All and filters independently of the win
     ['HRP', 'hrp.svg'], ['LightGBM', 'lightgbm-mark.svg'],
     ['Logistic Regression', 'logistic.svg'], ['Logit + LightGBM', 'ensemble.svg'],
     ...newForecasters.map(([, name, file]) => [name, file]),
+    ...routingAgents.map(([, name, file]) => [name, file]),
   ];
   const allModels = ['Clef', ...brandedModels.map(([name]) => name), 'Timestral'].sort();
   assert.deepEqual(modelNames().sort(), allModels);
@@ -545,6 +553,8 @@ test('the category dropdown defaults to All and filters independently of the win
   assert.deepEqual(modelNames().sort(), ['Chronos-2', 'T0-Gamma', 'TimesFM 3.0', 'Timestral'].sort());
   assert.equal(selectedWindow(), initialWindow);
   selectCategory('agents');
+  assert.deepEqual(modelNames().sort(), routingAgents.map(([, name]) => name).sort());
+  selectCategory('hybrids');
   assert.deepEqual(modelNames(), []);
   assert.match(elements.get('status').textContent, /No results for this category/);
   elements.get('period-tabs').children[0].onclick();

@@ -277,6 +277,78 @@ All 15 runs replayed with full answer coverage. Some Shallow MLP fits reached
 the fixed 200-iteration budget before convergence. The leaderboard groups
 the residual rules under **Rule-based** and the fitted models under **ML**.
 
+### Signal-routing agents
+
+Four agents choose which of the three stock-selection signals above runs the
+book each week. Each reuses the frozen windows, weekly schedule, portfolio
+rules, transaction costs and result format, and all twelve runs passed replay
+with full answer coverage.
+
+**Desk Router** takes the manager role from
+[FinCon](https://github.com/The-FinAI/FinCon)
+([arXiv 2407.06567](https://arxiv.org/abs/2407.06567)), whose manager is the sole
+decision maker reading its analysts' reports. One strict-JSON request per
+rebalance hands the whole portfolio to one signal, based on SPY volatility,
+stock dispersion, and how each signal has done in the windows that have settled.
+
+**Bandit Router** is a CPU LinUCB
+([contextualbandits](https://github.com/david-cortes/contextualbandits)) over the
+same features and the same three actions. It updates once the window it chose
+has settled, using that signal's net return relative to SPY, and it makes no API
+calls.
+
+**Trade Memory** adds the last eight settled decisions, with the signal each one
+chose and its net return relative to SPY, to Desk Router's model, prompt and
+action schema. Desk Router is its memory-off baseline.
+
+**Risk Review** adapts the risk stage of
+[TradingAgents](https://github.com/TauricResearch/TradingAgents)
+([arXiv 2412.20138](https://arxiv.org/abs/2412.20138)). One request proposes a
+portfolio from the eligible symbols and the frozen signal scores. A second
+request weighs the proposal from an aggressive, a conservative and a neutral
+seat, then approves it or trims positions, and trimmed weight moves to cash.
+
+The three LLM agents ran on a private DeepSeek V4.1 Flash deployment on Modal,
+at temperature 0 with strict JSON schemas and reasoning turned off. That
+deployment has no public token rate, so those rows report no cost, only requests
+and tokens. The bandit runs locally.
+
+| Agent | Oct 2025 vs SPY | Apr 2026 vs SPY | Oct 2026 vs SPY | Average | Requests |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Desk Router | −3.09 pp | +7.41 pp | −11.10 pp | −2.26 pp | 76 |
+| Trade Memory | −5.22 pp | +9.66 pp | −13.15 pp | −2.90 pp | 76 |
+| Risk Review | −9.21 pp | +11.40 pp | −12.18 pp | −3.33 pp | 157 |
+| Bandit Router | −6.13 pp | +5.71 pp | −8.06 pp | −2.83 pp | 0 |
+| LambdaMART (fixed) | −0.04 pp | +10.51 pp | −6.50 pp | +1.32 pp | 0 |
+| Residual Momentum (fixed) | −1.07 pp | +12.25 pp | −12.06 pp | −0.29 pp | 0 |
+| Residual Reversal (fixed) | −1.55 pp | +13.09 pp | −7.58 pp | +1.32 pp | 0 |
+
+Routing lost to the signals it routes between. Every agent has a negative
+average gap, and all three fixed signals average better than all four agents.
+Each agent beats SPY in the Apr 2026 window alone, the window that lifts most of
+the board.
+
+The proposal without a review was saved as a control and kept off the board. It
+shows what the review adds:
+
+| | Oct 2025 | Apr 2026 | Oct 2026 | Average |
+| --- | ---: | ---: | ---: | ---: |
+| Risk Review | −9.21 pp | +11.40 pp | −12.18 pp | −3.33 pp |
+| Proposal only | −8.35 pp | +13.19 pp | −12.15 pp | −2.44 pp |
+
+The review gave up 0.89 pp of average return and held more cash (41%, 29%, 28%
+of the book on average, against 36%, 21%, 22% for the proposal alone). It had a
+smaller worst drop in all three windows (−2.63% against −3.53%, −3.48% against
+−4.21%, −6.87% against −7.12%). Trade Memory did not help either: it averages
+0.64 pp worse than the same model without memory.
+
+Seven proposal attempts were refused on the first try and each succeeded on a
+retry; the refusals that were recorded all had weights summing above 1.0, up to
+1.10. Across the four agents, 309 requests produced 363,397 input and 56,953
+output tokens, and no decision failed.
+
+The four agents appear under **Agents** on the leaderboard.
+
 ## Browse the leaderboard
 
 The **Model category** dropdown starts on **All**. Choose **Decision AI**,

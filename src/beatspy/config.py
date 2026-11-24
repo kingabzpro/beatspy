@@ -24,7 +24,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 PROVIDERS = (
     "openai_decisions", "google_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
     "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral", "openrouter-llm", "nebius",
-    "anthropic-llm", "openai-llm",
+    "anthropic-llm", "openai-llm", "modal-deepseek",
 )
 
 # Nebius Token Factory's shared endpoint lists these serverless models.
@@ -56,6 +56,31 @@ HYBRID_MODELS = {
 HYBRID_CONTROLS = {
     "lambdamart-equal": "LambdaMART + Equal Weight",
     "momentum-reversal-blend": "Momentum + Reversal (Fixed Blend)",
+}
+
+# Signal-routing agents. Each rebalance, three of them hand the whole book to one
+# of the frozen signals (LambdaMART, Residual Momentum, Residual Reversal), and one
+# proposes a book that a risk review approves or trims. `desk-router`, `trade-memory`
+# and `risk-review` call a private DeepSeek V4.1 Flash deployment on Modal through its
+# OpenAI-compatible endpoint; `bandit-router` is a CPU LinUCB that never calls an API.
+# They ran through a one-off local runner, and the recorded runs replay without it.
+# `risk-proposal` is the risk review's proposal before any review: a control that is
+# not on the board.
+MODAL_DEEPSEEK_ENDPOINT = (
+    "https://abidali899--ep-deepseek-v4-1-flash-1017-server.us-west.modal.direct/v1/chat/completions"
+)
+AGENT_MODELS = {
+    "desk-router": "Desk Router (FinCon manager role, DeepSeek V4.1 Flash)",
+    "trade-memory": "Trade Memory (FinMem memory, DeepSeek V4.1 Flash)",
+    "risk-review": "Risk Review (TradingAgents risk review, DeepSeek V4.1 Flash)",
+    "bandit-router": "Bandit Router (LinUCB over three signals, no API calls)",
+}
+AGENT_CONTROLS = {"risk-proposal": "Risk Review proposal without the review (control)"}
+AGENT_NOTES = {
+    "desk-router": "FinCon's manager role: one strict-JSON request per rebalance hands the book to one frozen signal.",
+    "trade-memory": "Desk Router's request plus the last eight settled decisions of its own.",
+    "risk-review": "One request proposes a book from the frozen signal scores; a second approves or trims it.",
+    "risk-proposal": "The risk review's proposal with no review after it.",
 }
 
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
@@ -359,6 +384,37 @@ DECISION_MODELS: dict[str, dict] = {
             "and the TPI score; uses LLM_BASE_URL/LLM_MODEL."
         ),
         "category": "hybrid",
+    },
+    "bandit-router": {
+        "provider": "local",
+        "model": "bandit-router",
+        "label": AGENT_MODELS["bandit-router"],
+        "base_url": "local://bandit-router",
+        "api_key_env": None,
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 0,
+        "max_questions": 64,
+        "state_note": "CPU LinUCB picks one of three frozen signals per rebalance. No network and no tokens.",
+        "category": "agent",
+    },
+    **{
+        name: {
+            "provider": "modal-deepseek",
+            "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+            "label": label,
+            "base_url": MODAL_DEEPSEEK_ENDPOINT,
+            "api_key_env": "MODAL_PROXY_KEY",
+            # A private deployment has no public token rate, so no cost is reported.
+            "cost_per_m_input": None,
+            "cost_per_m_output": None,
+            "context_window": 0,
+            "max_questions": 64,
+            "state_note": AGENT_NOTES[name],
+            "category": "agent",
+        }
+        for name, label in (AGENT_MODELS | AGENT_CONTROLS).items()
+        if name != "bandit-router"
     },
     "gpt-6-luna": {
         "provider": "openai_decisions",

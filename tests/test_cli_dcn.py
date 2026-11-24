@@ -51,9 +51,12 @@ def test_models_lists_every_decision_model(capsys):
     assert main(["models"]) == 0
     out = capsys.readouterr().out
     for name, spec in DECISION_MODELS.items():
-        assert name in out
-        assert spec["provider"] in out
-        assert f"{spec['cost_per_m_input']:.3f}" in out
+        line = next(line for line in out.splitlines() if line.lstrip("*").split()[0] == name)
+        assert spec["provider"] in line
+        if spec["cost_per_m_input"] is None:
+            assert "n/a" in line, f"{name} has no public rate and must say so"  # never a made-up price
+        else:
+            assert f"{spec['cost_per_m_input']:.3f}" in line
     assert "input tokens only" in out
 
 
@@ -76,6 +79,8 @@ def test_doctor_offline_exits_zero_without_network(monkeypatch, capsys):
     reported = re.findall(r"\[(?:PASS|WARN)\] model ", plain)
     assert len(reported) == len(DECISION_MODELS)
     assert "No network calls were made" in plain
+    if any(spec["cost_per_m_input"] is None for spec in DECISION_MODELS.values()):
+        assert "no published rate" in plain  # an unpriced model says so; it never crashes the report
 
 
 def test_doctor_probe_reports_the_probability(monkeypatch, capsys):
