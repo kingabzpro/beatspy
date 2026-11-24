@@ -182,11 +182,11 @@ test('catalog validation accepts the DCN payload and reports real problems', () 
 
 test('the category filter supports existing models and explicit categories for new runs', () => {
   for (const [category, models] of Object.entries({
-    'decision-ai': ['clef'],
+    'decision-ai': ['clef', 'fasttrade', 'fasttrade-subq', 'openrouter-fasttrade'],
     ml: ['lightgbm', 'logistic-regression', 'logistic-lightgbm', 'stock-jepa', 'paperrl', 'elastic-net'],
     foundation: ['timestral-209m', 'chronos-2', 'timesfm-3.0', 't0-gamma'],
     'rule-based': ['tpi-rs', 'hrp', 'residual-momentum', 'residual-reversal'],
-    llm: ['openrouter-fasttrade', 'fasttrade-subq'],
+    llm: ['llama-3.3-70b'],
     agents: ['bettertradingagents', 'bettertradingagents-live'],
     hybrids: ['deeptrade'],
   })) {

@@ -45,6 +45,89 @@ def _client(transport, account_id: str | None = None):
     return httpx.AsyncClient(transport=transport)
 
 
+def test_llama_requests_strict_json_and_returns_probabilities(monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv("BEATSPY_OPENROUTER_API_KEY", "test-key")
+    settings = Settings(decision=DecisionConfig(decision_model="llama-3.3-70b"))
+    questions = build_questions("per_asset", ["AAPL", "MSFT"], "SPY", 20).questions
+    probabilities = dict(zip(questions, [0.64, 0.3], strict=True))
+    calls: list[httpx.Request] = []
+    payload = {
+        "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(probabilities)}}],
+        "usage": {"prompt_tokens": 120, "completion_tokens": 24},
+    }
+    client = make_client(settings, client=_client(_capture(payload, calls=calls)))
+    result = asyncio.run(client.decide({"market": [{"ticker": "AAPL"}]}, questions))
+
+    assert settings.decision.category == "llm"
+    assert str(calls[0].url) == "https://openrouter.ai/api/v1/chat/completions"
+    assert calls[0].headers["authorization"] == "Bearer test-key"
+    request = json.loads(calls[0].content)
+    assert request["model"] == "meta-llama/llama-3.3-70b-instruct"
+    assert request["provider"] == {
+        "order": ["deepinfra/turbo"], "allow_fallbacks": False, "require_parameters": True,
+    }
+    assert "tools" not in request
+    response_format = request["response_format"]
+    assert response_format["type"] == "json_schema"
+    assert response_format["json_schema"]["strict"] is True
+    schema = response_format["json_schema"]["schema"]
+    assert schema["additionalProperties"] is False
+    assert schema["required"] == list(questions)
+    assert set(schema["properties"]) == set(questions)
+    assert {key: value.noul for key, value in result.answers.items()} == probabilities
+    assert (result.input_tokens, result.output_tokens) == (120, 24)
+
+
+@pytest.mark.parametrize(("content", "finish_reason", "extra"), [
+    ('```json\n{"noul_AAPL": 0.3}\n```', "stop", {}),
+    ('{"noul_AAPL": 0.3, "explanation": "text"}', "stop", {}),
+    ('{"noul_AAPL": 0.3, "noul_AAPL": 0.8}', "stop", {}),
+    ('{"noul_AAPL": "0.3"}', "stop", {}),
+    ('{"noul_AAPL": true}', "stop", {}),
+    ('{"noul_AAPL": 1.3}', "stop", {}),
+    ('{}', "stop", {}),
+    ('{"noul_AAPL": 0.3}', "length", {}),
+    ('{"noul_AAPL": 0.3}', "stop", {"reasoning": "text"}),
+])
+def test_llama_rejects_anything_other_than_complete_probabilities(monkeypatch, content, finish_reason, extra):
+    import asyncio
+
+    monkeypatch.setenv("BEATSPY_OPENROUTER_API_KEY", "test-key")
+    settings = Settings(decision=DecisionConfig(decision_model="llama-3.3-70b"))
+    payload = {"choices": [{"finish_reason": finish_reason, "message": {"content": content, **extra}}]}
+    client = make_client(settings, client=_client(_capture(payload)))
+    questions = build_questions("noul", ["AAPL"], "SPY", 20).questions
+    with pytest.raises(DcnError, match="llama"):
+        asyncio.run(client.decide({}, questions))
+
+
+def test_nebius_glm_uses_structured_content_and_excludes_separate_reasoning(monkeypatch):
+    import asyncio
+
+    monkeypatch.setenv("BEATSPY_NEBIUS_API_KEY", "test-key")
+    settings = Settings(decision=DecisionConfig(decision_model="glm-5.3-flash"))
+    calls: list[httpx.Request] = []
+    payload = {
+        "choices": [{"finish_reason": "stop", "message": {
+            "content": '{"noul_AAPL": 0.43}', "reasoning_content": "disregard this text",
+        }}],
+        "usage": {"completion_tokens": 120},
+    }
+    client = make_client(settings, client=_client(_capture(payload, calls=calls)))
+    questions = build_questions("noul", ["AAPL"], "SPY", 20).questions
+    result = asyncio.run(client.decide({}, questions))
+
+    assert str(calls[0].url) == "https://api.tokenfactory.nebius.com/v1/chat/completions"
+    request = json.loads(calls[0].content)
+    assert request["model"] == "zai-org/GLM-5.3-Flash"
+    assert request["response_format"]["json_schema"]["strict"] is True
+    assert result.answers["noul_AAPL"].noul == 0.43
+    assert result.raw is None
+    assert result.output_tokens == 120
+
+
 # --------------------------------------------------------------------------- #
 # Request shapes
 # --------------------------------------------------------------------------- #
@@ -612,7 +695,7 @@ def test_every_registered_model_has_a_key_environment_variable():
         assert spec["api_key_env"], f"{name} has no api_key_env"
         assert spec["provider"] in PROVIDERS, f"{name} has unknown provider {spec['provider']!r}"
         assert spec["cost_per_m_input"] is not None
-        if spec["provider"] in ("bta-live", "deeptrade"):
+        if spec["provider"] in ("bta-live", "deeptrade", "openrouter-llm", "nebius"):
             # The live chat models bill output tokens too, unlike the typed
             # decision APIs.
             assert spec["cost_per_m_output"] > 0.0

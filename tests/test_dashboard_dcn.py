@@ -341,7 +341,9 @@ def test_committed_public_catalog_matches_the_dcn_shape():
     assert "selected" not in catalog or catalog["selected"] is None
     baselines = [row for row in catalog["runs"] if row["model"] == "tpi-rs"]
     assert baselines and all(row["category"] == "algo" for row in baselines)
-    assert all(row["category"] in {"algo", "ai", "agent", "rl", "hybrid"} for row in catalog["runs"])
+    categories = {"algo", "ai", "agent", "rl", "hybrid",
+                  "decision-ai", "ml", "foundation", "rule-based", "llm", "agents", "hybrids"}
+    assert all(row["category"] in categories for row in catalog["runs"])
     for row in catalog["runs"]:
         run_dir = data_root / "runs" / row["run_id"]
         assert row["dir"] == f"runs/{row['run_id']}"

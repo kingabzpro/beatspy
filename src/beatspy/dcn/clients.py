@@ -512,6 +512,105 @@ class OpenRouterDecisionsClient(TypeSafeClient):
         return method, url, headers, body
 
 
+class StructuredProbabilitiesClient(HttpDcnClient):
+    """Request one strict JSON probability per question via chat completions."""
+
+    def completion_options(self) -> dict:
+        return {}
+
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        if any(question.type != "noul" for question in questions.values()):
+            raise DcnError(f"{self.model} supports only binary probability questions")
+        schema = {
+            "type": "object",
+            "properties": {qid: {"type": "number", "minimum": 0, "maximum": 1} for qid in questions},
+            "required": list(questions),
+            "additionalProperties": False,
+        }
+        body = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": (
+                    "Estimate each question's probability using only the supplied market state through its as-of date. "
+                    "Respond only with the JSON object specified by the response schema."
+                )},
+                {"role": "user", "content": _state_text({"state": state, "questions": _questions_payload(questions)})},
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {"name": "market_probabilities", "strict": True, "schema": schema},
+            },
+            "temperature": 0,
+            "max_tokens": 2048,
+            **self.completion_options(),
+        }
+        return "POST", self.endpoint, {"Authorization": f"Bearer {self.api_key}"}, body
+
+    def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
+        choices = payload.get("choices")
+        if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict):
+            raise DcnError(f"{self.model} did not return one completion")
+        choice = choices[0]
+        message = choice.get("message")
+        if choice.get("finish_reason") != "stop" or not isinstance(message, dict):
+            raise DcnError(f"{self.model} did not return a complete answer ({choice.get('finish_reason')})")
+        extra_content = (
+            "refusal", "reasoning", "reasoning_details", "reasoning_content", "tool_calls", "function_call",
+        )
+        if any(message.get(key) for key in extra_content):
+            raise DcnError(f"{self.model} returned content outside the probability object")
+
+        def unique_fields(fields: list[tuple[str, Any]]) -> dict[str, Any]:
+            result = dict(fields)
+            if len(result) != len(fields):
+                raise ValueError("duplicate JSON keys")
+            return result
+
+        try:
+            probabilities = json.loads(message.get("content"), object_pairs_hook=unique_fields)
+        except (TypeError, ValueError) as exc:
+            raise DcnError(f"{self.model} did not return a valid JSON answer") from exc
+        if not isinstance(probabilities, dict) or probabilities.keys() != set(question_ids):
+            raise DcnError(f"{self.model} returned the wrong question IDs")
+        if any(type(value) not in (int, float) or not 0 <= value <= 1 for value in probabilities.values()):
+            raise DcnError(f"{self.model} returned a value outside the probability schema")
+        usage = payload.get("usage") or {}
+        return DcnResult(
+            answers={qid: NoulAnswer(noul=probabilities[qid]) for qid in question_ids},
+            input_tokens=int(usage.get("prompt_tokens") or 0),
+            output_tokens=int(usage.get("completion_tokens") or 0),
+        )
+
+
+class OpenRouterLlamaClient(StructuredProbabilitiesClient):
+    provider = "openrouter-llm"
+
+    def completion_options(self) -> dict:
+        return {"provider": {"order": ["deepinfra/turbo"], "allow_fallbacks": False, "require_parameters": True}}
+
+
+class NebiusProbabilitiesClient(StructuredProbabilitiesClient):
+    provider = "nebius"
+
+    def completion_options(self) -> dict:
+        if self.model.startswith("MiniMaxAI/"):
+            return {"thinking": {"type": "disabled"}}
+        if self.model.startswith("zai-org/GLM-"):
+            return {"reasoning_effort": "low", "max_tokens": 16384}
+        return {"reasoning_effort": "none"}
+
+    def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
+        # Nebius GLM returns reasoning separately from the schema-constrained
+        # content. Remove it before parsing so only probabilities reach scoring.
+        choices = payload.get("choices")
+        if self.model.startswith("zai-org/GLM-") and isinstance(choices, list):
+            for choice in choices:
+                message = choice.get("message") if isinstance(choice, dict) else None
+                if isinstance(message, dict):
+                    message.pop("reasoning_content", None)
+        return super().parse_response(payload, question_ids)
+
+
 def _state_text(state: dict) -> str:
     import json
 
@@ -525,6 +624,8 @@ _CLIENTS = {
     "cloudflare": CloudflareClefClient,
     "requesty": RequestyClient,
     "openrouter": OpenRouterDecisionsClient,
+    "openrouter-llm": OpenRouterLlamaClient,
+    "nebius": NebiusProbabilitiesClient,
     "respan": RespanScoresClient,
 }
 

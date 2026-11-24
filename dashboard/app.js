@@ -90,7 +90,8 @@ function modelName(model) {
 }
 // Older runs recorded broad categories such as "ai" and "algo".
 const LEGACY_MODEL_CATEGORIES = {
-  "fasttrade": "llm", "fasttrade-subq": "llm",
+  "fasttrade": "decision-ai", "fasttrade-subq": "decision-ai",
+  "llama-3.3-70b": "llm",
   "bettertradingagents": "agents", "bettertradingagents-live": "agents",
   "paperrl": "ml", "deeptrade": "hybrids",
   "timestral-209m": "foundation", "chronos-2": "foundation", "timesfm-3.0": "foundation", "t0-gamma": "foundation",
@@ -114,6 +115,12 @@ const MODEL_META = {
   "tpi-rs": ["TPI baseline", "tpi.svg"],
   "fasttrade": ["FastTrade", "fasttrade.svg"],
   "fasttrade-subq": ["FastTrade", "fasttrade.svg"],
+  "llama-3.3-70b": ["Llama 3.3 70B", "meta.png"],
+  "inkling-2-small": ["Inkling 2 Small", "thinking-machines.png"],
+  "kimi-k3.1-pro": ["Kimi K3.1 Pro", "kimi.ico"],
+  "minimax-m3.1-flash": ["MiniMax M3.1 Flash", "minimax.ico"],
+  "glm-5.3-flash": ["GLM-5.3 Flash", "z-ai.svg"],
+  "glm-5.3": ["GLM-5.3", "z-ai.svg"],
   "bettertradingagents": ["BetterTradingAgents", "bettertradingagents.png"],
   "bettertradingagents-live": ["BetterTradingAgents Live", "bettertradingagents.png"],
   "paperrl": ["PaperRL", "paperrl.svg"],

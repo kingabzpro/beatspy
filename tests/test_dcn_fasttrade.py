@@ -226,7 +226,7 @@ def test_a_run_records_the_fasttrade_model(tmp_path, scenario, frozen_data):
     meta = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     assert meta["decision"]["decision_model"] == "fasttrade"
     assert meta["decision"]["provider"] == "fasttrade"
-    assert meta["decision"]["category"] == "ai"
+    assert meta["decision"]["category"] == "decision-ai"
 
     metrics = json.loads((run_dir / "metrics.json").read_text(encoding="utf-8"))
     assert metrics["decisions"] >= 1

@@ -639,6 +639,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         spec = _require_decision_model(name)
         if name == "stock-jepa" and args.form not in ("per_asset", "noul"):
             raise ValueError("Stock-JEPA supports --form per_asset or noul")
+        if spec["provider"] in ("openrouter-llm", "nebius") and args.form not in ("per_asset", "noul"):
+            raise ValueError(f"{spec['label']} supports --form per_asset or noul")
         if name in (
             "timestral-209m", "chronos-2", "timesfm-3.0", "t0-gamma",
             "lightgbm", "logistic-regression", "logistic-lightgbm", *STOCK_SIGNAL_MODELS,

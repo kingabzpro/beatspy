@@ -299,6 +299,31 @@ TPI-RS runs without an API key. Use `uv run beatspy setup` for a model that
 requires credentials, or install the dependencies for a local model.
 `uv run beatspy demo` builds synthetic runs and opens the dashboard offline.
 
+### Benchmark an LLM with structured output
+
+Set `OPENROUTER_API_KEY` in your environment or `.env`, then run:
+
+```bash
+uv run beatspy run --model llama-3.3-70b --scenario 2026-6m
+```
+
+Llama 3.3 70B runs in the **LLM** category through the
+[OpenRouter chat completions endpoint](https://openrouter.ai/docs/api/api-reference/chat/send-chat-completion-request).
+It supports `per_asset` and `noul`. The benchmark requires a JSON object
+with one numeric probability per question ID and records malformed replies
+as failed decisions.
+
+To run the Nebius models across the three published windows, set `NEBIUS_API_KEY`
+and run:
+
+```bash
+uv run python examples/nebius_windows.py --output results/nebius-token-factory
+```
+
+The suite includes Inkling 2 Small, Kimi K3.1 Pro, MiniMax M3.1 Flash,
+GLM-5.3 Flash, and GLM-5.3. Add `--model` to select specific models.
+Only schema-validated probabilities are used for scoring.
+
 ### Benchmark your own model
 
 Run the benchmark locally or in a notebook. A custom adapter can translate

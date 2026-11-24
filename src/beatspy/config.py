@@ -3,11 +3,9 @@
 Precedence: CLI flags > BEATSPY_* environment variables > ~/.beatspy/config.toml > defaults.
 API keys live in ~/.beatspy/secrets.env (never inside a repository) or in the environment.
 
-This benchmark talks to *decision models*, not chat models. A decision model
-reads a state plus typed questions and returns probabilities, so there is no
-temperature, no turn budget, and no tool budget to configure, only which
-endpoint to call, how hard to retry it, and how its probabilities become a
-portfolio.
+Benchmark adapters read market state and typed questions and return answers
+such as probabilities. This module configures endpoints, retries, and portfolio
+rules for decision APIs, structured-output LLMs, and local models.
 """
 
 from __future__ import annotations
@@ -22,12 +20,20 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-# Decision-model providers. All three speak the same state-plus-typed-questions
-# contract; they differ only in transport, auth, and question limits.
+# Network providers and specialized strategy adapters registered below.
 PROVIDERS = (
     "openai_decisions", "google_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
-    "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral",
+    "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral", "openrouter-llm", "nebius",
 )
+
+# Nebius Token Factory's shared endpoint lists these serverless models.
+NEBIUS_MODELS = {
+    "inkling-2-small": ("thinkingmachines/Inkling-2-Small", "Inkling 2 Small", 0.30, 1.00),
+    "kimi-k3.1-pro": ("moonshotai/Kimi-K3.1-Pro", "Kimi K3.1 Pro", 2.00, 10.00),
+    "minimax-m3.1-flash": ("MiniMaxAI/MiniMax-M3.1-Flash", "MiniMax M3.1 Flash", 0.15, 0.60),
+    "glm-5.3-flash": ("zai-org/GLM-5.3-Flash", "GLM-5.3 Flash", 0.15, 0.50),
+    "glm-5.3": ("zai-org/GLM-5.3", "GLM-5.3", 1.40, 4.40),
+}
 
 STOCK_SIGNAL_MODELS = {
     "lambdamart": "LambdaMART",
@@ -43,10 +49,8 @@ STOCK_SIGNAL_MODELS = {
 #   OpenRouter POST https://openrouter.ai/api/alpha/decisions
 # Verified live 2026-10-12: both return {"answers": {"<id>": {"type": "noul", "noul": 0.99}}}.
 
-# The decision models this benchmark covers, with pricing verified against the
-# sources below on 2026-10-08. Decision models bill input only: there is no
-# output charge and no cache charge anywhere in this table, and none of the three
-# providers offers prompt caching.
+# Selected decision API rates were verified against the sources below on
+# 2026-10-08. LLM adapters record input and output rates when both are billed.
 #
 # - OpenAI Decisions API (public beta): gpt-6-luna, $0.10 per 1M input:
 #   https://community.openai.com/t/decisions-api-is-now-available-in-public-beta/1403877
@@ -88,7 +92,37 @@ DECISION_MODELS: dict[str, dict] = {
         "context_window": 32_000,
         "max_questions": 64,
         "state_note": "FastTrade's per-symbol daily features and BUY/HOLD/SELL prompt, answered by TypeSafe Jev.",
-        "category": "ai",
+        "category": "decision-ai",
+    },
+    "llama-3.3-70b": {
+        "provider": "openrouter-llm",
+        "model": "meta-llama/llama-3.3-70b-instruct",
+        "label": "Llama 3.3 70B",
+        "base_url": "https://openrouter.ai/api/v1/chat/completions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        # OpenRouter model endpoints API for the pinned DeepInfra Turbo route.
+        "cost_per_m_input": 0.10,
+        "cost_per_m_output": 0.32,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "state_note": "Receives frozen market state and returns JSON probabilities for the requested questions.",
+        "category": "llm",
+    },
+    **{
+        key: {
+            "provider": "nebius",
+            "model": model,
+            "label": label,
+            "base_url": "https://api.tokenfactory.nebius.com/v1/chat/completions",
+            "api_key_env": "NEBIUS_API_KEY",
+            "cost_per_m_input": input_rate,
+            "cost_per_m_output": output_rate,
+            "context_window": 1_048_576,
+            "max_questions": 64,
+            "state_note": "Receives frozen market state and returns JSON probabilities for the requested questions.",
+            "category": "llm",
+        }
+        for key, (model, label, input_rate, output_rate) in NEBIUS_MODELS.items()
     },
     "lightgbm": {
         "provider": "local",
@@ -218,7 +252,7 @@ DECISION_MODELS: dict[str, dict] = {
             "FastTrade's daily feature state, asked the benchmark's typed questions by "
             "SubQ Snap 1.1; the same noul rule as every board model."
         ),
-        "category": "ai",
+        "category": "decision-ai",
     },
     "bettertradingagents": {
         "provider": "bta",
@@ -1128,11 +1162,12 @@ def read_secrets() -> dict[str, str]:
 
 def secret_values() -> set[str]:
     values = set(read_secrets().values())
+    credential_names = {"OPENAI_API_KEY", "TYPESAFE_API_KEY", "CLOUDFLARE_AUTH_TOKEN", "CLOUDFLARE_ACCOUNT_ID"}
+    credential_names.update(spec["api_key_env"] for spec in DECISION_MODELS.values() if spec["api_key_env"])
     values |= {
         value
         for key, value in os.environ.items()
-        if key in {"OPENAI_API_KEY", "TYPESAFE_API_KEY", "CLOUDFLARE_AUTH_TOKEN", "CLOUDFLARE_ACCOUNT_ID"}
-        or (key.startswith("BEATSPY_") and "KEY" in key)
+        if key in credential_names or (key.startswith("BEATSPY_") and "KEY" in key)
     }
     return values
 
