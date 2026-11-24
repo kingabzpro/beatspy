@@ -44,9 +44,7 @@
       <p class="hero-meta"><span id="hero-scope">Three six-month windows · weekly decisions · 25 assets</span></p>
     </section>
     <section id="leaderboard" aria-labelledby="board-title">
-      <div class="section-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div></div>
-      <p id="board-window" class="caption"></p>
-      <p id="demo-banner" class="pill warn" hidden>Synthetic demo data. No real model was run.</p>
+      <div class="section-heading board-heading"><div><p class="eyebrow">THE SCOREBOARD</p><h2 id="board-title">Leaderboard</h2></div></div>
       <div class="board-controls">
         <div id="period-tabs" class="tabs" hidden></div>
         <search class="model-filter" aria-label="Leaderboard filter">
@@ -63,6 +61,8 @@
           </select>
         </search>
       </div>
+      <p id="board-window" class="caption"></p>
+      <p id="demo-banner" class="pill warn" hidden>Synthetic demo data. No real model was run.</p>
       <div id="status" role="status" aria-live="polite">Loading published results…</div>
       <div id="leaderboard-table" class="table-wrap" role="region" aria-labelledby="board-title" tabindex="0"></div>
       <p class="caption">Read <a href="method.html">how the benchmark works</a> and <a href="pricing.html">what the models charge</a>.</p>
