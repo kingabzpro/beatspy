@@ -88,6 +88,8 @@ def comparison_group(meta) -> str:
         "question_form": decision.get("question_form"),
         "policy": decision.get("policy"),
     }
+    if decision.get("portfolio_method"):
+        payload["portfolio_method"] = decision["portfolio_method"]
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 

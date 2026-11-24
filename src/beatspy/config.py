@@ -46,6 +46,18 @@ STOCK_SIGNAL_MODELS = {
     "shallow-mlp": "Shallow MLP",
 }
 
+HYBRID_MODELS = {
+    "lambdamart-hrp": "LambdaMART + HRP",
+    "chronos-lightgbm": "Chronos-2 + LightGBM",
+    "momentum-reversal": "Momentum + Reversal",
+    "jepa-elastic-net": "STOCK-JEPA + Elastic Net",
+    "lightgbm-momentum": "LightGBM + Momentum",
+}
+HYBRID_CONTROLS = {
+    "lambdamart-equal": "LambdaMART + Equal Weight",
+    "momentum-reversal-blend": "Momentum + Reversal (Fixed Blend)",
+}
+
 # Two routers speak the same typed-question contract as TypeSafe System One, so a
 # run against them needs no new transport:
 #   Requesty  POST https://router.requesty.ai/v1/decisions   (models by id, e.g. sference/clef)
@@ -68,6 +80,15 @@ STOCK_SIGNAL_MODELS = {
 # - vLLM SR D3 Turbo was verified live 2026-10-23 against decision.vllm-sr.ai
 #   /v1/systemone and its /v1/models and /api/info: a free API, $0 per token.
 DECISION_MODELS: dict[str, dict] = {
+    **{
+        key: {
+            "provider": "local", "model": key, "label": label, "base_url": f"local://{key}",
+            "api_key_env": None, "cost_per_m_input": 0.0, "cost_per_m_output": 0.0,
+            "context_window": 0, "max_questions": 64,
+            "category": "hybrid" if key in HYBRID_MODELS else "algo",
+        }
+        for key, label in (HYBRID_MODELS | HYBRID_CONTROLS).items()
+    },
     # A deterministic control, not a decision model. It runs in-process on the
     # frozen snapshot and costs nothing, so every LLM row has a non-LLM
     # comparison. `provider: "local"` routes it to `dcn.tpi.TpiClient`.

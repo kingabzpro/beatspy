@@ -165,6 +165,7 @@ async def run_dcn(
         question_form = ALLOCATION_FORM
     owns_client = client is None
     dcn_client = None if direct_allocation else client or make_client(settings, data=data)
+    portfolio_override = getattr(dcn_client, "target_portfolio", None)
     try:
         from .scoring import estimate_cost, score_run
 
@@ -206,6 +207,10 @@ async def run_dcn(
                     next_decision_date=period["next_decision_date"],
                     recent=list(recent[-3:]),
                 )
+                if portfolio_override is not None and not (decision.validated.invalid or decision.error):
+                    decision.validated = portfolio_override(
+                        day, scenario, decision.sized_probabilities, decision.validated,
+                    )
             decision.observed = label_observations(data, scenario, decision)
             observations.extend(decision.observed)
             decisions.append(decision)
@@ -293,6 +298,7 @@ async def run_dcn(
                 "label": settings.decision.label,
                 "endpoint": settings.decision.endpoint,
                 "question_form": question_form,
+                **({"portfolio_method": dcn_client.portfolio_method} if portfolio_override is not None else {}),
                 "pricing": {
                     "cost_per_m_input": settings.decision.cost_per_m_input,
                     "cost_per_m_output": settings.decision.cost_per_m_output,

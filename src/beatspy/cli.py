@@ -628,6 +628,7 @@ def _offline_fixture(base_scenario, args):
 
 
 def cmd_run(args: argparse.Namespace) -> int:
+    from .config import HYBRID_CONTROLS, HYBRID_MODELS
     from .dcn.runner import run_dcn
     from .schemas import Scenario
 
@@ -639,6 +640,8 @@ def cmd_run(args: argparse.Namespace) -> int:
         spec = _require_decision_model(name)
         if name == "stock-jepa" and args.form not in ("per_asset", "noul"):
             raise ValueError("Stock-JEPA supports --form per_asset or noul")
+        if name in (HYBRID_MODELS | HYBRID_CONTROLS) and args.form not in ("per_asset", "noul"):
+            raise ValueError(f"{spec['label']} supports --form per_asset or noul")
         if spec.get("category") == "llm" and args.form not in ("per_asset", "noul"):
             raise ValueError(f"{spec['label']} supports --form per_asset or noul")
         if name in (

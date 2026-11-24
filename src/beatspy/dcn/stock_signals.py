@@ -90,10 +90,11 @@ def score_probabilities(calibration: np.ndarray, outcomes: np.ndarray, current: 
 
 
 class StockSignalClient(LightGBMClient):
-    def __init__(self, data: DataService, model: str):
+    def __init__(self, data: DataService, model: str, *, predictor: str | None = None):
         super().__init__(data)
         self.model = model
         self.endpoint = f"local://{model}"
+        self.predictor = predictor or model
         self._residuals: dict[tuple[date, str], tuple[float, float]] = {}
         self._market_closes: dict[date, pd.Series] = {}
 
@@ -118,12 +119,13 @@ class StockSignalClient(LightGBMClient):
         training[SIGNAL_COLUMNS] = [self._signals(origin, ticker) for origin, ticker in training.index]
         current = inputs.copy()
         current[SIGNAL_COLUMNS] = [self._signals(day, ticker) for ticker in current.index]
-        valid = training[SIGNAL_COLUMNS].notna().all(axis=1)
+        features = SIGNAL_COLUMNS + self.extra_features(training, current, day, horizon, tickers)
+        valid = training[features].notna().all(axis=1)
         training = training.loc[valid]
         excess = np.asarray(excess)[valid]
         origins = training.index.get_level_values("origin")
         unique_origins = origins.unique()
-        if len(unique_origins) < 8 or current[SIGNAL_COLUMNS].isna().any().any():
+        if len(unique_origins) < 8 or current[features].isna().any().any():
             raise DcnError(f"Insufficient price history for {self.model} on {day}")
 
         calibration_start = unique_origins[len(unique_origins) * 3 // 4]
@@ -134,7 +136,10 @@ class StockSignalClient(LightGBMClient):
         if fit.sum() < MIN_TRAINING_ROWS:
             raise DcnError(f"Insufficient settled {self.model} training rows before {calibration_start}")
         try:
-            predict = fit_scores(self.model, training.loc[fit], excess[fit])
+            predict = fit_scores(self.predictor, training.loc[fit], excess[fit])
             return score_probabilities(predict(training.loc[calibrate]), excess[calibrate] > 0, predict(current))
         except ImportError as exc:
             raise DcnError("Stock-signal baselines require scikit-learn, SciPy, and LightGBM for LambdaMART.") from exc
+
+    def extra_features(self, training, current, day, horizon, tickers) -> list[str]:
+        return []

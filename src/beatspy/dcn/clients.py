@@ -736,7 +736,7 @@ def make_client(
     compact state, while the TPI and FastTrade clients read the frozen
     `DataService` the harness already holds.
     """
-    from ..config import STOCK_SIGNAL_MODELS, cloudflare_account_id, decision_api_key
+    from ..config import HYBRID_CONTROLS, HYBRID_MODELS, STOCK_SIGNAL_MODELS, cloudflare_account_id, decision_api_key
 
     decision = settings.decision
     provider = decision.provider
@@ -763,6 +763,10 @@ def make_client(
             from .stock_signals import StockSignalClient
 
             return StockSignalClient(data, decision.decision_model)
+        if decision.decision_model in HYBRID_MODELS or decision.decision_model in HYBRID_CONTROLS:
+            from .hybrids import make_hybrid_client
+
+            return make_hybrid_client(data, decision.decision_model)
         if decision.decision_model in ("chronos-2", "timesfm-3.0", "t0-gamma"):
             from .foundation_forecast import FORECAST_CLIENTS
 

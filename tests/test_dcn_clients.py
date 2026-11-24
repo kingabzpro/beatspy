@@ -13,7 +13,7 @@ import json
 import httpx
 import pytest
 
-from beatspy.config import DECISION_MODELS, PROVIDERS, DecisionConfig, Settings, decision_api_key
+from beatspy.config import DECISION_MODELS, HYBRID_MODELS, PROVIDERS, DecisionConfig, Settings, decision_api_key
 from beatspy.dcn.clients import (
     CloudflareClefClient,
     DcnError,
@@ -607,6 +607,9 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
         from beatspy.dcn.foundation_forecast import FORECAST_CLIENTS
 
         monkeypatch.setattr(FORECAST_CLIENTS[name], "load_forecaster", lambda self: object())
+    if name == "chronos-lightgbm":
+        monkeypatch.setenv("BEATSPY_CHRONOS_CHECKPOINT", "local-model")
+        monkeypatch.setattr("beatspy.dcn.hybrids.load_chronos_checkpoint", lambda path, device: object())
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     if spec["provider"] in ("bta-live", "deeptrade"):
@@ -733,6 +736,8 @@ def test_every_registered_model_has_a_key_environment_variable():
         if spec["provider"] in ("local", "bta", "paperrl", "timestral"):
             # In-process models and strategy replays have no per-token charge or credential.
             expected = {"local": "algo", "bta": "agent", "paperrl": "rl", "timestral": "ai"}[spec["provider"]]
+            if name in HYBRID_MODELS:
+                expected = "hybrid"
             assert spec.get("category") == expected, f"{name} is {spec['provider']} but has the wrong category"
             assert spec.get("api_key_env") is None
             assert spec["cost_per_m_input"] == 0.0

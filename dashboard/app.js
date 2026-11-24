@@ -128,6 +128,11 @@ const MODEL_META = {
   "gpt-6-luna": ["GPT-6-Luna", "openai.svg"],
   "gpt-6-luna-llm": ["GPT-6 Luna (Responses API)", "openai.svg"],
   "claude-haiku-5-5": ["Claude Haiku 5.5", "claude.png"],
+  "lambdamart-hrp": ["LambdaMART + HRP", "hybrid-rank-risk.svg"],
+  "chronos-lightgbm": ["Chronos-2 + LightGBM", "hybrid-forecast-trees.svg"],
+  "momentum-reversal": ["Momentum + Reversal", "hybrid-signal-switch.svg"],
+  "jepa-elastic-net": ["STOCK-JEPA + Elastic Net", "hybrid-jepa-linear.svg"],
+  "lightgbm-momentum": ["LightGBM + Momentum", "hybrid-trend-filter.svg"],
   "jev-latest": ["Jev-Latest", "typesafe.png"],
   "jev-1-14": ["Jev 1.14", "typesafe.png"],
   "clef": ["Clef", "cloudflare.svg"],
@@ -1015,12 +1020,12 @@ if (typeof document !== "undefined") {
       chart("allocations", allocationRowsData, tickers, percent);
       const rates = ratesFor(run.model, meta), cost = run.metrics.estimated_cost_usd ?? inputCost(run.metrics, rates);
       const policy = run.policy || {};
-      const policyText = policy.selection === "core_satellite"
+      const policyText = meta.decision?.portfolio_method || (policy.selection === "core_satellite"
         // Recorded under protocol 3; kept so those runs still render their own rule.
         ? `core ${percent(policy.core_weight)} in the benchmark, ${percent(1 - (policy.core_weight ?? 0))} active sleeve`
         : (policy.selection === "graded_cs" || policy.selection === "graded")
           ? `whole book across the investable set, neutral P = ${policy.min_probability ?? "?"}`
-          : `route ${count(policy.top_n)} names at P ≥ ${policy.min_probability ?? "?"}`;
+          : `route ${count(policy.top_n)} names at P ≥ ${policy.min_probability ?? "?"}`);
       const selectionText = meta.scenario?.selection_top
         ? ` · trades the top ${count(meta.scenario.selection_top)} trailing performers, ranked point-in-time`
         : "";

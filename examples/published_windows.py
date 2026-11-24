@@ -66,7 +66,7 @@ async def benchmark(
         ):
             raise RuntimeError(f"{name} has incomplete forecast or outcome coverage")
         group = comparison_group(meta)
-        if not allocation_only and group != board_groups[name]:
+        if not allocation_only and not meta["decision"].get("portfolio_method") and group != board_groups[name]:
             raise RuntimeError(f"{name} comparison group {group} differs from the published {board_groups[name]}")
         await replay_run(run_dir)
         row = summary(meta, metrics, f"runs/{run_dir.name}")
