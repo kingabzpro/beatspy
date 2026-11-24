@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd, monthLabel, scoredWindows, allPeriodRows,
-  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory, modelLogo, typeTag, typeTagClass
+  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory, modelLogo
 } = require('../dashboard/app.js');
 
 // A minimal catalog row in the DCN shape the Python renderer writes.
@@ -195,51 +195,6 @@ test('the category filter supports existing models and explicit categories for n
   }
   assert.equal(modelCategory({model: 'custom-agent', category: 'agent'}), 'agents');
   assert.equal(modelCategory({model: 'custom-rule', category: 'algo'}), 'rule-based');
-});
-
-test('every model type has one short tag for the leaderboard', () => {
-  assert.equal(typeTag({model: 'clef', category: 'ai'}), 'DECISION AI');
-  assert.equal(typeTag({model: 'lightgbm', category: 'algo'}), 'ML');
-  assert.equal(typeTag({model: 'chronos-2', category: 'algo'}), 'FOUNDATION');
-  assert.equal(typeTag({model: 'tpi-rs', category: 'algo'}), 'RULE-BASED');
-  assert.equal(typeTag({model: 'llama-3.3-70b', category: 'llm'}), 'LLM');
-  assert.equal(typeTag({model: 'deeptrade', category: 'hybrid'}), 'HYBRID');
-  assert.equal(typeTag({model: 'desk-router', category: 'agent'}), 'AGENT');
-  // An unknown category earns no tag rather than a wrong one.
-  assert.equal(typeTag({model: 'whatever', category: 'nope'}), null);
-  // One colour class per type, so neighbouring tags never share a hue.
-  assert.equal(typeTagClass({model: 'clef', category: 'ai'}), 'type-decision-ai');
-  assert.equal(typeTagClass({model: 'llama-3.3-70b', category: 'llm'}), 'type-llm');
-  assert.equal(typeTagClass({model: 'lightgbm', category: 'algo'}), 'type-ml');
-  assert.equal(typeTagClass({model: 'timestral-209m', category: 'ai'}), 'type-foundation');
-  assert.equal(typeTagClass({model: 'tpi-rs', category: 'algo'}), 'type-rule-based');
-  assert.equal(typeTagClass({model: 'desk-router', category: 'agent'}), 'type-agents');
-  assert.equal(typeTagClass({model: 'deeptrade', category: 'hybrid'}), 'type-hybrids');
-});
-
-test('every leaderboard row names its model type in every period view', async () => {
-  const runs = [
-    catalogRun({run_id: 'ai-run', model: 'clef', category: 'ai', start: '2026-01-02', end: '2026-07-02'}),
-    catalogRun({run_id: 'ml-run', model: 'lightgbm', category: 'algo', start: '2026-01-02', end: '2026-07-02'}),
-    catalogRun({run_id: 'hybrid-run', model: 'deeptrade', category: 'hybrid', start: '2026-07-02', end: '2027-01-02'}),
-    catalogRun({run_id: 'agent-run', model: 'desk-router', category: 'agent', start: '2026-07-02', end: '2027-01-02'}),
-  ];
-  const site = {'data/index.json': JSON.stringify({schema_version: 1, default_trust: 'all', selected: null, runs})};
-  const elements = mountSite(site);
-  await settle();
-  const tags = () => elements.get('leaderboard-table').descendants()
-    .filter(node => node.className.startsWith('type-tag')).map(node => `${node.textContent} ${node.className}`).sort();
-  const tabs = elements.get('period-tabs').children;
-  assert.equal(tabs.length, 3, 'one all-windows chip and one chip per window');
-  // The board lands on the newest window, so that view must carry the tags too.
-  assert.deepEqual(tags(), ['AGENT type-tag type-agents', 'HYBRID type-tag type-hybrids'], 'the landing view tags every row');
-  tabs[0].onclick();
-  await settle();
-  assert.deepEqual(tags(), ['AGENT type-tag type-agents', 'DECISION AI type-tag type-decision-ai',
-    'HYBRID type-tag type-hybrids', 'ML type-tag type-ml'], 'the all-windows view tags every row');
-  tabs[1].onclick();
-  await settle();
-  assert.deepEqual(tags(), ['DECISION AI type-tag type-decision-ai', 'ML type-tag type-ml'], 'an older window tags every row too');
 });
 
 test('the frontend uses safe text rendering and keeps the design and logos', () => {

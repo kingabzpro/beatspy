@@ -111,16 +111,6 @@ function modelCategory(run) {
   return run.category == null ? (run.provider === "local" ? "rule-based" : "decision-ai") : null;
 }
 
-// A short type tag on every leaderboard row, so the category filter reads without
-// opening the dropdown. An unknown category earns no tag rather than a wrong one.
-const TYPE_TAGS = {
-  "decision-ai": "DECISION AI", ml: "ML", foundation: "FOUNDATION", "rule-based": "RULE-BASED",
-  llm: "LLM", agents: "AGENT", hybrids: "HYBRID",
-};
-const typeTag = run => TYPE_TAGS[modelCategory(run)] || null;
-// One class per type, so each tag keeps its own colour (styles.css .type-*).
-const typeTagClass = run => `type-${modelCategory(run)}`;
-
 // Display names and artwork. Models use a project mark or a glyph for their method.
 const MODEL_META = {
   "tpi-rs": ["TPI baseline", "tpi.svg"],
@@ -349,7 +339,7 @@ if (typeof module !== "undefined") module.exports = {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
   monthLabel, windowLabel, scoredWindows, allPeriodRows,
-  modelCategory, modelLogo, typeTag, typeTagClass,
+  modelCategory, modelLogo,
 };
 
 if (typeof document !== "undefined") {
@@ -655,8 +645,6 @@ if (typeof document !== "undefined") {
         td.append(img);
       }
       td.append(link);
-      const tag = typeTag(run);
-      if (tag) td.append(node("span", tag, `type-tag ${typeTagClass(run)}`));
       if (run.synthetic) {
         // Mark the row itself: the details panel is one click away, and a
         // fabricated number must not read as a real result before that click.
@@ -750,9 +738,6 @@ if (typeof document !== "undefined") {
         td.append(img);
       }
       td.append(link);
-      const latest = row.latest || {model: row.model};
-      const tag = typeTag(latest);
-      if (tag) td.append(node("span", tag, `type-tag ${typeTagClass(latest)}`));
       tr.append(td);
       tr.onclick = event => {
         if (!row.latest || event.target.closest("a") || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
