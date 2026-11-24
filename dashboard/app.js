@@ -109,10 +109,7 @@ function modelCategory(run) {
   return run.category == null ? (run.provider === "local" ? "rule-based" : "decision-ai") : null;
 }
 
-// Presentation only: how each model reads, and the logo of the company that
-// built it. Raw ids stay in the artifacts; OpenRouter and Requesty are
-// deliberately absent because they are the transport for the routed rows,
-// not the creator.
+// Display names and artwork. Models use a project mark or a glyph for their method.
 const MODEL_META = {
   "tpi-rs": ["TPI baseline", "tpi.svg"],
   "fasttrade": ["FastTrade", "fasttrade.svg"],
@@ -154,24 +151,24 @@ const MODEL_META = {
   "d3-mini": ["D3 Mini", "vllmsr.png"],
   "d3-edge": ["D3 Edge", "vllmsr.png"],
   "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
-  "minara-kairos": ["Kairos", "minara.png"],
+  "minara-kairos": ["Kairos", "minara-mark.png"],
   "timestral-209m": ["Timestral", "mistral.png"],
   "chronos-2": ["Chronos-2", "chronos.svg"],
   "timesfm-3.0": ["TimesFM 3.0", "google.svg"],
-  "t0-gamma": ["T0-Gamma", "t0-gamma.svg"],
-  "lightgbm": ["LightGBM", "lightgbm.png"],
+  "t0-gamma": ["T0-Gamma", "forecasting-company.svg"],
+  "lightgbm": ["LightGBM", "lightgbm-mark.svg"],
   "logistic-regression": ["Logistic Regression", "logistic.svg"],
   "logistic-lightgbm": ["Logit + LightGBM", "ensemble.svg"],
   "hrp": ["HRP", "hrp.svg"],
   "stock-jepa": ["Stock-JEPA", "stock-jepa.svg"],
-  "lambdamart": ["LambdaMART", null],
-  "residual-momentum": ["Residual Momentum", null],
-  "elastic-net": ["Elastic Net", null],
-  "residual-reversal": ["Residual Reversal", null],
-  "shallow-mlp": ["Shallow MLP", null],
+  "lambdamart": ["LambdaMART", "lambdamart.svg"],
+  "residual-momentum": ["Residual Momentum", "residual-momentum.svg"],
+  "elastic-net": ["Elastic Net", "elastic-net.svg"],
+  "residual-reversal": ["Residual Reversal", "residual-reversal.svg"],
+  "shallow-mlp": ["Shallow MLP", "shallow-mlp.svg"],
 };
 const displayModel = model => MODEL_META[modelName(model)]?.[0] || modelName(model);
-const companyLogo = model => MODEL_META[modelName(model)]?.[1] || null;
+const modelLogo = model => MODEL_META[modelName(model)]?.[1] || null;
 
 // The board shows the current benchmark protocol only. Older-protocol runs stay
 // in the payload so their run pages and the archive page keep working.
@@ -323,7 +320,7 @@ if (typeof module !== "undefined") module.exports = {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd,
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS,
   monthLabel, windowLabel, scoredWindows, allPeriodRows,
-  modelCategory,
+  modelCategory, modelLogo,
 };
 
 if (typeof document !== "undefined") {
@@ -430,7 +427,7 @@ if (typeof document !== "undefined") {
     for (const {run, rates, tokens, perDecision, cost} of records) {
       const row = node("tr");
       const modelCell = node("td");
-      const logo = companyLogo(run.model);
+      const logo = modelLogo(run.model);
       if (logo) {
         const img = node("img");
         img.className = "model-logo"; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
@@ -621,7 +618,7 @@ if (typeof document !== "undefined") {
       // new tab and shared as a URL.
       const td = node("td", undefined, "col-model"), link = node("a", displayModel(run.model), "run-button");
       link.href = `run.html?run=${encodeURIComponent(run.run_id)}`;
-      const logo = companyLogo(run.model);
+      const logo = modelLogo(run.model);
       if (logo) {
         const img = node("img");
         img.className = "model-logo"; img.alt = ""; img.loading = "lazy"; img.decoding = "async";
@@ -714,7 +711,7 @@ if (typeof document !== "undefined") {
         link.href = `run.html?run=${encodeURIComponent(row.latest.run_id)}`;
         if (row.latest.run_id === selected) tr.classList.add("selected");
       }
-      const logo = companyLogo(row.model);
+      const logo = modelLogo(row.model);
       if (logo) {
         const img = node("img");
         img.className = "model-logo"; img.alt = ""; img.loading = "lazy"; img.decoding = "async";

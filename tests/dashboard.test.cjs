@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const {readFileSync} = require('node:fs');
 const {
   parseCSV, leaderboardRuns, modelName, allocationRows, percent, dollars, preciseDollars, count, plural, ratio, score, inputCost, money, usd, monthLabel, scoredWindows, allPeriodRows,
-  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory
+  ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory, modelLogo
 } = require('../dashboard/app.js');
 
 // A minimal catalog row in the DCN shape the Python renderer writes.
@@ -252,6 +252,17 @@ test('the committed public catalog is a valid DCN catalog', () => {
   for (const run of catalog.runs) assert.equal(run.dir, `runs/${run.run_id}`);
 });
 
+test('each published model references a bundled logo', () => {
+  const {runs} = JSON.parse(readFileSync('dashboard/data/index.json', 'utf8'));
+  for (const model of new Set(runs.map(run => run.model))) {
+    const logo = modelLogo(model);
+    assert.ok(logo, `missing logo for ${model}`);
+    assert.ok(readFileSync(`dashboard/assets/logos/${logo}`).length > 0);
+  }
+  const stockSignals = ['lambdamart', 'residual-momentum', 'elastic-net', 'residual-reversal', 'shallow-mlp'];
+  assert.equal(new Set(stockSignals.map(modelLogo)).size, stockSignals.length);
+});
+
 // A tiny stand-in for the DOM so the whole render path can run under `node --test`
 // without a browser. Fetch is served from memory: no network, no files.
 function fakeElement(tag) {
@@ -496,7 +507,7 @@ test('the category dropdown defaults to All and filters independently of the win
   const newForecasters = [
     ['chronos-2', 'Chronos-2', 'chronos.svg'],
     ['timesfm-3.0', 'TimesFM 3.0', 'google.svg'],
-    ['t0-gamma', 'T0-Gamma', 't0-gamma.svg'],
+    ['t0-gamma', 'T0-Gamma', 'forecasting-company.svg'],
   ];
   const forecasts = newForecasters.map(([model]) => catalogRun({run_id: model, model, category: 'algo'}));
   const algorithm = catalogRun({run_id: 'algorithm', model: 'lightgbm', category: 'algo'});
@@ -514,7 +525,7 @@ test('the category dropdown defaults to All and filters independently of the win
   const modelNames = () => elements.get('leaderboard-table').descendants()
     .filter(node => node.className === 'run-button').map(node => node.textContent);
   const brandedModels = [
-    ['HRP', 'hrp.svg'], ['LightGBM', 'lightgbm.png'],
+    ['HRP', 'hrp.svg'], ['LightGBM', 'lightgbm-mark.svg'],
     ['Logistic Regression', 'logistic.svg'], ['Logit + LightGBM', 'ensemble.svg'],
     ...newForecasters.map(([, name, file]) => [name, file]),
   ];
