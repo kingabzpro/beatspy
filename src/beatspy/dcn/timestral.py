@@ -15,29 +15,17 @@ CONTEXT_SESSIONS = 256
 MIN_OBSERVATIONS = 64
 
 
-class TimestralClient:
-    provider = "timestral"
-    model = "timestral-209m"
-    checkpoint = "mistralai/Timestral-209M"
-    revision = "9874d252ab0aae16f7f7c999f98f98d6ad7d8365"
-    endpoint = f"local://{model}"
-
+class RelativeForecastClient:
     def __init__(self, data: DataService, *, forecaster=None):
         self.data = data
         self.forecaster = self.load_forecaster() if forecaster is None else forecaster
 
     @classmethod
     def load_forecaster(cls):
-        try:
-            import torch
-            from timestral import TimestralForecaster
-        except ImportError as exc:
-            raise DcnError(
-                "Timestral requires the Mistral inference package and PyTorch. See examples/kaggle_timestral.py."
-            ) from exc
-        if not torch.cuda.is_available():
-            raise DcnError("Timestral-209M requires a CUDA GPU in BeatSPY. Enable a GPU accelerator on Kaggle.")
-        return TimestralForecaster.from_pretrained(cls.checkpoint, device="cuda", revision=cls.revision)
+        raise NotImplementedError
+
+    def terminal_quantiles(self, context: np.ndarray, horizon: int):
+        raise NotImplementedError
 
     async def decide(self, state: dict, questions: dict[str, Question]) -> DcnResult:
         started = time.perf_counter()
@@ -70,9 +58,7 @@ class TimestralClient:
             return DcnResult(missing_ids=list(questions), requests=0)
 
         context = np.stack(list(contexts.values()))
-        forecast = self.forecaster.forecast(context, prediction_length=horizon)
-        quantiles = forecast.quantiles[:, 0, -1, :].tolist()
-        levels = forecast.quantile_levels
+        quantiles, levels = self.terminal_quantiles(context, horizon)
         probabilities = {}
         for ticker, threshold, knots in zip(contexts, context[:, -1], quantiles, strict=True):
             if np.isfinite(knots).all():
@@ -103,3 +89,28 @@ class TimestralClient:
 
     async def close(self) -> None:
         pass
+
+
+class TimestralClient(RelativeForecastClient):
+    provider = "timestral"
+    model = "timestral-209m"
+    checkpoint = "mistralai/Timestral-209M"
+    revision = "9874d252ab0aae16f7f7c999f98f98d6ad7d8365"
+    endpoint = f"local://{model}"
+
+    @classmethod
+    def load_forecaster(cls):
+        try:
+            import torch
+            from timestral import TimestralForecaster
+        except ImportError as exc:
+            raise DcnError(
+                "Timestral requires the Mistral inference package and PyTorch. See examples/kaggle_timestral.py."
+            ) from exc
+        if not torch.cuda.is_available():
+            raise DcnError("Timestral-209M requires a CUDA GPU in BeatSPY. Enable a GPU accelerator on Kaggle.")
+        return TimestralForecaster.from_pretrained(cls.checkpoint, device="cuda", revision=cls.revision)
+
+    def terminal_quantiles(self, context: np.ndarray, horizon: int):
+        forecast = self.forecaster.forecast(context, prediction_length=horizon)
+        return forecast.quantiles[:, 0, -1, :].tolist(), forecast.quantile_levels

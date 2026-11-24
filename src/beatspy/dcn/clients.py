@@ -584,6 +584,10 @@ def make_client(
             from .lightgbm import LightGBMClient
 
             return LightGBMClient(data)
+        if decision.decision_model in ("chronos-2", "timesfm-3.0", "t0-gamma"):
+            from .foundation_forecast import FORECAST_CLIENTS
+
+            return FORECAST_CLIENTS[decision.decision_model](data)
         if decision.decision_model == "stock-jepa":
             from .stock_jepa import StockJepaClient
 

@@ -194,6 +194,9 @@ test('the baseline rows carry their model tags', () => {
   assert.equal(modelTag('logistic-lightgbm'), 'ENSEMBLE');
   assert.equal(modelTag('hrp'), 'ALLOC');
   assert.equal(modelTag('stock-jepa'), 'JEPA');
+  for (const model of ['chronos-2', 'timesfm-3.0', 't0-gamma']) {
+    assert.equal(modelTag(model), 'FORECAST');
+  }
   assert.equal(modelTag('openrouter-fasttrade'), 'AI');
   assert.equal(modelTag('clef'), null);
 });
@@ -502,13 +505,19 @@ test('the leaderboard toggles between all-window averages and one window at a ti
 test('the model toggle includes forecasting and algorithms without changing the selected window', async () => {
   const {site, first, second} = siteFixture();
   const forecast = catalogRun({run_id: 'forecast', model: 'timestral-209m', category: 'ai'});
+  const newForecasters = [
+    ['chronos-2', 'Chronos-2', 'chronos.svg'],
+    ['timesfm-3.0', 'TimesFM 3.0', 'google.svg'],
+    ['t0-gamma', 'T0-Gamma', 't0-gamma.svg'],
+  ];
+  const forecasts = newForecasters.map(([model]) => catalogRun({run_id: model, model, category: 'algo'}));
   const algorithm = catalogRun({run_id: 'algorithm', model: 'lightgbm', category: 'algo'});
   const linear = catalogRun({run_id: 'linear', model: 'logistic-regression', category: 'algo'});
   const ensemble = catalogRun({run_id: 'ensemble', model: 'logistic-lightgbm', category: 'algo'});
   const allocation = catalogRun({run_id: 'allocation', model: 'hrp', category: 'algo', question_form: 'allocation'});
   first.start = '2025-04-01'; first.end = '2025-10-01';
   site['data/index.json'] = JSON.stringify({schema_version: 1, default_trust: 'all',
-    runs: [first, second, forecast, algorithm, linear, ensemble, allocation]});
+    runs: [first, second, forecast, ...forecasts, algorithm, linear, ensemble, allocation]});
   const elements = mountSite(site);
   const toggle = fakeElement('input');
   toggle.checked = false;
@@ -522,8 +531,9 @@ test('the model toggle includes forecasting and algorithms without changing the 
   const brandedModels = [
     ['HRP', 'hrp.svg', 'ALLOC'], ['LightGBM', 'lightgbm.png', 'ML'],
     ['Logistic Regression', 'logistic.svg', 'LINEAR'], ['Logit + LightGBM', 'ensemble.svg', 'ENSEMBLE'],
+    ...newForecasters.map(([, name, file]) => [name, file, 'FORECAST']),
   ];
-  const allModels = ['Clef', ...brandedModels.map(([name]) => name), 'Timestral'];
+  const allModels = ['Clef', ...brandedModels.map(([name]) => name), 'Timestral'].sort();
   assert.deepEqual(modelNames().sort(), allModels);
   for (const [name, file, tag] of brandedModels) {
     const row = elements.get('leaderboard-table').descendants().find(node =>

@@ -134,6 +134,26 @@ DECISION_MODELS: dict[str, dict] = {
         "state_note": "Forecasts up to 256 sessions of relative closing prices from the frozen snapshot on a CUDA GPU.",
         "category": "ai",
     },
+    **{
+        name: {
+            "provider": "local",
+            "model": name,
+            "label": label,
+            "base_url": f"local://{name}",
+            "api_key_env": None,
+            "cost_per_m_input": 0.0,
+            "cost_per_m_output": 0.0,
+            "context_window": 0,
+            "max_questions": 64,
+            "state_note": "Forecasts up to 256 sessions of relative closing prices from the frozen snapshot.",
+            "category": "algo",
+        }
+        for name, label in (
+            ("chronos-2", "Chronos-2"),
+            ("timesfm-3.0", "TimesFM 3.0"),
+            ("t0-gamma", "T0-Gamma"),
+        )
+    },
     "logistic-regression": {
         "provider": "local",
         "model": "logistic-regression",

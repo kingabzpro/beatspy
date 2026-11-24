@@ -89,7 +89,7 @@ function modelName(model) {
   return String(model).replace(/^(?:openrouter|requesty|respan)-/, "").split("/").at(-1);
 }
 // Row tags identify specialized approaches alongside the decision models.
-const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR", "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC", "stock-jepa": "JEPA"};
+const MODEL_TAGS = {"tpi-rs": "ALGO", "fasttrade": "AI", "fasttrade-subq": "AI", "bettertradingagents": "AGENT", "bettertradingagents-live": "AGENT", "paperrl": "RL", "deeptrade": "HYBRID", "timestral-209m": "FORECAST", "lightgbm": "ML", "logistic-regression": "LINEAR", "logistic-lightgbm": "ENSEMBLE", "hrp": "ALLOC", "stock-jepa": "JEPA", "chronos-2": "FORECAST", "timesfm-3.0": "FORECAST", "t0-gamma": "FORECAST"};
 const modelTag = model => MODEL_TAGS[modelName(model)] || null;
 const isDecisionModel = run => !modelTag(run.model) && (run.category == null || run.category === "ai");
 
@@ -140,6 +140,9 @@ const MODEL_META = {
   "subq-snap-1-1": ["SubQ Snap 1.1", "subq.png"],
   "minara-kairos": ["Kairos", "minara.png"],
   "timestral-209m": ["Timestral", "mistral.png"],
+  "chronos-2": ["Chronos-2", "chronos.svg"],
+  "timesfm-3.0": ["TimesFM 3.0", "google.svg"],
+  "t0-gamma": ["T0-Gamma", "t0-gamma.svg"],
   "lightgbm": ["LightGBM", "lightgbm.png"],
   "logistic-regression": ["Logistic Regression", "logistic.svg"],
   "logistic-lightgbm": ["Logit + LightGBM", "ensemble.svg"],

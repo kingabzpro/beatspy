@@ -638,9 +638,10 @@ def cmd_run(args: argparse.Namespace) -> int:
         spec = _require_decision_model(name)
         if name == "stock-jepa" and args.form not in ("per_asset", "noul"):
             raise ValueError("Stock-JEPA supports --form per_asset or noul")
-        if name in ("timestral-209m", "lightgbm", "logistic-regression", "logistic-lightgbm") and args.form in (
-            "all", "rank"
-        ):
+        if name in (
+            "timestral-209m", "chronos-2", "timesfm-3.0", "t0-gamma",
+            "lightgbm", "logistic-regression", "logistic-lightgbm",
+        ) and args.form in ("all", "rank"):
             raise ValueError(f"{spec['label']} supports --form per_asset, noul, choice, or twin")
 
     scenario = None

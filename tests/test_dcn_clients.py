@@ -475,6 +475,10 @@ def test_make_client_builds_every_configured_model(name, monkeypatch):
     if spec["provider"] == "timestral":
         # Construction should bind the frozen data without needing a real GPU in unit tests.
         monkeypatch.setattr("beatspy.dcn.timestral.TimestralClient.load_forecaster", lambda self: object())
+    if name in ("chronos-2", "timesfm-3.0", "t0-gamma"):
+        from beatspy.dcn.foundation_forecast import FORECAST_CLIENTS
+
+        monkeypatch.setattr(FORECAST_CLIENTS[name], "load_forecaster", lambda self: object())
     client = make_client(settings, data=data)
     assert client.provider == spec["provider"]
     if spec["provider"] in ("bta-live", "deeptrade"):

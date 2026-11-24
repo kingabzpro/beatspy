@@ -218,6 +218,36 @@ The [Kaggle notebook](https://www.kaggle.com/code/kingabzpro/beatspy-stock-jepa-
 uses the [GPU benchmark runner](examples/kaggle_stock_jepa.py). The CLI uses
 PyTorch with `--model stock-jepa --form per_asset`.
 
+### Chronos-2, TimesFM 3.0, and T0-Gamma
+
+These pretrained models use Timestral's input and portfolio rules. Each model
+forecasts the stock-to-SPY log price ratio from up to 256 trading sessions of
+history. BeatSPY interpolates the terminal deciles at today's ratio to estimate
+the probability of outperforming SPY over the scheduled decision horizon.
+Models run without fine-tuning or additional covariates. The frozen snapshots
+limit inputs at inference time. Checkpoint pretraining cutoffs were not audited
+against the historical windows.
+
+| Model | Oct 2025 vs SPY | Apr 2026 vs SPY | Oct 2026 vs SPY | Mean gap |
+| --- | ---: | ---: | ---: | ---: |
+| Timestral | +2.65 pp | +7.21 pp | −4.41 pp | +1.82 pp |
+| T0-Gamma | −1.00 pp | +6.72 pp | −6.35 pp | −0.21 pp |
+| TimesFM 3.0 | −1.14 pp | +5.78 pp | −6.77 pp | −0.71 pp |
+| Chronos-2 | −3.78 pp | +4.05 pp | −8.88 pp | −2.87 pp |
+
+Each new model beat SPY in one window. All nine runs replayed with full answer
+coverage. Use **Show all model types** to find the **FORECAST** rows.
+
+The [Kaggle runner](examples/kaggle_foundation_forecast.py) pins checkpoint
+revisions and records the package version and GPU in each result summary.
+The notebooks ran sequentially on Tesla T4 GPUs.
+[Chronos-2](https://www.kaggle.com/code/kingabzpro/beatspy-chronos-2) ·
+[TimesFM 3.0](https://www.kaggle.com/code/kingabzpro/beatspy-timesfm-3-0) ·
+[T0-Gamma](https://www.kaggle.com/code/kingabzpro/beatspy-t0-gamma)
+
+TimesFM 3.0 was used for non-commercial research evaluation under
+[Google's model license](https://huggingface.co/google/timesfm-3.0-pytorch/blob/main/LICENSE).
+
 ## Quick start
 
 ```bash
