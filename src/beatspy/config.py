@@ -25,7 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 # Decision-model providers. All three speak the same state-plus-typed-questions
 # contract; they differ only in transport, auth, and question limits.
 PROVIDERS = (
-    "openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
+    "openai_decisions", "google_decisions", "typesafe", "cloudflare", "requesty", "openrouter", "respan",
     "fasttrade", "fasttrade-subq", "bta", "bta-live", "paperrl", "deeptrade", "timestral",
 )
 
@@ -779,6 +779,98 @@ DECISION_MODELS: dict[str, dict] = {
             "(their pricing ratio 0.021); same System One contract, verified live 2026-11-18; takes at most "
             "8 questions per request and re-reads the state per question (~2 chars/token), so questions "
             "travel in batches of 8",
+    },
+    "baseten-bison-1": {
+        "provider": "typesafe",
+        "model": "decision-models/baseten-bison-latest",
+        "label": "Base Labs Bison 1 (31B)",
+        "base_url": "https://inference.baseten.co/v1/systemone",
+        "api_key_env": "BASETEN_API_KEY",
+        "cost_per_m_input": 0.10,
+        "cost_per_m_output": 0.0,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "state_note": "Base Labs 31B post-trained from Gemma 4 31B, released 2026-11-20; #1 of 19 on the "
+            "Artificial Analysis Decision Index v2.1 (76); same System One contract as mammoth-1, "
+            "verified live 2026-11-24 (25/25, 7,390 tokens/decision)",
+    },
+    "baseten-groundhog-1": {
+        "provider": "typesafe",
+        "model": "decision-models/baseten-groundhog-latest",
+        "label": "Base Labs Groundhog 1 (26B MoE)",
+        "base_url": "https://inference.baseten.co/v1/systemone",
+        "api_key_env": "BASETEN_API_KEY",
+        "cost_per_m_input": 0.035,
+        "cost_per_m_output": 0.0,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "state_note": "Base Labs 26B MoE (~4B active) from Gemma 4 26B-A4B, released 2026-11-20; the cheaper "
+            "Bison sibling; same System One contract, verified live 2026-11-24 (25/25, 7,390 tokens/decision)",
+    },
+    "baseten-joey-1": {
+        "provider": "typesafe",
+        "model": "decision-models/baseten-joey-2b-latest",
+        "label": "Base Labs Joey 1 (2B)",
+        "base_url": "https://inference.baseten.co/v1/systemone",
+        "api_key_env": "BASETEN_API_KEY",
+        "cost_per_m_input": 0.01,
+        "cost_per_m_output": 0.0,
+        "context_window": 16_384,
+        "max_questions": 64,
+        "state_note": "Base Labs 2B from Qwen3.5-2B, released 2026-10-29; the smallest, fastest of the family; "
+            "same System One contract, verified live 2026-11-24 (25/25, 7,166 tokens/decision)",
+    },
+    "nace-drex-max-finance": {
+        "provider": "typesafe",
+        "model": "drex-max-finance",
+        "label": "Nace AI Drex Max Finance",
+        "base_url": "https://console.nace.ai/v1/systemone",
+        "api_key_env": "NACE_API_KEY",
+        "cost_per_m_input": 0.06,
+        "cost_per_m_output": 0.0,
+        "context_window": 262_144,
+        "max_questions": 64,
+        "state_note": "Finance-tuned Drex Max (fraud, credit, filings, markets), released 2026-11-01; same System "
+            "One contract, verified live 2026-11-24 (25/25, 5,964 tokens/decision); $0.06/M is the OpenRouter rate",
+    },
+    "nace-drex-v2-0": {
+        "provider": "typesafe",
+        "model": "drex-v2.0",
+        "label": "Nace AI Drex v2.0",
+        "base_url": "https://console.nace.ai/v1/systemone",
+        "api_key_env": "NACE_API_KEY",
+        "cost_per_m_input": 0.06,
+        "cost_per_m_output": 0.0,
+        "context_window": 131_072,
+        "max_questions": 64,
+        "state_note": "Drex 2.0, a 3B-active MoE; the first-party Nace route unblocks the openrouter-drex-v2 row "
+            "that 402'd at a $0 balance; same System One contract, verified live 2026-11-24 (25/25, 5,505 tokens)",
+    },
+    "google-gemini-decision-1": {
+        "provider": "google_decisions",
+        "model": "gemini-decision-1",
+        "label": "Google Gemini Decision 1",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/decisions",
+        "api_key_env": "GEMINI_API_KEY",
+        "cost_per_m_input": 0.10,
+        "cost_per_m_output": 0.0,
+        "context_window": 262_144,
+        "max_questions": 64,
+        "state_note": "Google's first decision model, released 2026-11-11; text input + string instructions + "
+            "x-goog-api-key header, usage.total_input_tokens; verified live 2026-11-24 (25/25, 5,512 tokens)",
+    },
+    "openrouter-pplx-decider-v1-3-free": {
+        "provider": "openrouter",
+        "model": "perplexity/pplx-decider-v1.3:free",
+        "label": "Perplexity Decider 27B v1.3 (free) via OpenRouter",
+        "base_url": "https://openrouter.ai/api/alpha/decisions",
+        "api_key_env": "OPENROUTER_API_KEY",
+        "cost_per_m_input": 0.0,
+        "cost_per_m_output": 0.0,
+        "context_window": 262_144,
+        "max_questions": 64,
+        "state_note": "Free OpenRouter tier, released 2026-11-12; ~50 free requests/day without credits, so a "
+            "three-window sweep (75 requests) spans two days or needs a $10 top-up; verified live 2026-11-24",
     },
     "clef-flash": {
         "provider": "cloudflare",

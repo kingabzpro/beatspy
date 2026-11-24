@@ -13,7 +13,7 @@ import json
 import httpx
 import pytest
 
-from beatspy.config import DECISION_MODELS, DecisionConfig, Settings, decision_api_key
+from beatspy.config import DECISION_MODELS, PROVIDERS, DecisionConfig, Settings, decision_api_key
 from beatspy.dcn.clients import (
     CloudflareClefClient,
     DcnError,
@@ -173,6 +173,48 @@ def test_openai_refusal_is_missing_coverage_not_a_crash():
     assert "noul_AAPL" not in result.answers
     assert result.missing_ids == ["noul_AAPL"]
     assert result.raw["_refused"] == ["noul_AAPL"]
+
+
+def test_google_posts_text_input_string_instructions_and_goog_key():
+    """Google Decisions is not System One: text input, string instructions, x-goog-api-key."""
+    import asyncio
+
+    from beatspy.dcn.clients import GoogleDecisionsClient
+
+    calls: list[httpx.Request] = []
+    payload = {
+        "answers": {"noul_AAPL": {"type": "noul", "noul": 0.53, "confidence": 0.53}},
+        "usage": {"total_input_tokens": 5512, "total_output_tokens": 0},
+    }
+    transport = _capture(payload, calls=calls)
+    client = GoogleDecisionsClient(
+        model="gemini-decision-1",
+        endpoint="https://generativelanguage.googleapis.com/v1beta/decisions",
+        api_key="goog-test",
+        client=_client(transport),
+    )
+    state = {"as_of": "2026-04-09", "market": [{"ticker": "AAPL"}]}
+    result = asyncio.run(client.decide(state, _questions()))
+
+    request = calls[0]
+    assert str(request.url) == "https://generativelanguage.googleapis.com/v1beta/decisions"
+    assert request.headers["x-goog-api-key"] == "goog-test"
+    assert "authorization" not in request.headers
+    body = json.loads(request.content)
+    assert body["model"] == "gemini-decision-1"
+    # Input is text, not the structured state object Google rejects.
+    assert isinstance(body["input"], str)
+    assert "2026-04-09" in body["input"]
+    # Questions are a map, and instructions must be a plain string (a dict 400s).
+    assert isinstance(body["questions"], dict)
+    question = body["questions"]["noul_AAPL"]
+    assert question["type"] == "noul"
+    assert isinstance(question["instructions"], str)
+    assert "AAPL" in question["instructions"]
+    # Usage arrives as total_input_tokens, not input_tokens.
+    assert result.input_tokens == 5512
+    assert result.answers["noul_AAPL"].noul == pytest.approx(0.53)
+    assert "choice_AAPL" in result.missing_ids
 
 
 def test_typesafe_posts_state_and_questions_verbatim():
@@ -564,8 +606,7 @@ def test_every_registered_model_has_a_key_environment_variable():
             assert spec["cost_per_m_input"] == 0.0
             continue
         assert spec["api_key_env"], f"{name} has no api_key_env"
-        assert spec["provider"] in ("openai_decisions", "typesafe", "cloudflare", "requesty", "openrouter",
-                                    "respan", "fasttrade", "fasttrade-subq", "bta-live", "deeptrade")
+        assert spec["provider"] in PROVIDERS, f"{name} has unknown provider {spec['provider']!r}"
         assert spec["cost_per_m_input"] is not None
         if spec["provider"] in ("bta-live", "deeptrade"):
             # The live chat models bill output tokens too, unlike the typed

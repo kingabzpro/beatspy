@@ -315,6 +315,51 @@ def _flatten(instructions: str | dict | list) -> str:
     return json.dumps(instructions, separators=(",", ":"), sort_keys=True)
 
 
+class GoogleDecisionsClient(HttpDcnClient):
+    """Google Gemini Decisions API (gemini-decision-1).
+
+    Same noul/choice/score answers as System One, but three wire differences,
+    each of which returns HTTP 400 if got wrong (verified live 2026-11-24):
+
+    - auth is the `x-goog-api-key` header, not a Bearer token;
+    - `input` is text (the serialized state), and `instructions` must be a plain
+      string, so the structured question dict is folded to its question text;
+    - usage arrives as `usage.total_input_tokens`, not `input_tokens`.
+    """
+
+    provider = "google_decisions"
+
+    def build_request(self, state: dict, questions: dict[str, Question]) -> tuple[str, dict, dict, dict]:
+        headers = {
+            "x-goog-api-key": self.api_key or "",
+            "Content-Type": "application/json",
+        }
+        payload: dict[str, dict] = {}
+        for question_id, question in questions.items():
+            instructions = question.instructions
+            if isinstance(instructions, dict) and isinstance(instructions.get("question"), str):
+                text = instructions["question"]
+            else:
+                text = _flatten(instructions)
+            entry: dict[str, Any] = {"type": question.type, "instructions": text}
+            if question.criteria is not None:
+                entry["criteria"] = question.criteria
+            payload[question_id] = entry
+        body = {"model": self.model, "input": _state_text(state), "questions": payload}
+        return "POST", self.endpoint, headers, body
+
+    def parse_response(self, payload: dict, question_ids: list[str]) -> DcnResult:
+        answers, missing = parse_answers(payload, question_ids)
+        usage = payload.get("usage") or {}
+        return DcnResult(
+            answers=answers,
+            missing_ids=missing,
+            input_tokens=int(usage.get("total_input_tokens") or usage.get("input_tokens") or 0),
+            output_tokens=int(usage.get("total_output_tokens") or usage.get("output_tokens") or 0),
+            raw=payload,
+        )
+
+
 class TypeSafeClient(HttpDcnClient):
     """TypeSafe System One endpoint (Jev)."""
 
@@ -475,6 +520,7 @@ def _state_text(state: dict) -> str:
 
 _CLIENTS = {
     "openai_decisions": OpenAiDecisionsClient,
+    "google_decisions": GoogleDecisionsClient,
     "typesafe": TypeSafeClient,
     "cloudflare": CloudflareClefClient,
     "requesty": RequestyClient,
