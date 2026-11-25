@@ -3,61 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="How BeatSPY evaluates trading models and strategies with frozen data, consistent execution, and replayable scores.">
-  <meta name="theme-color" content="#101214">
-  <meta name="color-scheme" content="dark">
-  <meta name="application-name" content="BeatSPY">
-  <title>Method · BeatSPY</title>
-  <link rel="canonical" href="https://beatspy.vercel.app/method.html">
-  <link rel="icon" href="favicon.ico" sizes="32x32">
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" sizes="any">
-  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
-  <link rel="manifest" href="site.webmanifest">
+  <meta http-equiv="refresh" content="0; url=report.html#method">
+  <title>Method moved to the benchmark report · BeatSPY</title>
+  <link rel="canonical" href="https://beatspy.vercel.app/report">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to content</a>
-  <header class="topbar"><a class="brand" href="index.html"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
-    <nav aria-label="Main navigation"><a href="report.html">Report</a><a href="pricing.html">Pricing</a><a href="method.html" aria-current="page">Method</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
-  </header>
-  <main id="main-content" tabindex="-1">
-    <section id="how" class="how" aria-labelledby="how-title">
-      <div class="section-heading"><div><p class="eyebrow">METHOD</p><h2 id="how-title">How this benchmark works</h2></div></div>
-      <p class="how-lede">BeatSPY compares models on frozen snapshots and shared execution rules. Models can produce outperformance probabilities through an adapter or supply target weights through an allocation strategy.</p>
-      <ol class="how-steps">
-        <li><strong>Freeze the market.</strong>Prices are stored in a content-addressed snapshot. Runs in the same benchmark window reuse those bytes.</li>
-        <li><strong>Build point-in-time inputs.</strong>Models use data available on or before each decision date. API models receive compact JSON within a token budget. Local models can also read the frozen price history.</li>
-        <li><strong>Run the model.</strong>Decision APIs answer typed probability questions. Adapters can convert forecasts, stock signals, or LLM outputs into the same probabilities. Allocation strategies supply weights directly.</li>
-        <li><strong>Size the portfolio.</strong>A fixed policy converts probabilities into target weights. Direct allocations use the weights supplied by the strategy and follow the benchmark's portfolio limits.</li>
-        <li><strong>Fill the orders.</strong>Trades fire only when a weight moves past the 2% rebalance band, and fill at the next session's open with fees and slippage. Most names sit inside the band, so a typical weekly decision is mostly holds: on the published board models keep 52% to 91% of the book steady.</li>
-        <li><strong>Score the results.</strong>Every run reports portfolio performance against SPY and fixed baselines. Runs with probabilities also report calibration, including Brier score and AUC. The board shows individual windows and a multi-window average.</li>
-      </ol>
-      <h3 class="how-sub">How a probability becomes buy, hold, or sell</h3>
-      <div class="how-notes">
-        <p><strong>From probabilities to weights.</strong>The model estimates whether each stock will beat SPY over the next decision period. The sizing policy spreads half the portfolio evenly and allocates the other half by how far each probability sits above that decision's mean.</p>
-        <p><strong>The 2% band decides the trade.</strong>A name is bought when its target weight sits more than 2 percentage points above what is held, sold when it sits more than 2 below, and held inside the band, where nothing trades and no fee is paid. A name leaving the pool is always sold, and the first decision is all buys from cash.</p>
-        <p><strong>Holds measure temperament.</strong>The share of holds is not a setting; it falls out of how stable a model's probabilities are. On the current board it runs from about 51% of weekly name-level decisions (D3 Turbo, roughly half the book reshuffled every week) to about 88% (Span-01 free, about three names traded per week), and the calmer models pay less in fees and slippage.</p>
-      </div>
-      <h3 class="how-sub">What keeps it honest</h3>
-      <div class="how-notes">
-        <p><strong>No look-ahead.</strong>The state holds only past data, and an audit tampers with every later price to prove earlier decisions cannot change.</p>
-        <p><strong>Missing stays missing.</strong>An unanswered question is never scored and carries no conviction, so a provider failure cannot become a trade.</p>
-        <p><strong>Replayable.</strong>Each run ships its state hash, decisions, fills and metrics; <code>beatspy verify</code> re-derives the scores offline.</p>
-        <p><strong>Uncertainty is reported.</strong>Returns carry block-bootstrap intervals and every calibration score a permutation p-value: one window cannot prove an edge.</p>
-      </div>
-      <h3 class="how-sub">Protocol v2 (protocol 6), from 2026-10-23</h3>
-      <div class="how-notes">
-        <p><strong>Why it exists.</strong>Under protocol 5 the state carried only price momentum. Measured across every decision, model probabilities tracked the last five days of returns at rank correlation +0.75 for the strongest follower: the models were largely reading one momentum column and echoing it, and no answer type (yes/no, two-option choice, five-level score) changed that. v2 hands them more to read.</p>
-        <p><strong>What changed.</strong>Every asset row now also carries RSI-14 (reversal pressure), 30-day realized volatility (risk), distance from the 52-week high (level), a 10-vs-50-day volume ratio (attention), and a sector label (what the name is). The question text drops a filler key and phrases a one-day horizon grammatically. The token budget rose from 1,800 to 2,900 to carry the wider rows; no provider truncated the wider state (each one's own token count confirms it).</p>
-        <p><strong>What did not change.</strong>The pool, the windows, the sizing policy, the fees, and the scoring. v2 runs are scored on the same frozen prices and labels, so a model's v2 row and its protocol-5 row on the same window answer the same market question with different information. The two protocols are not comparable, so the board scores v2 only and every protocol-5 run lives in the <a href="archive.html">archive</a>, still replayable, still linked.</p>
-      </div>
-      <div class="how-links">
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Architecture ↗</a>
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/ROADMAP.md">Roadmap ↗</a>
-        <a href="https://github.com/kingabzpro/beatspy/blob/main/examples/leakage_audit.py">Leakage audit ↗</a>
-      </div>
-    </section>
+  <main class="benchmark-report report-intro">
+    <h1>BeatSPY methodology</h1>
+    <p><a href="report.html#method">Read the methodology in the benchmark report</a>.</p>
   </main>
-  <footer><span>BeatSPY · Apache-2.0</span><span>Frozen data · Replayable scores</span></footer>
 </body>
 </html>

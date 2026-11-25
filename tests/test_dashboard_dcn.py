@@ -405,8 +405,7 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
         "run.html": ("run-details", "calibration", "reliability", "reliability-bins", "performance", "drawdown",
                      "allocations", "run-cost", "metrics", "downloads"),
         "pricing.html": ("pricing-table", "cost-window"),
-        "report.html": ("report-window-chart", "report-baseline-chart", "report-category-table"),
-        "method.html": ("how",),
+        "report.html": ("report-window-chart", "report-baseline-chart", "report-category-table", "method"),
         "contribute.html": ("contribute",),
     }
     for page, anchors in owners.items():
@@ -414,13 +413,14 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
             assert f'id="{anchor}"' in pages[page], f"{anchor} should live in {page}"
     for name, html in pages.items():
         assert "styles.css" in html
-        # Only the pages that show results load the data script; the method and
-        # contribute pages are static text.
+        # Only the pages that show results load the data script.
         if name in ("index.html", "run.html", "pricing.html", "report.html"):
             assert "app.js" in html, name
             assert 'aria-live="polite"' in html, name
-        # Every page links the others in the nav, so no page is a dead end.
-        for href in ("index.html", "report.html", "pricing.html", "method.html", "contribute.html"):
+        if name == "method.html":
+            assert 'href="report.html#method"' in html
+            continue
+        for href in ("index.html", "report.html", "pricing.html", "contribute.html"):
             assert f'href="{href}"' in html, f"{name} does not link {href}"
     assert "Reliability" in pages["run.html"]
     # A row opens the run page rather than a section of this one.

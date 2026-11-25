@@ -535,6 +535,7 @@ if (typeof document !== "undefined") {
       const scored = window.runs.filter(run => Number.isFinite(gap(run)));
       const baselines = scored[0].metrics.baselines ?? {};
       return {
+        key: `${window.start}..${window.end}`,
         label: `${monthLabel(window.start)} to ${monthLabel(window.end)}`,
         scored,
         wins: scored.filter(run => gap(run) > 0).length,
@@ -549,8 +550,10 @@ if (typeof document !== "undefined") {
       };
     });
     const values = summaries.flatMap(summary => summary.comparisons.map(([, value]) => value)).filter(Number.isFinite);
-    const min = Math.min(0, ...values), max = Math.max(.01, ...values);
+    const min = Math.floor(Math.min(0, ...values) * 100) / 100;
+    const max = Math.ceil(Math.max(.01, ...values) * 100) / 100;
     const position = value => (value - min) / (max - min) * 100;
+    setText("report-baseline-scale", `Common scale across windows from ${percent(min)} to ${percent(max)}.`);
     const consistent = allPeriodRows(windows).filter(row => row.complete && row.beatIn === windows.length).length;
     if (windows.length > 1) {
       setText("report-overview", consistent
@@ -582,7 +585,12 @@ if (typeof document !== "undefined") {
       button.append(node("span", summary.label, "report-bar-label"),
         bar(0, summary.wins / summary.scored.length * 100, "model"),
         node("span", `${summary.wins}/${summary.scored.length}`, "report-bar-value"));
-      button.onclick = () => selectWindow(index);
+      button.onclick = () => {
+        selectWindow(index);
+        const params = new URLSearchParams(location.search);
+        params.set("window", summary.key);
+        window.history.replaceState(window.history.state, "", `?${params}${location.hash}`);
+      };
       item.append(button);
       chart.append(item);
       return button;
@@ -630,7 +638,9 @@ if (typeof document !== "undefined") {
       $("report-category-table").replaceChildren(table);
     }
 
-    selectWindow(summaries.length - 1);
+    const sharedWindow = new URLSearchParams(location.search).get("window");
+    const initialIndex = summaries.findIndex(summary => summary.key === sharedWindow);
+    selectWindow(initialIndex === -1 ? summaries.length - 1 : initialIndex);
     setHidden("report-results", false);
   }
   // One window at a time, or every window averaged: the toggle picks the lens.

@@ -18,29 +18,24 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
   <header class="topbar"><a class="brand" href="index.html"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
-    <nav aria-label="Main navigation"><a href="report.html" aria-current="page">Report</a><a href="pricing.html">Pricing</a><a href="method.html">Method</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+    <nav aria-label="Main navigation"><a href="report.html" aria-current="page">Report</a><a href="pricing.html">Pricing</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
   </header>
   <main id="main-content" class="benchmark-report" tabindex="-1">
     <header class="report-intro">
       <h1>BeatSPY benchmark report</h1>
       <p class="lede">How trading models and strategies performed against SPY across the published protocol v2 windows.</p>
       <p id="report-overview" class="report-overview"></p>
+      <nav class="report-jumps" aria-label="Report sections">
+        <a href="#method">How the benchmark works</a>
+        <a href="#conclusion">Conclusion</a>
+      </nav>
     </header>
-    <section class="report-section" aria-labelledby="report-method-heading">
-      <h2 id="report-method-heading">How the benchmark works</h2>
-      <ol class="report-method">
-        <li><h3>Freeze the market</h3><p>Each window uses a shared snapshot of adjusted prices. The 25-asset pool spans stocks and ETFs. Models use only data available at each weekly decision.</p></li>
-        <li><h3>Turn signals into trades</h3><p>Most runs convert stock-level outperformance probabilities into portfolio weights. The standard policy combines an equal-weight base with model tilts. HRP supplies its own weights.</p></li>
-        <li><h3>Score the portfolio</h3><p>Simulated fills use the next session’s open, with 5 basis points each for fees and slippage per trade leg. Excess return is the portfolio’s return minus SPY’s return, in percentage points.</p></li>
-      </ol>
-    </section>
-
     <noscript><p class="caption">Enable JavaScript to load the published charts and category summary.</p></noscript>
     <p id="status" role="status" aria-live="polite"></p>
     <div id="report-results" hidden>
       <section class="report-section" aria-labelledby="report-windows-heading">
         <h2 id="report-windows-heading">Results across market windows</h2>
-        <p class="caption" id="report-window-help">Select a window to update the return comparison and category summary.</p>
+        <p class="caption" id="report-window-help">Select a window to update the comparison and category summary. The page URL keeps your selection.</p>
         <div class="report-chart-grid">
           <figure class="panel report-chart">
             <figcaption>Share of models beating SPY</figcaption>
@@ -49,6 +44,7 @@
           <figure class="panel report-chart">
             <figcaption>Portfolio and baseline returns</figcaption>
             <ul id="report-baseline-chart" class="report-chart-list"></ul>
+            <p id="report-baseline-scale" class="report-chart-scale caption"></p>
           </figure>
         </div>
         <p id="report-selection" class="report-selection" role="status"></p>
@@ -60,10 +56,36 @@
       </section>
     </div>
 
-    <section class="report-section report-conclusion" aria-labelledby="report-conclusion-heading">
+    <section id="method" class="report-section" aria-labelledby="report-method-heading">
+      <h2 id="report-method-heading">How the benchmark works</h2>
+      <ol class="report-method">
+        <li><h3>Freeze the market</h3><p>Each window starts from a shared snapshot of adjusted prices for 25 stocks and ETFs. The benchmark builds each weekly decision from data available at that point in time.</p></li>
+        <li><h3>Turn signals into trades</h3><p>Most runs estimate which assets will beat SPY and use those probabilities to tilt an equal-weight base. Hierarchical risk parity (HRP) supplies portfolio weights directly.</p></li>
+        <li><h3>Fill and score</h3><p>Orders fill at the next session’s open, with 5 basis points each for fees and slippage per trade leg. Excess return is the portfolio’s return minus SPY’s return, in percentage points.</p></li>
+      </ol>
+      <div class="report-method-details">
+        <details>
+          <summary>How position sizes and rebalancing work</summary>
+          <p>The standard probability policy spreads half the target portfolio evenly across investable assets. It distributes the other half by how far each answered probability sits above that week’s cross-sectional mean. An unanswered question adds no conviction and is excluded from calibration. A fully invalid response keeps the existing portfolio.</p>
+          <p>After the initial allocation, the standard policy keeps existing weights when they are within 2 percentage points of target. Positions outside the band can trade, and an asset leaving the investable pool is sold. Positions are subject to a 35% cap.</p>
+        </details>
+        <details>
+          <summary>How scores are checked and replayed</summary>
+          <p>The leakage audit changes prices after a decision date and checks that the earlier inputs stay identical. Each run records its snapshot, decisions, fills, and metrics. <code>beatspy verify</code> checks the stored artifacts and reproduces the portfolio scores offline.</p>
+          <p>The excess-return interval resamples blocks between weekly decisions while keeping model and SPY returns paired. Brier skill compares probabilities with a base-rate forecast. AUC measures how well a model ranks actual outperformers. Calibration scores use only answered questions with realized outcomes.</p>
+        </details>
+        <details>
+          <summary>What changed in protocol v2</summary>
+          <p>The earlier protocol emphasized price momentum. V2 added RSI, realized volatility, distance from the 52-week high, relative volume, and sector. API providers receive those inputs as compact JSON, with the state budget raised from 1,800 to 2,900 tokens. Local models can also read trailing history from the same frozen snapshot. The published windows retain the same frozen prices and scoring rules across versions.</p>
+        </details>
+      </div>
+      <p class="caption report-method-links"><a href="archive.html">Archived protocol results</a> <span aria-hidden="true">·</span> <a href="https://github.com/kingabzpro/beatspy/blob/main/ARCHITECTURE.md">Technical architecture ↗</a></p>
+    </section>
+
+    <section id="conclusion" class="report-section report-conclusion" aria-labelledby="report-conclusion-heading">
       <h2 id="report-conclusion-heading">Conclusion</h2>
       <p><strong>The comparison changes with the market.</strong> Equal weight helps show what the fixed pool earned on its own. Momentum tests whether the models added value over a simple selection rule. Use the paired confidence interval on an individual run page to see how much uncertainty surrounds its gap to SPY.</p>
-      <p><strong>Prediction quality adds a separate check.</strong> A model can rank stocks well while assigning unreliable probabilities. Read calibration and answer coverage alongside returns, especially when two results are close.</p>
+      <p><strong>Prediction quality adds a separate check.</strong> A model can rank stocks well while assigning unreliable probabilities. Read calibration alongside returns, especially when two results are close.</p>
       <p><strong>Forward evaluation would strengthen the evidence.</strong> The published runs use historical prices and a fixed asset pool chosen after the fact. Freezing the model versions, inputs, universe, and rules before a new period starts would test whether the observed patterns persist.</p>
       <p class="caption">Source <a href="data/index.json">published run catalog</a>. Each model contributes its latest completed protocol v2 run per window. The figures exclude synthetic runs.</p>
     </section>

@@ -6,15 +6,20 @@ const {
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory, modelLogo
 } = require('../dashboard/app.js');
 
-test('primary navigation leaves Results to the brand and Archive to the method page', () => {
-  for (const name of ['index', 'run', 'pricing', 'method', 'archive', 'contribute', 'report']) {
+test('the report houses the methodology and archive link', () => {
+  for (const name of ['index', 'run', 'pricing', 'archive', 'contribute', 'report']) {
     const page = readFileSync(`dashboard/${name}.html`, 'utf8');
     const nav = page.match(/<nav aria-label="Main navigation">([\s\S]*?)<\/nav>/)[1];
-    assert.doesNotMatch(nav, /href="(?:index|archive)\.html"/, name);
+    assert.doesNotMatch(nav, /href="(?:index|archive|method)\.html"/, name);
     assert.match(nav, /href="report\.html"/, name);
     assert.match(page, /<a class="brand" href="index\.html"/, name);
-    if (name === 'method') assert.match(page, /href="archive\.html"/);
+    if (name === 'report') {
+      assert.match(page, /id="method"/);
+      assert.match(page, /<details[\s\S]*<summary>/);
+      assert.match(page, /href="archive\.html"/);
+    }
   }
+  assert.match(readFileSync('dashboard/method.html', 'utf8'), /url=report\.html#method/);
 });
 
 // A minimal catalog row in the DCN shape the Python renderer writes.
@@ -211,7 +216,7 @@ test('the category filter supports existing models and explicit categories for n
 test('the frontend uses safe text rendering and keeps the design and logos', () => {
   const js = readFileSync('dashboard/app.js', 'utf8');
   const css = readFileSync('dashboard/styles.css', 'utf8');
-  const pages = Object.fromEntries(['index.html', 'run.html', 'pricing.html', 'method.html', 'contribute.html']
+  const pages = Object.fromEntries(['index.html', 'run.html', 'pricing.html', 'report.html', 'contribute.html']
     .map(name => [name, readFileSync(`dashboard/${name}`, 'utf8')]));
   const html = Object.values(pages).join('\n');
   assert.doesNotMatch(js, /innerHTML|outerHTML|document\.write|eval\(/);
@@ -336,7 +341,13 @@ function mountSite(site, page = 'index.html', search = '') {
     createElement: fakeElement,
     createElementNS: (_namespace, tag) => fakeElement(tag),
   };
-  global.window = {addEventListener() {}};
+  global.window = {addEventListener() {}, history: {
+    replaceState(_state, _unused, path) {
+      const url = new URL(path, 'https://beatspy.example/report');
+      global.location.search = url.search;
+      global.location.hash = url.hash;
+    },
+  }};
   global.location = {hash: '', search};
   global.fetch = async path => ({
     ok: path in site, status: path in site ? 200 : 404,
@@ -370,6 +381,20 @@ test('report window buttons update the comparison bars and category summary toge
   assert.equal(buttons[1].getAttribute('aria-pressed'), 'false');
   assert.match(elements.get('report-selection').textContent, /1 of 1 model beat equal weight/);
   assert.ok(values('report-category-table').includes('+4.00'));
+});
+
+test('the report restores and updates the shared window without removing other parameters', async () => {
+  const first = catalogRun({run_id: 'first'});
+  const latest = catalogRun({run_id: 'latest', start: '2026-10-07', end: '2026-11-13'});
+  const site = {'data/index.json': JSON.stringify(catalog([first, latest]))};
+  const page = mountSite(site, 'report.html', '?ref=notes&window=2026-01-02..2026-10-07');
+  await settle();
+  const buttons = page.get('report-window-chart').descendants().filter(node => node.tagName === 'button');
+  assert.equal(buttons[0].getAttribute('aria-pressed'), 'true');
+  global.location.hash = '#method';
+  buttons[1].onclick();
+  assert.equal(global.location.search, '?ref=notes&window=2026-10-07..2026-11-13');
+  assert.equal(global.location.hash, '#method');
 });
 
 // Two runs, artifacts present for the first: enough to exercise the board, the
