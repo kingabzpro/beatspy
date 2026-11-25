@@ -232,10 +232,12 @@ function scoredWindows(allRuns) {
       const name = modelName(run.model);
       if (!models.has(name)) models.set(name, run);
     }
+    const spy = rows.find(run => !run.synthetic && !missing(run.metrics?.spy_total_return)
+      && Number.isFinite(Number(run.metrics.spy_total_return)))?.metrics.spy_total_return;
     return {
       key, label: windowLabel(rows[0]), start: rows[0].start, end: rows[0].end,
       proto: protocolOf(rows[0]),
-      spy: Number(rows[0].metrics?.spy_total_return), runs: [...models.values()],
+      spy: Number(spy), runs: [...models.values()],
     };
   }).sort((a, b) => String(a.end).localeCompare(String(b.end)) || (a.proto - b.proto));
 }
@@ -346,7 +348,10 @@ if (typeof document !== "undefined") {
   const $ = id => document.getElementById(id);
   // Each page renders only the widgets it carries, so every renderer checks for
   // its own container first and never assumes the rest of the site is present.
-  const setText = (id, text) => { const element = $(id); if (element) element.textContent = text; };
+  const setText = (id, text) => {
+    const element = $(id);
+    if (element && element.textContent !== text) element.textContent = text;
+  };
   const setHidden = (id, hidden) => { const element = $(id); if (element) element.hidden = hidden; };
   const node = (tag, text, className) => {
     const result = document.createElement(tag);
@@ -359,22 +364,17 @@ if (typeof document !== "undefined") {
     for (const [key, value] of Object.entries(attrs || {})) result.setAttribute(key, String(value));
     return result;
   };
-  // The board is its own explanation: what it returned, what that did to
-  // $10,000, whether it beat SPY and how often, how bad it got, how much it
-  // actually traded, and whether its judgment was any good. The statistical
-  // scores (Brier skill, AUC, Sharpe) ask for background, so they live in the
-  // run page, which explains them.
   const COLUMNS = [
     ["model", "Model", "text", "row"],
     ["total_return", "Return", "percent", "metrics"],
-    ["usd_10k", "on $10K", "money", "metrics"],
-    ["excess_return_vs_spy", "vs SPY", "signed", "metrics"],
+    ["excess_return_vs_spy", "vs SPY (pp)", "points", "metrics"],
     ["outperformance_hit_rate", "Weeks beating SPY", "percent", "metrics"],
     ["max_drawdown", "Worst drop", "percent", "metrics"],
     ["hold", "Holds", "percent", "row"],
     ["accuracy", "Right calls", "percent", "row"],
   ];
-  const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count, money,
+  const FORMAT = {text: value => value ?? "n/a", percent, signed: percent, ratio, score, dollars, count,
+    points: value => missing(value) || !Number.isFinite(Number(value)) ? "n/a" : (Number(value) * 100).toFixed(2),
     // These models answer in tens to hundreds of milliseconds; "0.00 s" hides
     // every difference between them.
     millis: value => {
@@ -384,15 +384,13 @@ if (typeof document !== "undefined") {
     }};
   const rowValue = (run, key, source) => {
     if (key === "model") return modelName(run.model);
-    // Derived, not recorded: what the recorded return does to a $10,000 start.
-    if (key === "usd_10k") return Number(run.metrics?.total_return) * START_USD;
     // The hold share lives one level down, in the catalog's action shares.
     if (key === "hold") return run.actions?.hold;
     // Call accuracy is the plain-words stand-in for the calibration scores.
     if (key === "accuracy") return run.metrics?.calibration?.signals?.noul?.accuracy;
     return source === "metrics" ? run.metrics?.[key] : run[key];
   };
-  let runs = [], visible = [], selected = null, loading = 0;
+  let runs = [], selected = null, loading = 0;
   let sortKey = "excess_return_vs_spy", descending = true;
 
   async function fetchText(path) {
@@ -433,18 +431,37 @@ if (typeof document !== "undefined") {
       return {
         run, rates,
         tokens: decisions > 0 && Number.isFinite(tokens) ? Math.round(tokens / decisions) : null,
-        perDecision: Number.isFinite(Number(cost)) && decisions > 0 ? Number(cost) / decisions : null,
+        perDecision: Number.isFinite(cost) && decisions > 0 ? cost / decisions : null,
         cost,
       };
-    }).sort((a, b) => (Number(b.perDecision) || 0) - (Number(a.perDecision) || 0));
+    });
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
-    for (const [title, className] of [["Model", ""], ["Input $ / 1M", "num"], ["Tokens / decision", "num"],
-                                      ["Cost / decision", "num"], ["Run cost", "num"], ["Source", ""]]) {
-      header.append(node("th", title, className));
+    const sortable = new Map();
+    for (const [title, className, key] of [["Model", ""], ["Input $ / 1M", "num"], ["Tokens / decision", "num"],
+      ["Cost / decision", "num", "perDecision"], ["Run cost", "num", "cost"], ["Source", ""]]) {
+      const th = node("th", key ? undefined : title, className);
+      th.scope = "col";
+      if (key) {
+        const button = node("button", title);
+        button.type = "button";
+        const arrow = node("span", undefined, "sort-arrow");
+        arrow.setAttribute("aria-hidden", "true");
+        button.append(arrow);
+        button.onclick = () => {
+          const direction = th.getAttribute("aria-sort") === "ascending" ? "descending" : "ascending";
+          sortPrices(key, direction);
+          setText("pricing-sort-status", `Sorted by ${title}, ${direction}.`);
+        };
+        th.append(button);
+        sortable.set(key, th);
+      }
+      header.append(th);
     }
     head.append(header); element.append(head, body);
-    for (const {run, rates, tokens, perDecision, cost} of records) {
+    for (const record of records) {
+      const {run, rates, tokens, perDecision, cost} = record;
       const row = node("tr");
+      record.row = row;
       const modelCell = node("td");
       const logo = modelLogo(run.model);
       if (logo) {
@@ -470,16 +487,28 @@ if (typeof document !== "undefined") {
       }
       row.append(cell); body.append(row);
     }
+    function sortPrices(key, direction) {
+      for (const th of sortable.values()) th.removeAttribute("aria-sort");
+      sortable.get(key).setAttribute("aria-sort", direction);
+      const factor = direction === "ascending" ? 1 : -1;
+      records.sort((a, b) => {
+        const av = a[key], bv = b[key];
+        if (!Number.isFinite(av)) return Number.isFinite(bv) ? 1 : 0;
+        if (!Number.isFinite(bv)) return -1;
+        return factor * (av - bv);
+      });
+      for (const {row} of records) {
+        if (typeof body.moveBefore === "function") body.moveBefore(row, null);
+        else body.appendChild(row);
+      }
+    }
+    sortPrices("perDecision", "descending");
     $("pricing-table").replaceChildren(element);
     setHidden("cost-overview", !onBoard.length);
-      setText("cost-window", onBoard.length
-        ? "Published list prices, checked 2026-10-08. Every model bills input only: output is free and no provider offers prompt caching. "
-        + "Some routes bill the shared market state once per question instead of once per request, which inflates their token counts; "
-        + "compare models on cost per decision. Run cost is the total for one scored window (the latest)."
-        : "");
-    runBars("model-costs", onBoard
-      .map(run => ({label: displayModel(run.model), cost: run.estimated_cost_usd ?? inputCost(run.metrics, runRates(run))}))
-      .sort((a, b) => (Number(b.cost) || 0) - (Number(a.cost) || 0)));
+    const latest = windows.at(-1);
+    setText("cost-window", latest
+      ? `${latest.start} to ${latest.end}. Some providers bill the shared market data once per question, so token counts vary by provider.`
+      : "");
   }
   // One window at a time, or every window averaged: the toggle picks the lens.
   const ALL_COLUMNS = [
@@ -496,8 +525,7 @@ if (typeof document !== "undefined") {
   // on hover, so the page itself stays short.
   const HINTS = {
     total_return: "Total portfolio return over the window",
-    usd_10k: "What that return does to a $10,000 start",
-    excess_return_vs_spy: "Gap to SPY, the default ranking",
+    excess_return_vs_spy: "Return minus SPY’s return, in percentage points",
     outperformance_hit_rate: "Share of weeks this book out-returned SPY",
     max_drawdown: "Largest peak-to-trough fall",
     hold: "Share of names left untraded each week",
@@ -534,8 +562,7 @@ if (typeof document !== "undefined") {
     };
     bar.append(chip("all", `All ${windows.length} windows`, "Every scored window, averaged per model"));
     for (const w of windows) {
-      bar.append(chip(w.key, w.label, `${w.start} to ${w.end}`
-        + (Number.isFinite(w.spy) ? `, SPY ${percent(w.spy)}` : "")));
+      bar.append(chip(w.key, w.label, `${w.start} to ${w.end}`));
     }
   }
 
@@ -544,6 +571,8 @@ if (typeof document !== "undefined") {
     const windows = scoredWindows(runs.filter(isCurrent));
     const filter = $("model-category");
     if (filter) filter.onchange = renderBoard;
+    const search = $("model-search");
+    if (search) search.oninput = renderBoard;
     if (!periodOpened) {
       periodOpened = true;
       const newest = windows.filter(w => w.proto >= 6).pop();
@@ -552,32 +581,60 @@ if (typeof document !== "undefined") {
     if (period !== "all" && !windows.some(w => w.key === period)) period = "all";
     renderTabs(windows);
     const category = filter?.value || "all";
-    const scopedWindows = category === "all" ? windows
-      : windows.map(w => ({...w, runs: w.runs.filter(run => modelCategory(run) === category)}));
-    // A single window (or the single-window fallback) renders the plain board.
-    let displayed;
-    if (period !== "all" || windows.length < 2) {
-      const w = period === "all" ? scopedWindows.at(-1) : scopedWindows.find(x => x.key === period);
-      visible = w ? w.runs : [];
-      renderWindowBoard(w, windows.length >= 2);
-      displayed = visible;
-    } else {
-      visible = [];
-      displayed = renderAllBoard(scopedWindows);
-    }
-    updateBoardChrome(scopedWindows, category, displayed);
+    const allMode = period === "all" && windows.length >= 2;
+    const selectedWindows = period === "all" ? windows : windows.filter(w => w.key === period);
+    const scopedWindows = selectedWindows.map(w => ({
+      ...w, runs: w.runs.filter(run => category === "all" || modelCategory(run) === category),
+    }));
+    updateResultsSummary(scopedWindows);
+    const query = searchWords(search?.value);
+    const matches = model => {
+      if (!query.length) return true;
+      const name = searchWords(`${displayModel(model)} ${model}`).join(" ");
+      return query.every(word => name.includes(word));
+    };
+    const displayed = allMode
+      ? renderAllBoard(scopedWindows, matches)
+      : renderWindowBoard(scopedWindows[0]?.runs ?? [], matches);
+    const hasCategoryResults = scopedWindows.some(w => w.runs.length);
+    setText("search-status", query.length && hasCategoryResults
+      ? (displayed.length ? plural(displayed.length, "matching model") : "No models match your search.")
+      : "");
+    setText("status", hasCategoryResults ? "" : category !== "all" && windows.length
+      ? "No results for this category in the selected view."
+      : runs.length ? "No completed results yet." : "No results yet. Record a run and re-render this page.");
+    setHidden("leaderboard-table", displayed.length === 0);
+    updateDemoBanner(displayed);
   }
 
-  function updateBoardChrome(windows, category, source) {
-    const allMode = period === "all" && windows.length >= 2;
-    if (allMode) {
-      setText("hero-scope", `${windows[0].start} → ${windows[windows.length - 1].end} · ${plural(windows.length, "window")}`);
-    } else if (source.length) {
-      const first = source.reduce((a, b) => (String(a.start) <= String(b.start) ? a : b));
-      const last = source.reduce((a, b) => (String(a.end) >= String(b.end) ? a : b));
-      const decisions = source[0].decisions ?? source[0].metrics?.decisions;
-      setText("hero-scope", `${first.start} → ${last.end} · ${plural(decisions, "decision")}`);
+  const searchWords = value => String(value ?? "").toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
+
+  function updateResultsSummary(windows) {
+    if (!windows.length) return;
+    const models = new Set(), winners = new Set();
+    for (const window of windows) for (const run of window.runs) {
+      const gap = run.metrics?.excess_return_vs_spy;
+      if (run.synthetic || missing(gap) || !Number.isFinite(Number(gap))) continue;
+      const name = modelName(run.model);
+      models.add(name);
+      if (Number(gap) > 0) winners.add(name);
     }
+    const allMode = windows.length > 1;
+    const first = windows[0], last = windows.at(-1);
+    const reference = first.spy;
+    const countSummary = models.size
+      ? `${winners.size} of ${plural(models.size, "model")} beat SPY`
+        + (allMode ? ` in at least one of the ${windows.length} windows.` : ".")
+      : "";
+    const benchmark = !allMode && Number.isFinite(reference) ? `SPY returned ${percent(reference)}.` : "";
+    setText("results-summary", [countSummary, benchmark].filter(Boolean).join(" "));
+    const run = first.runs[0];
+    const decisions = run?.decisions ?? run?.metrics?.decisions;
+    setText("hero-scope", `${first.start} → ${last.end}` + (!allMode && !missing(decisions)
+      ? ` · ${plural(decisions, "decision")}` : ""));
+  }
+
+  function updateDemoBanner(source) {
     const syntheticCount = source.filter(run => run.synthetic).length;
     setHidden("demo-banner", syntheticCount === 0);
     if (syntheticCount) {
@@ -585,33 +642,23 @@ if (typeof document !== "undefined") {
         ? `Synthetic demo data: all ${syntheticCount} rows are fabricated by \`beatspy demo\`. No real model was run.`
         : `Synthetic demo data: ${syntheticCount} of ${source.length} rows are fabricated by \`beatspy demo\` and are not real results.`);
     }
-    let status = "";
-    if (!source.length) {
-      if (category !== "all" && windows.length) status = "No results for this category in the selected view.";
-      else status = runs.length ? "No completed results yet." : "No results yet. Record a run and re-render this page.";
-    }
-    setText("status", status);
   }
 
-  function renderWindowBoard(w, multiWindow) {
+  function renderWindowBoard(windowRuns, matches) {
     // One sentence of caption; the column meanings live in the header tooltips
     // (HINTS), so the page reads at a glance. The no-skill line comes from the
     // catalog, not a hardcoded number.
-    const baseRate = Number(visible[0]?.metrics?.calibration?.signals?.noul?.base_rate);
-    setText("board-window", (multiWindow && w && Number.isFinite(w.spy)
-      ? `SPY returned ${percent(w.spy)} this window. `
-      : "")
-      + "Ranked by vs SPY, the gap to it. Open a model for its full run.");
-    visible.sort((a, b) => {
-      const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[3];
+    const baseRate = Number(windowRuns[0]?.metrics?.calibration?.signals?.noul?.base_rate);
+    setText("board-window", "");
+    const ranked = [...windowRuns].sort((a, b) => {
+      const column = COLUMNS.find(([key]) => key === sortKey) || COLUMNS[2];
       const av = rowValue(a, column[0], column[3]), bv = rowValue(b, column[0], column[3]);
       if (column[2] === "text") return descending ? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
       if (!Number.isFinite(Number(av)) || !Number.isFinite(Number(bv))) return Number.isFinite(Number(av)) ? -1 : 1;
       return descending ? Number(bv) - Number(av) : Number(av) - Number(bv);
     });
-    // Rank follows the sorted order the reader sees, so the numbers can never
-    // disagree with the rows under the current sort.
-    const ranks = new Map(visible.map((run, i) => [run.run_id, i + 1]));
+    const ranks = new Map(ranked.map((run, i) => [run.run_id, i + 1]));
+    const visible = ranked.filter(run => matches(run.model));
     const element = node("table"), head = node("thead"), header = node("tr"), body = node("tbody");
     header.append(node("th", "Rank", "col-rank"));
     const hints = {...HINTS,
@@ -663,7 +710,7 @@ if (typeof document !== "undefined") {
         const raw = rowValue(run, key, source_), value = Number(raw);
         // Tone only the columns whose neutral point is zero; Sharpe, drawdown
         // and the calibration scores are all read against their own scales.
-        const tone = Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy" || key === "usd_10k")
+        const tone = !missing(raw) && Number.isFinite(value) && (key === "total_return" || key === "excess_return_vs_spy")
           ? (value >= 0 ? "positive" : "negative") : "";
         const cell = node("td", undefined, `num col-${key}`);
         if (tone) cell.append(node("span", `${tone === "positive" ? "▲" : "▼"} ${FORMAT[kind](raw)}`, `chip ${tone}`));
@@ -673,13 +720,13 @@ if (typeof document !== "undefined") {
       body.append(row);
     }
     $("leaderboard-table").replaceChildren(element);
+    return visible;
   }
 
-  function renderAllBoard(windows) {
+  function renderAllBoard(windows, matches) {
     const rows = allPeriodRows(windows);
     const total = windows.length;
-    setText("board-window", `Models that ran every window rank first, then most windows beaten over SPY, then average return. `
-      + `Open a model for its latest run.`);
+    setText("board-window", "Models with results in every window rank first by default.");
     const value = (row, key) => key === "model" ? displayModel(row.model)
       : key === "windows" ? `${row.windows}`
       : key === "avg_gap" ? row.avgGap
@@ -721,7 +768,10 @@ if (typeof document !== "undefined") {
       th.append(button); header.append(th);
     }
     head.append(header); element.append(head, body);
+    const visible = [];
     rows.forEach((row, index) => {
+      if (!matches(row.model)) return;
+      visible.push(row.latest);
       const tr = node("tr");
       if (index === 0) tr.classList.add("leader");
       tr.append(node("td", index + 1, "col-rank"));
@@ -769,23 +819,7 @@ if (typeof document !== "undefined") {
       body.append(tr);
     });
     $("leaderboard-table").replaceChildren(element);
-    return rows.map(row => row.latest);
-  }
-  function runBars(target, rows) {
-    const container = $(target); container.replaceChildren();
-    const known = rows.filter(row => typeof row.cost === "number" && Number.isFinite(row.cost));
-    if (!rows.length || !known.length) {container.append(node("p", "No recorded input cost.", "caption")); return;}
-    const max = Math.max(1e-12, ...known.map(row => row.cost));
-    for (const row of rows) {
-      const line = node("div", undefined, "bar-row"), track = node("div", undefined, "bar-track");
-      line.append(node("span", row.label, "bar-label"));
-      if (typeof row.cost === "number" && Number.isFinite(row.cost)) {
-        const bar = node("span", undefined, "bar-fill");
-        bar.style.width = `${row.cost / max * 100}%`; bar.style.background = COLORS[0]; track.append(bar);
-      }
-      line.append(track, node("span", typeof row.cost === "number" ? preciseDollars(row.cost) : "n/a", "bar-value"));
-      container.append(line);
-    }
+    return visible;
   }
   // Equity columns arrive as snake_case keys; the legend should read like prose.
   const SERIES_LABELS = {

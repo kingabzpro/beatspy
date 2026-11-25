@@ -400,10 +400,11 @@ def test_public_site_renders_data_as_text_and_shows_the_reliability_section():
     assert "textContent" in js
     # Each widget lives on the page that owns it; the ids are what app.js binds to.
     owners = {
-        "index.html": ("leaderboard", "leaderboard-table", "status", "hero-scope", "period-tabs"),
+        "index.html": ("leaderboard", "leaderboard-table", "status", "hero-scope", "period-tabs",
+                       "model-search", "results-summary"),
         "run.html": ("run-details", "calibration", "reliability", "reliability-bins", "performance", "drawdown",
                      "allocations", "run-cost", "metrics", "downloads"),
-        "pricing.html": ("pricing-table", "model-costs", "cost-window"),
+        "pricing.html": ("pricing-table", "cost-window"),
         "method.html": ("how",),
         "contribute.html": ("contribute",),
     }

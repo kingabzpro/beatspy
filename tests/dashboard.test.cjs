@@ -236,7 +236,7 @@ test('the frontend uses safe text rendering and keeps the design and logos', () 
   // Every widget the script binds to exists somewhere in the site, and the
   // reliability chart and per-run statistics live in the script.
   for (const anchor of ['leaderboard', 'calibration', 'reliability', 'reliability-bins',
-    'pricing-table', 'model-costs', 'run-cost', 'performance', 'drawdown', 'allocations']) {
+    'pricing-table', 'model-search', 'results-summary', 'run-cost', 'performance', 'drawdown', 'allocations']) {
     assert.match(html, new RegExp(`id="${anchor}"`), anchor);
   }
   assert.match(html, /Reliability/);
@@ -270,8 +270,13 @@ function fakeElement(tag) {
     tagName: tag, attrs: {}, children: [], style: {}, className: "", _text: "", href: "", title: "",
     hidden: false, id: "",
     append(...nodes) {this.children.push(...nodes);},
+    appendChild(child) {
+      this.children = this.children.filter(node => node !== child);
+      this.children.push(child);
+    },
     replaceChildren(...nodes) {this.children = [...nodes];},
     setAttribute(key, value) {this.attrs[key] = String(value);},
+    removeAttribute(key) {delete this.attrs[key];},
     getAttribute(key) {return this.attrs[key] ?? null;},
     set textContent(value) {this._text = String(value);},
     get textContent() {return this._text;},
@@ -299,11 +304,12 @@ function fakeElement(tag) {
 // listed separately: a page only gets the nodes its own HTML declares, which is
 // what the renderers guard on. Kept in sync with the dashboard/*.html files.
 const PAGE_IDS = {
-  'index.html': ['leaderboard-table', 'board-window', 'demo-banner', 'status', 'hero-scope', 'period-tabs'],
+  'index.html': ['leaderboard-table', 'board-window', 'demo-banner', 'status', 'hero-scope', 'period-tabs',
+    'model-search', 'results-summary', 'search-status'],
   'run.html': ['run-details', 'run-trust', 'run-title', 'run-meta', 'status', 'metrics', 'calibration', 'reliability',
     'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
     'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
-  'pricing.html': ['cost-overview', 'cost-window', 'status', 'pricing-table', 'model-costs'],
+  'pricing.html': ['cost-overview', 'cost-window', 'status', 'pricing-table'],
 };
 
 // Stand up one page against an in-memory site: no network, no files, no browser.
@@ -371,17 +377,15 @@ test('the leaderboard page renders the board and links each row to its run page'
   const headers = table.children[0].descendants()
     .filter(node => node.tagName === 'th')
     .map(node => String(node.children[0]?.textContent ?? node.textContent).replace(/ [↓↑]$/, ''));
-  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
+  assert.deepEqual(headers, ['Rank', 'Model', 'Return', 'vs SPY (pp)', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
   // The plain-word columns render the recorded values for the leading row.
   const firstRowCells = table.descendants().filter(node => node.tagName === 'tr')[1]
     .children.map(node => node.textContent);
-  assert.equal(firstRowCells[5], '44.00%', 'the share of weeks the book beat SPY');
-  assert.equal(firstRowCells[6], '-7.00%', 'the worst peak-to-trough drop');
-  assert.equal(firstRowCells[7], '91.00%', 'the hold share of the book');
-  assert.equal(firstRowCells[8], '55.00%', 'the share of calls that proved right');
-  // The caption stays one line; the column meanings moved into the header
-  // tooltips, with the no-skill line taken from the catalog.
-  assert.equal($('board-window').textContent, 'Ranked by vs SPY, the gap to it. Open a model for its full run.');
+  assert.equal(firstRowCells[4], '44.00%', 'the share of weeks the book beat SPY');
+  assert.equal(firstRowCells[5], '-7.00%', 'the worst peak-to-trough drop');
+  assert.equal(firstRowCells[6], '91.00%', 'the hold share of the book');
+  assert.equal(firstRowCells[7], '55.00%', 'the share of calls that proved right');
+  assert.equal($('results-summary').textContent, '2 of 2 models beat SPY. SPY returned 1.00%.');
   const hints = table.descendants().filter(node => node.tagName === 'button' && /Right calls/.test(node.textContent));
   assert.match(hints[0].title, /always calling one way scores 48\.00% here/);
   // A row is a real link to the run page, so it opens in a new tab and shares well.
@@ -482,7 +486,7 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   // Two windows: the toggle appears, and the board opens on the newest window,
   // the current benchmark's landing view.
   assert.equal($('period-tabs').hidden, false);
-  assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
+  assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'vs SPY (pp)', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
   let rows = $('leaderboard-table').children[0].children[1].children;
   assert.equal(rows[0].descendants().find(node => node.className === 'run-button').textContent, 'Clef', 'the newest window opens first, ranked by vs SPY');
   // The all-windows chip averages: wins lead, average return settles ties.
@@ -495,10 +499,33 @@ test('the leaderboard toggles between all-window averages and one window at a ti
   assert.equal(rows[0].children[2].textContent, '2/2');
   assert.equal(rows[0].children[3].textContent, '1 of 2');
   assert.equal(rows[0].children[5].children[0].textContent, '▲ 2.00%');
+  assert.equal($('results-summary').textContent, '2 of 2 models beat SPY in at least one of the 2 windows.');
   // A window chip narrows the board to that window, plain columns and all.
   chips[2].onclick();
-  assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'on $10K', 'vs SPY', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
-  assert.match($('board-window').textContent, /SPY returned 10\.00% this window/);
+  assert.deepEqual(headers(), ['Rank', 'Model', 'Return', 'vs SPY (pp)', 'Weeks beating SPY', 'Worst drop', 'Holds', 'Right calls']);
+  assert.equal($('results-summary').textContent, '1 of 2 models beat SPY. SPY returned 10.00%.');
+});
+
+test('model search filters by name without changing the selected benchmark summary', async () => {
+  const {site} = siteFixture();
+  const elements = mountSite(site);
+  await settle();
+  const search = elements.get('model-search');
+  const summary = elements.get('results-summary');
+  const modelNames = () => elements.get('leaderboard-table').descendants()
+    .filter(node => node.className === 'run-button').map(node => node.textContent);
+  search.value = '  CLEF FLASH  ';
+  search.oninput();
+  assert.deepEqual(modelNames(), ['Clef-Flash']);
+  assert.equal(summary.textContent, '2 of 2 models beat SPY. SPY returned 1.00%.');
+  assert.equal(elements.get('search-status').textContent, '1 matching model');
+  search.value = 'no match';
+  search.oninput();
+  assert.deepEqual(modelNames(), []);
+  assert.equal(elements.get('search-status').textContent, 'No models match your search.');
+  search.value = '';
+  search.oninput();
+  assert.equal(modelNames().length, 2);
 });
 
 test('the category dropdown defaults to All and filters independently of the window', async () => {
@@ -655,7 +682,7 @@ test('the pricing page renders the standardized table', async () => {
   const pricing = $('pricing-table').children[0].descendants();
   const pricingRows = pricing.filter(node => node.tagName === 'tr');
   assert.equal(pricingRows.length, 3, 'header + one row per model on the board');
-  assert.deepEqual(pricingRows[0].children.map(cell => cell.textContent),
+  assert.deepEqual(pricingRows[0].children.map(cell => cell.children[0]?.textContent ?? cell.textContent),
     ['Model', 'Input $ / 1M', 'Tokens / decision', 'Cost / decision', 'Run cost', 'Source']);
   // The model cell carries the creator's logo plus the display name.
   const cellText = row => row.children[0].descendants()
@@ -669,8 +696,24 @@ test('the pricing page renders the standardized table', async () => {
   }
   assert.ok(pricing.filter(node => node.tagName === 'a').every(link => link.href.startsWith('https://')));
   assert.match($('cost-window').textContent, /once per question/);
-  assert.equal($('model-costs').children.length, 2, 'one bar per model');
   assert.equal($('leaderboard-table'), undefined);
+});
+
+test('pricing sorts by run cost and keeps unknown costs last in both directions', async () => {
+  const low = catalogRun({run_id: 'low', model: 'clef', estimated_cost_usd: 0.01});
+  const high = catalogRun({run_id: 'high', model: 'clef-flash', estimated_cost_usd: 0.5});
+  const unknown = catalogRun({run_id: 'unknown', model: 'local-model', estimated_cost_usd: null, pricing: null,
+    metrics: {...catalogRun().metrics, input_tokens: undefined}});
+  const elements = mountSite({'data/index.json': JSON.stringify(catalog([low, high, unknown]))}, 'pricing.html');
+  await settle();
+  const [head, body] = elements.get('pricing-table').children[0].children;
+  const runCost = head.children[0].children[4];
+  const costs = () => body.children.map(row => row.children[4].textContent);
+  runCost.children[0].onclick();
+  assert.equal(runCost.getAttribute('aria-sort'), 'ascending');
+  assert.deepEqual(costs(), ['$0.0100', '$0.500', 'n/a']);
+  runCost.children[0].onclick();
+  assert.deepEqual(costs(), ['$0.500', '$0.0100', 'n/a']);
 });
 
 // A DOM `hidden` property is invisible to a fake DOM, so this checks the

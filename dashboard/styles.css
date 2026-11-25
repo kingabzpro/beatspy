@@ -17,9 +17,9 @@
 td .synthetic-chip{display:inline-block;margin-left:8px;border:1px solid #7a5a1e;background:#241c0c;color:#f0c265;border-radius:99px;padding:2px 7px;font:10px ui-monospace,SFMono-Regular,Consolas,monospace;vertical-align:1px}
 tr.synthetic td{background:#1a1610}
 
-#cost-overview{margin-top:24px}.bar-row{display:grid;grid-template-columns:minmax(100px,140px) minmax(30px,1fr) auto;align-items:center;gap:12px;margin:18px 0;font-size:11px}.bar-label{overflow-wrap:anywhere}.bar-track{display:flex;height:12px;border-radius:3px;overflow:hidden;background:var(--line)}.bar-fill{height:100%}.bar-value{font-variant-numeric:tabular-nums;text-align:right;min-width:60px}.price-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-top:20px}.price-controls input{font:inherit;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:10px;width:100%}.price-controls button{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:5px;padding:10px;font-size:12px;cursor:pointer}.price-controls input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.cost-summary{font-size:14px;color:var(--accent);line-height:1.8}.cost-records{margin-top:20px}#price-source a{text-decoration:underline}
+#cost-overview{margin-top:24px}.price-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:end;margin-top:20px}.price-controls input{font:inherit;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:5px;padding:10px;width:100%}.price-controls button{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:5px;padding:10px;font-size:12px;cursor:pointer}.price-controls input:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.cost-summary{font-size:14px;color:var(--accent);line-height:1.8}.cost-records{margin-top:20px}#price-source a{text-decoration:underline}
 
-#cost-overview{margin-top:56px}#calibration{margin-top:48px}#calibration .panel{margin-top:20px}.callout{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;background:var(--panel);padding:20px 24px}.callout strong{display:block;font-size:34px;font-weight:500;color:var(--accent);font-variant-numeric:tabular-nums;margin-bottom:8px}.callout p{margin:0;font-size:12px;color:var(--muted);line-height:1.8}.callout p+p{margin-top:8px}.legend span{align-self:center;font-size:10px;color:var(--muted)}#reliability .chart svg{max-width:620px;margin:0 auto}#reliability-bins{margin-top:10px}#reliability-bins table{font-size:11px}#pricing-table table td:first-child{font-weight:600}#model-costs{margin-top:4px}#price-note{margin-top:10px}#cost-window{margin-bottom:4px}
+#cost-overview{margin-top:56px}#calibration{margin-top:48px}#calibration .panel{margin-top:20px}.callout{border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;background:var(--panel);padding:20px 24px}.callout strong{display:block;font-size:34px;font-weight:500;color:var(--accent);font-variant-numeric:tabular-nums;margin-bottom:8px}.callout p{margin:0;font-size:12px;color:var(--muted);line-height:1.8}.callout p+p{margin-top:8px}.legend span{align-self:center;font-size:10px;color:var(--muted)}#reliability .chart svg{max-width:620px;margin:0 auto}#reliability-bins{margin-top:10px}#reliability-bins table{font-size:11px}#pricing-table table td:first-child{font-weight:600}#price-note{margin-top:10px}#cost-window{margin-bottom:4px}
 
 .how{margin:58px 0 10px}
 .how-lede{max-width:940px;margin:0 0 10px;color:var(--muted);font-size:15px;line-height:1.9}
@@ -68,12 +68,16 @@ tr.leader .run-button{color:var(--accent)}
 .board-heading h2{margin:0}
 .board-controls{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;margin-block:12px 4px}
 .board-controls .tabs{margin:0}
-.model-filter{display:flex;align-items:center;gap:8px;max-inline-size:100%;margin-inline-start:auto}
+.model-filter{display:flex;align-items:end;gap:8px;max-inline-size:100%;margin-inline-start:auto}
+.model-search-field{min-inline-size:0}
 .model-filter label{min-inline-size:0;flex:none;font-size:.6875rem;color:var(--muted)}
-.tab,.model-filter select{
+.model-filter label{margin-block-end:4px}
+.tab,.model-filter select,.model-filter input{
   min-block-size:2.125rem;padding:.5rem .875rem;border:1px solid var(--line);border-radius:999px;
   background:transparent;color:var(--muted);font:inherit;font-size:.75rem;line-height:1rem;cursor:pointer
 }
+.model-filter input{inline-size:11rem;max-inline-size:100%;cursor:text;color:var(--text);color-scheme:dark}
+.model-filter input:focus-visible,#pricing-table :focus-visible,#pricing-table:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .tab:hover,.model-filter select:is(:hover,:open){color:var(--text);border-color:var(--muted)}
 .tab.active{color:#12220a;background:var(--accent);border-color:var(--accent);font-weight:600}
 .model-filter select{inline-size:7.5rem;max-inline-size:100%;color-scheme:dark}
@@ -93,22 +97,28 @@ tr.leader .run-button{color:var(--accent)}
   .model-filter option:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 }
 @media(pointer:coarse){
-  .tab,.model-filter select,.model-filter option{min-block-size:2.75rem}
-  .tab,.model-filter select{font-size:1rem}
+  .tab,.model-filter select,.model-filter option,.model-filter input{min-block-size:2.75rem}
+  .tab,.model-filter select,.model-filter input{font-size:1rem}
   .model-filter select{inline-size:8.5rem}
   .model-filter select::picker(select){max-block-size:min(23rem,55dvh)}
 }
 .hero .lede a{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.results-summary{margin:1.25rem 0 0;color:var(--accent);font-size:clamp(1rem,2vw,1.25rem);font-weight:650;line-height:1.5}
+.results-summary + .hero-meta{margin-block-start:.5rem}
+#board-window:empty,#search-status:empty{margin:0}
+#pricing-table th button{min-block-size:1.5rem}
+#pricing-table th[aria-sort=ascending] .sort-arrow::after{content:" ↑"}
+#pricing-table th[aria-sort=descending] .sort-arrow::after{content:" ↓"}
+.visually-hidden{position:absolute;inline-size:1px;block-size:1px;overflow:hidden;clip-path:inset(50%)}
 #leaderboard-table:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .cell-note{display:block;font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap}
 
 @media(max-width:760px){
-  .model-filter{margin-inline-start:0}
+  .model-filter{margin-inline-start:0;flex-wrap:wrap}
   /* Phones keep the columns the ranking reads on: return and the gap to SPY
      on one window, windows beaten and the average return across windows. The
-     rest either repeats another column (Avg vs SPY orders exactly like Avg
-     return, on $10K like Return) or waits for the run page. */
-  .col-usd_10k,.col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
+     remaining metrics are available on the run page. */
+  .col-outperformance_hit_rate,.col-max_drawdown,.col-hold,.col-accuracy{display:none}
   .col-windows,.col-avg_gap,.col-best_gap,.col-worst_gap{display:none}
   #leaderboard-table th,#leaderboard-table td{padding:16px 6px}
   #leaderboard-table .col-model{white-space:normal;overflow-wrap:anywhere}

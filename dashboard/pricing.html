@@ -22,15 +22,13 @@
     <nav aria-label="Main navigation"><a href="index.html">Results</a><a href="pricing.html" aria-current="page">Pricing</a><a href="method.html">Method</a><a href="archive.html">Archive</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
   </header>
   <main id="main-content" tabindex="-1">
-    <section id="cost-overview" aria-labelledby="pricing-table-title"><div class="section-heading"><div><p class="eyebrow">WHAT THE MODELS CHARGE</p><h2 id="pricing-table-title">Pricing</h2></div></div>
+    <section id="cost-overview" aria-labelledby="pricing-table-title"><h1 id="pricing-table-title">Pricing</h1>
       <p id="cost-window" class="caption"></p>
       <div id="status" role="status" aria-live="polite"></div>
-      <div class="chart-grid">
-        <figure class="panel"><h3>What each model charges</h3><p class="caption">Sorted by cost per decision. A rate alone does not predict the bill: what you pay is the rate times the tokens the provider counts.</p><div id="pricing-table" class="table-wrap"></div></figure>
-        <figure class="panel"><h3>Cost per run</h3><p class="caption">The same bills over the published 25-decision window, as bars.</p><div id="model-costs"></div></figure>
-      </div>
+      <p id="pricing-sort-status" class="visually-hidden" role="status"></p>
+      <div id="pricing-table" class="panel table-wrap" role="region" aria-labelledby="pricing-table-title" tabindex="0"></div>
     </section>
   </main>
-  <footer><span>BeatSPY · Apache-2.0</span><span>Frozen data · Replayable scores</span><a href="https://github.com/kingabzpro/beatspy">Source ↗</a></footer>
+  <footer><span>BeatSPY · Apache-2.0</span><span>Frozen data · Replayable scores</span></footer>
 </body>
 </html>
