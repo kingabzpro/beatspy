@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="An interactive evaluation of BeatSPY’s published trading benchmarks, with market windows, baseline comparisons, and model category summaries.">
+  <meta name="theme-color" content="#101214">
+  <meta name="color-scheme" content="dark">
+  <title>Benchmark report · BeatSPY</title>
+  <link rel="canonical" href="https://beatspy.vercel.app/report">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" sizes="any">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" sizes="180x180">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <header class="topbar"><a class="brand" href="index.html"><svg class="brandmark" aria-hidden="true" viewBox="0 0 32 32"><path d="M5 27V17h5v10zm9 0V10h5v17zm9 0V3h5v24z" fill="currentColor"/></svg><span>BeatSPY</span></a>
+    <nav aria-label="Main navigation"><a href="report.html" aria-current="page">Report</a><a href="pricing.html">Pricing</a><a href="method.html">Method</a><a href="contribute.html">Contribute</a><a href="https://github.com/kingabzpro/beatspy">GitHub ↗</a></nav>
+  </header>
+  <main id="main-content" class="benchmark-report" tabindex="-1">
+    <header class="report-intro">
+      <h1>BeatSPY benchmark report</h1>
+      <p class="lede">How trading models and strategies performed against SPY across the published protocol v2 windows.</p>
+      <p id="report-overview" class="report-overview"></p>
+    </header>
+    <section class="report-section" aria-labelledby="report-method-heading">
+      <h2 id="report-method-heading">How the benchmark works</h2>
+      <ol class="report-method">
+        <li><h3>Freeze the market</h3><p>Each window uses a shared snapshot of adjusted prices. The 25-asset pool spans stocks and ETFs. Models use only data available at each weekly decision.</p></li>
+        <li><h3>Turn signals into trades</h3><p>Most runs convert stock-level outperformance probabilities into portfolio weights. The standard policy combines an equal-weight base with model tilts. HRP supplies its own weights.</p></li>
+        <li><h3>Score the portfolio</h3><p>Simulated fills use the next session’s open, with 5 basis points each for fees and slippage per trade leg. Excess return is the portfolio’s return minus SPY’s return, in percentage points.</p></li>
+      </ol>
+    </section>
+
+    <noscript><p class="caption">Enable JavaScript to load the published charts and category summary.</p></noscript>
+    <p id="status" role="status" aria-live="polite"></p>
+    <div id="report-results" hidden>
+      <section class="report-section" aria-labelledby="report-windows-heading">
+        <h2 id="report-windows-heading">Results across market windows</h2>
+        <p class="caption" id="report-window-help">Select a window to update the return comparison and category summary.</p>
+        <div class="report-chart-grid">
+          <figure class="panel report-chart">
+            <figcaption>Share of models beating SPY</figcaption>
+            <ul id="report-window-chart" class="report-chart-list" aria-describedby="report-window-help"></ul>
+          </figure>
+          <figure class="panel report-chart">
+            <figcaption>Portfolio and baseline returns</figcaption>
+            <ul id="report-baseline-chart" class="report-chart-list"></ul>
+          </figure>
+        </div>
+        <p id="report-selection" class="report-selection" role="status"></p>
+      </section>
+      <section class="report-section" aria-labelledby="report-category-heading">
+        <h2 id="report-category-heading">Model evaluation by category</h2>
+        <p class="caption">Read the median gap alongside the number of models in each category. A win is a return strictly above SPY.</p>
+        <div id="report-category-table" class="table-wrap" role="region" aria-labelledby="report-category-heading" tabindex="0"></div>
+      </section>
+    </div>
+
+    <section class="report-section report-conclusion" aria-labelledby="report-conclusion-heading">
+      <h2 id="report-conclusion-heading">Conclusion</h2>
+      <p><strong>The comparison changes with the market.</strong> Equal weight helps show what the fixed pool earned on its own. Momentum tests whether the models added value over a simple selection rule. Use the paired confidence interval on an individual run page to see how much uncertainty surrounds its gap to SPY.</p>
+      <p><strong>Prediction quality adds a separate check.</strong> A model can rank stocks well while assigning unreliable probabilities. Read calibration and answer coverage alongside returns, especially when two results are close.</p>
+      <p><strong>Forward evaluation would strengthen the evidence.</strong> The published runs use historical prices and a fixed asset pool chosen after the fact. Freezing the model versions, inputs, universe, and rules before a new period starts would test whether the observed patterns persist.</p>
+      <p class="caption">Source <a href="data/index.json">published run catalog</a>. Each model contributes its latest completed protocol v2 run per window. The figures exclude synthetic runs.</p>
+    </section>
+  </main>
+  <footer><span>BeatSPY · Apache-2.0</span><span>Frozen data · Replayable scores</span></footer>
+</body>
+</html>

@@ -51,6 +51,7 @@ packages = ["src/beatspy"]
 "dashboard/method.html" = "beatspy/reporting/static/method.html"
 "dashboard/archive.html" = "beatspy/reporting/static/archive.html"
 "dashboard/contribute.html" = "beatspy/reporting/static/contribute.html"
+"dashboard/report.html" = "beatspy/reporting/static/report.html"
 "dashboard/styles.css" = "beatspy/reporting/static/styles.css"
 "dashboard/app.js" = "beatspy/reporting/static/app.js"
 "dashboard/favicon.ico" = "beatspy/reporting/static/favicon.ico"

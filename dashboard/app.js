@@ -510,6 +510,129 @@ if (typeof document !== "undefined") {
       ? `${latest.start} to ${latest.end}. Some providers bill the shared market data once per question, so token counts vary by provider.`
       : "");
   }
+
+  function renderReport() {
+    if (!$("report-results")) return;
+    const candidates = runs.filter(run => protocolOf(run) === 6 && !run.synthetic);
+    const windows = scoredWindows(candidates).filter(window => window.runs.some(run =>
+      Number.isFinite(run.metrics?.excess_return_vs_spy)));
+    if (!windows.length) {
+      setText("status", "No published protocol v2 results are available in this catalog.");
+      return;
+    }
+    const categories = {
+      "decision-ai": "Decision AI", ml: "Machine learning", foundation: "Foundation models",
+      "rule-based": "Rule-based", llm: "LLMs", agents: "Agents", hybrids: "Hybrids",
+    };
+    const median = values => {
+      const sorted = values.filter(Number.isFinite).sort((a, b) => a - b);
+      if (!sorted.length) return null;
+      const middle = Math.floor(sorted.length / 2);
+      return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+    };
+    const gap = run => run.metrics?.excess_return_vs_spy;
+    const summaries = windows.map(window => {
+      const scored = window.runs.filter(run => Number.isFinite(gap(run)));
+      const baselines = scored[0].metrics.baselines ?? {};
+      return {
+        label: `${monthLabel(window.start)} to ${monthLabel(window.end)}`,
+        scored,
+        wins: scored.filter(run => gap(run) > 0).length,
+        equalWeight: baselines.equal_weight,
+        comparisons: [
+          ["SPY", window.spy, "spy"],
+          ["Median model", median(scored.map(run => run.metrics.total_return)), "model"],
+          ["Equal weight", baselines.equal_weight, "baseline"],
+          ["60/40", baselines.sixty_forty, "baseline"],
+          ["12-minus-1 momentum", baselines.momentum_12_1, "baseline"],
+        ],
+      };
+    });
+    const values = summaries.flatMap(summary => summary.comparisons.map(([, value]) => value)).filter(Number.isFinite);
+    const min = Math.min(0, ...values), max = Math.max(.01, ...values);
+    const position = value => (value - min) / (max - min) * 100;
+    const consistent = allPeriodRows(windows).filter(row => row.complete && row.beatIn === windows.length).length;
+    if (windows.length > 1) {
+      setText("report-overview", consistent
+        ? `${plural(consistent, "model")} beat SPY in every published window.`
+        : "No model beat SPY in every published window.");
+    }
+
+    function bar(start, end, kind) {
+      const track = node("span", undefined, "report-bar-track");
+      track.setAttribute("aria-hidden", "true");
+      const fill = node("span", undefined, `report-bar-fill report-bar-${kind}`);
+      fill.style.left = `${Math.min(start, end)}%`;
+      fill.style.width = `${Math.abs(end - start)}%`;
+      track.append(fill);
+      if (start > 0) {
+        const zero = node("span", undefined, "report-bar-zero");
+        zero.style.left = `${start}%`;
+        track.append(zero);
+      }
+      return track;
+    }
+
+    const chart = $("report-window-chart");
+    const buttons = summaries.map((summary, index) => {
+      const item = node("li");
+      const button = node("button", undefined, "report-window");
+      button.type = "button";
+      button.setAttribute("aria-controls", "report-baseline-chart report-category-table");
+      button.append(node("span", summary.label, "report-bar-label"),
+        bar(0, summary.wins / summary.scored.length * 100, "model"),
+        node("span", `${summary.wins}/${summary.scored.length}`, "report-bar-value"));
+      button.onclick = () => selectWindow(index);
+      item.append(button);
+      chart.append(item);
+      return button;
+    });
+
+    function selectWindow(index) {
+      const {label, scored, equalWeight, comparisons} = summaries[index];
+      buttons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === index)));
+      const comparableReturns = scored.map(run => run.metrics.total_return).filter(Number.isFinite);
+      const aheadOfEqualWeight = comparableReturns.filter(value => value > equalWeight).length;
+      setText("report-selection", Number.isFinite(equalWeight) && comparableReturns.length
+        ? `${label}. ${aheadOfEqualWeight} of ${plural(comparableReturns.length, "model")} beat equal weight.`
+        : `Showing ${label}.`);
+      $("report-baseline-chart").replaceChildren(...comparisons.filter(([, value]) => Number.isFinite(value))
+        .map(([name, value, kind]) => {
+          const item = node("li", undefined, "report-baseline");
+          item.append(node("span", name, "report-bar-label"), bar(position(0), position(value), kind),
+            node("span", percent(value), "report-bar-value"));
+          return item;
+        }));
+
+      const table = node("table");
+      const caption = node("caption", `Category summary for ${label}`, "visually-hidden");
+      const thead = node("thead"), header = node("tr"), tbody = node("tbody");
+      for (const [i, title] of ["Category", "Models", "Beat SPY", "Median gap (pp)"].entries()) {
+        const cell = node("th", title, i ? "num" : undefined);
+        cell.scope = "col";
+        header.append(cell);
+      }
+      thead.append(header);
+      for (const [category, name] of Object.entries(categories)) {
+        const group = scored.filter(run => modelCategory(run) === category);
+        if (!group.length) continue;
+        const middle = median(group.map(gap));
+        const points = Math.abs(middle * 100).toFixed(2);
+        const row = node("tr"), title = node("th", name);
+        title.scope = "row";
+        row.append(title, node("td", group.length, "num"),
+          node("td", group.filter(run => gap(run) > 0).length, "num"),
+          node("td", `${middle < 0 ? "−" : middle > 0 ? "+" : ""}${points}`,
+            `num ${middle < 0 ? "negative" : middle > 0 ? "positive" : ""}`));
+        tbody.append(row);
+      }
+      table.append(caption, thead, tbody);
+      $("report-category-table").replaceChildren(table);
+    }
+
+    selectWindow(summaries.length - 1);
+    setHidden("report-results", false);
+  }
   // One window at a time, or every window averaged: the toggle picks the lens.
   const ALL_COLUMNS = [
     ["model", "Model", "text"],
@@ -1125,6 +1248,7 @@ if (typeof document !== "undefined") {
       window.addEventListener("hashchange", hashSelection);
       renderBoard();
       renderPricing();
+      renderReport();
       renderRun();
     } catch (error) {
       setText("status", `Results unavailable: ${error.message}. Try reloading the page.`);

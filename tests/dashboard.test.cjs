@@ -6,6 +6,17 @@ const {
   ratesFor, reliabilitySeries, catalogProblems, PRICES, SIGNALS, modelCategory, modelLogo
 } = require('../dashboard/app.js');
 
+test('primary navigation leaves Results to the brand and Archive to the method page', () => {
+  for (const name of ['index', 'run', 'pricing', 'method', 'archive', 'contribute', 'report']) {
+    const page = readFileSync(`dashboard/${name}.html`, 'utf8');
+    const nav = page.match(/<nav aria-label="Main navigation">([\s\S]*?)<\/nav>/)[1];
+    assert.doesNotMatch(nav, /href="(?:index|archive)\.html"/, name);
+    assert.match(nav, /href="report\.html"/, name);
+    assert.match(page, /<a class="brand" href="index\.html"/, name);
+    if (name === 'method') assert.match(page, /href="archive\.html"/);
+  }
+});
+
 // A minimal catalog row in the DCN shape the Python renderer writes.
 function catalogRun(overrides = {}) {
   const runId = overrides.run_id || '20261008-101010_2026-ytd_clef-flash_abcdef1234';
@@ -310,6 +321,8 @@ const PAGE_IDS = {
     'reliability-bins', 'reliability-bins-caption', 'performance', 'drawdown', 'allocations',
     'run-cost', 'price-source', 'price-note', 'coverage', 'settings', 'downloads'],
   'pricing.html': ['cost-overview', 'cost-window', 'status', 'pricing-table'],
+  'report.html': ['status', 'report-results', 'report-window-chart', 'report-baseline-chart',
+    'report-selection', 'report-category-table'],
 };
 
 // Stand up one page against an in-memory site: no network, no files, no browser.
@@ -335,6 +348,29 @@ function mountSite(site, page = 'index.html', search = '') {
 }
 
 const settle = async () => {for (let i = 0; i < 50; i++) await new Promise(resolve => setTimeout(resolve, 0));};
+
+test('report window buttons update the comparison bars and category summary together', async () => {
+  const first = catalogRun({run_id: 'first'});
+  const latest = catalogRun({run_id: 'latest', model: 'lightgbm', start: '2026-10-07', end: '2026-11-13',
+    metrics: {...first.metrics, total_return: 0.01, spy_total_return: 0.08, excess_return_vs_spy: -0.07}});
+  const archived = catalogRun({run_id: 'archived', dcn_protocol: 5});
+  const synthetic = catalogRun({run_id: 'demo', model: 'local-test', synthetic: true, trust: 'synthetic'});
+  const elements = mountSite({'data/index.json': JSON.stringify(catalog([first, latest, archived, synthetic]))}, 'report.html');
+  await settle();
+  const chart = elements.get('report-window-chart');
+  const buttons = chart.descendants().filter(node => node.tagName === 'button');
+  assert.equal(buttons.length, 2);
+  assert.equal(buttons[1].getAttribute('aria-pressed'), 'true');
+  assert.match(elements.get('report-selection').textContent, /0 of 1 model beat equal weight/);
+  const values = id => elements.get(id).descendants().map(node => node.textContent);
+  assert.ok(values('report-baseline-chart').includes('8.00%'));
+  assert.ok(values('report-category-table').includes('−7.00'));
+  buttons[0].onclick();
+  assert.equal(buttons[0].getAttribute('aria-pressed'), 'true');
+  assert.equal(buttons[1].getAttribute('aria-pressed'), 'false');
+  assert.match(elements.get('report-selection').textContent, /1 of 1 model beat equal weight/);
+  assert.ok(values('report-category-table').includes('+4.00'));
+});
 
 // Two runs, artifacts present for the first: enough to exercise the board, the
 // run page and the pricing page against one payload.
